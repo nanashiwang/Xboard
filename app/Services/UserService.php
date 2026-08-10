@@ -198,6 +198,8 @@ class UserService
             'telegram_id',
             'group_id',
             'speed_limit',
+            'device_limit',
+            'registered_device_limit',
             'expired_at',
             'transfer_enable'
         ];
@@ -222,6 +224,8 @@ class UserService
         $user->group_id = $plan->group_id;
         $user->transfer_enable = $plan->transfer_enable * 1073741824;
         $user->speed_limit = $plan->speed_limit;
+        $user->device_limit = $plan->device_limit;
+        $user->registered_device_limit = $plan->registered_device_limit;
 
         if ($expiredAt) {
             $user->expired_at = $expiredAt;
@@ -243,6 +247,7 @@ class UserService
         $user->transfer_enable = $plan->transfer_enable * 1073741824;
         $user->speed_limit = $plan->speed_limit;
         $user->device_limit = $plan->device_limit;
+        $user->registered_device_limit = $plan->registered_device_limit;
 
         if ($validityDays > 0) {
             $user = $this->extendSubscription($user, $validityDays);
@@ -284,5 +289,7 @@ class UserService
         $user->group_id = $plan->group_id;
         $user->expired_at = time() + (admin_setting('try_out_hour', 1) * 3600);
         $user->speed_limit = $plan->speed_limit;
+        $user->device_limit = $plan->device_limit;
+        $user->registered_device_limit = $plan->registered_device_limit;
     }
 }

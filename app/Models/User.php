@@ -35,7 +35,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $commission_balance 佣金余额
  * @property float $commission_rate 返佣比例
  * @property int|null $commission_type 返佣类型
- * @property int|null $device_limit 设备限制数量
+ * @property int|null $device_limit 在线 IP 限制数量
+ * @property int|null $registered_device_limit 客户端注册设备限制数量
  * @property int|null $discount 折扣
  * @property int|null $last_login_at 最后登录时间
  * @property int|null $parent_id 父账户ID
@@ -151,6 +152,16 @@ class User extends Authenticatable
     public function trafficResetLogs(): HasMany
     {
         return $this->hasMany(TrafficResetLog::class, 'user_id', 'id');
+    }
+
+    public function clientDevices(): HasMany
+    {
+        return $this->hasMany(ClientDevice::class, 'user_id', 'id');
+    }
+
+    public function clientRefreshTokens(): HasMany
+    {
+        return $this->hasMany(ClientRefreshToken::class, 'user_id', 'id');
     }
 
     /**

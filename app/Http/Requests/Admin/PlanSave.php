@@ -33,6 +33,7 @@ class PlanSave extends FormRequest
             'group_id' => 'integer|nullable',
             'speed_limit' => 'integer|nullable|min:0',
             'device_limit' => 'integer|nullable|min:0',
+            'registered_device_limit' => 'integer|nullable|min:0',
             'capacity_limit' => 'integer|nullable|min:0',
             'tags' => 'array|nullable',
         ];
@@ -135,6 +136,8 @@ class PlanSave extends FormRequest
             'speed_limit.min' => '速度限制不能为负数',
             'device_limit.integer' => '设备限制必须是整数',
             'device_limit.min' => '设备限制不能为负数',
+            'registered_device_limit.integer' => '客户端设备限制必须是整数',
+            'registered_device_limit.min' => '客户端设备限制不能为负数',
             'capacity_limit.integer' => '容量限制必须是整数',
             'capacity_limit.min' => '容量限制不能为负数',
             'tags.array' => '标签格式必须是数组',

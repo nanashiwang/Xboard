@@ -163,7 +163,18 @@ class ConfigController extends Controller
             ],
             'app' => [
                 'windows_version' => admin_setting('windows_version', ''),
+                'windows_min_supported_version' => admin_setting('windows_min_supported_version', ''),
+                'windows_build_number' => (int) admin_setting('windows_build_number', 0),
                 'windows_download_url' => admin_setting('windows_download_url', ''),
+                'windows_size_bytes' => (int) admin_setting('windows_size_bytes', 0),
+                'windows_sha256' => admin_setting('windows_sha256', ''),
+                'windows_signature' => admin_setting('windows_signature', ''),
+                'windows_release_notes' => admin_setting('windows_release_notes', ''),
+                'windows_published_at' => admin_setting('windows_published_at', ''),
+                'client_registered_device_limit' => (int) admin_setting(
+                    'client_registered_device_limit',
+                    config('client.registered_device_limit', 5)
+                ),
                 'macos_version' => admin_setting('macos_version', ''),
                 'macos_download_url' => admin_setting('macos_download_url', ''),
                 'android_version' => admin_setting('android_version', ''),

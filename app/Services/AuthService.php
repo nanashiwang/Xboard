@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ClientRefreshToken;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -42,13 +44,31 @@ class AuthService
 
     public function removeSession(string $sessionId): bool
     {
-        $this->user->tokens()->where('id', $sessionId)->delete();
+        DB::transaction(function () use ($sessionId): void {
+            $token = $this->user->tokens()->whereKey($sessionId)->lockForUpdate()->first();
+            if (!$token) {
+                return;
+            }
+            if ($token->session_id) {
+                ClientRefreshToken::query()
+                    ->where('family_id', $token->session_id)
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => now(), 'updated_at' => now()]);
+            }
+            $token->delete();
+        });
         return true;
     }
 
     public function removeAllSessions(): bool
     {
-        $this->user->tokens()->delete();
+        DB::transaction(function (): void {
+            ClientRefreshToken::query()
+                ->where('user_id', $this->user->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now(), 'updated_at' => now()]);
+            $this->user->tokens()->delete();
+        });
         return true;
     }
 

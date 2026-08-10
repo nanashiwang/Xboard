@@ -120,6 +120,7 @@ class OrderService
 
             $this->setSpeedLimit($plan->speed_limit);
             $this->setDeviceLimit($plan->device_limit);
+            $this->setRegisteredDeviceLimit($plan->registered_device_limit);
 
             if (!$this->user->save()) {
                 throw new \RuntimeException('用户信息保存失败');
@@ -336,6 +337,11 @@ class OrderService
     private function setDeviceLimit($deviceLimit)
     {
         $this->user->device_limit = $deviceLimit;
+    }
+
+    private function setRegisteredDeviceLimit($deviceLimit)
+    {
+        $this->user->registered_device_limit = $deviceLimit;
     }
 
     private function buyByPeriod(Order $order, Plan $plan)

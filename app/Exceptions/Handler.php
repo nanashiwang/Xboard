@@ -3,7 +3,9 @@
 namespace App\Exceptions;
 
 use App\Helpers\ApiResponse;
+use App\Support\ClientApiResponse;
 use App\Services\Plugin\InterceptResponseException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Support\Arr;
 use Illuminate\View\ViewException;
@@ -20,6 +22,7 @@ class Handler extends ExceptionHandler
      */
     protected $dontReport = [
         ApiException::class,
+        ClientApiException::class,
         InterceptResponseException::class
     ];
 
@@ -57,6 +60,41 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        if ($exception instanceof ClientApiException) {
+            return ClientApiResponse::error(
+                $request,
+                $exception->apiCode(),
+                $exception->getMessage(),
+                $exception->httpStatus(),
+                $exception->details()
+            );
+        }
+        $actionName = (string) $request->route()?->getActionName();
+        $isDesktopAction = str_starts_with($actionName, 'App\\Http\\Controllers\\V1\\Desktop\\');
+        if (
+            $exception instanceof ThrottleRequestsException
+            && $isDesktopAction
+        ) {
+            return ClientApiResponse::error(
+                $request,
+                'RATE_LIMITED',
+                '请求过于频繁，请稍后重试',
+                429,
+                ['retry_after' => $exception->getHeaders()['Retry-After'] ?? null]
+            );
+        }
+        if (
+            $isDesktopAction
+            && (!$this->isHttpException($exception) || $exception->getStatusCode() >= 500)
+        ) {
+            $status = $this->isHttpException($exception) ? $exception->getStatusCode() : 500;
+            return ClientApiResponse::error(
+                $request,
+                $status === 503 ? 'SERVICE_UNAVAILABLE' : 'SERVER_ERROR',
+                $status === 503 ? '服务暂时不可用，请稍后重试' : '服务器内部错误',
+                $status
+            );
+        }
         if ($exception instanceof ViewException) {
             return $this->fail([500, '主题渲染失败。如更新主题，参数可能发生变化请重新配置主题后再试。']);
         }

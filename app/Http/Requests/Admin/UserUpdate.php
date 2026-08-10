@@ -32,7 +32,8 @@ class UserUpdate extends FormRequest
             'commission_balance' => 'numeric',
             'remarks' => 'nullable',
             'speed_limit' => 'nullable|integer',
-            'device_limit' => 'nullable|integer'
+            'device_limit' => 'nullable|integer',
+            'registered_device_limit' => 'nullable|integer|min:0'
         ];
     }
 
@@ -63,7 +64,9 @@ class UserUpdate extends FormRequest
             'commission_balance.integer' => '佣金格式不正确',
             'password.min' => '密码长度最小8位',
             'speed_limit.integer' => '限速格式不正确',
-            'device_limit.integer' => '设备数量格式不正确'
+            'device_limit.integer' => '设备数量格式不正确',
+            'registered_device_limit.integer' => '客户端设备数量格式不正确',
+            'registered_device_limit.min' => '客户端设备数量不能小于 0'
         ];
     }
 }

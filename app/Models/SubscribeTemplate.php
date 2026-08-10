@@ -20,7 +20,7 @@ class SubscribeTemplate extends Model
     {
         $cacheKey = self::$cachePrefix . $name;
 
-        return Cache::store('redis')->remember($cacheKey, 3600, function () use ($name) {
+        return self::cache()->remember($cacheKey, 3600, function () use ($name) {
             return self::where('name', $name)->value('content');
         });
     }
@@ -31,7 +31,7 @@ class SubscribeTemplate extends Model
             ['name' => $name],
             ['content' => $content]
         );
-        Cache::store('redis')->forget(self::$cachePrefix . $name);
+        self::cache()->forget(self::$cachePrefix . $name);
     }
 
     public static function getAllContents(): array
@@ -41,6 +41,11 @@ class SubscribeTemplate extends Model
 
     public static function flushCache(string $name): void
     {
-        Cache::store('redis')->forget(self::$cachePrefix . $name);
+        self::cache()->forget(self::$cachePrefix . $name);
+    }
+
+    private static function cache(): \Illuminate\Contracts\Cache\Repository
+    {
+        return Cache::store(config('cache.settings_store', 'redis'));
     }
 }

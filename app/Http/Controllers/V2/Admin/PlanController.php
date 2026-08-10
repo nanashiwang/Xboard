@@ -46,12 +46,16 @@ class PlanController extends Controller
             DB::beginTransaction();
             try {
                 if ($request->input('force_update')) {
-                    User::where('plan_id', $plan->id)->update([
+                    $userUpdates = [
                         'group_id' => $params['group_id'],
                         'transfer_enable' => $params['transfer_enable'] * 1073741824,
                         'speed_limit' => $params['speed_limit'],
                         'device_limit' => $params['device_limit'],
-                    ]);
+                    ];
+                    if (array_key_exists('registered_device_limit', $params)) {
+                        $userUpdates['registered_device_limit'] = $params['registered_device_limit'];
+                    }
+                    User::where('plan_id', $plan->id)->update($userUpdates);
                 }
                 $plan->update($params);
                 DB::commit();
