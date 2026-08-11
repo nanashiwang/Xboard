@@ -5,6 +5,7 @@
   var API_BASE = '/api/v1/user/gift-card';
   var redeemed = false;
   var lastCheckedCode = '';
+  var rejectedCode = '';
 
   function getToken() {
     try {
@@ -27,6 +28,10 @@
     if (className) element.className = className;
     if (text !== undefined) element.textContent = text;
     return element;
+  }
+
+  function isValidCode(code) {
+    return code.length >= 8 && code.length <= 32;
   }
 
   function firstError(payload) {
@@ -154,15 +159,25 @@
       message.className = 'xgc-message' + (type ? ' ' + type : '');
     }
 
+    function syncRedeemButton() {
+      var code = input.value.trim();
+      redeemButton.disabled = !redeemed && (!isValidCode(code) || rejectedCode === code);
+    }
+
     function setBusy(busy) {
       input.disabled = busy || redeemed;
       checkButton.disabled = busy || redeemed;
-      redeemButton.disabled = busy || redeemed || !lastCheckedCode;
+      if (busy) {
+        redeemButton.disabled = true;
+      } else {
+        syncRedeemButton();
+      }
     }
 
     function reset() {
       redeemed = false;
       lastCheckedCode = '';
+      rejectedCode = '';
       input.disabled = false;
       input.value = '';
       checkButton.disabled = false;
@@ -203,33 +218,38 @@
 
       if (data.can_redeem) {
         lastCheckedCode = input.value.trim();
-        setMessage('兑换码可用，请确认兑换。', 'success');
-        redeemButton.disabled = false;
+        rejectedCode = '';
+        setMessage('兑换码可用，可以立即兑换。', 'success');
       } else {
         lastCheckedCode = '';
-        redeemButton.disabled = true;
+        rejectedCode = input.value.trim();
         setMessage(data.reason || '当前账号不满足兑换条件', 'error');
       }
+      syncRedeemButton();
     }
 
     async function checkCode() {
       var code = input.value.trim();
       lastCheckedCode = '';
+      rejectedCode = '';
       redeemButton.disabled = true;
       preview.className = 'xgc-preview';
       preview.textContent = '';
 
-      if (code.length < 8 || code.length > 32) {
+      if (!isValidCode(code)) {
         setMessage('兑换码长度应为 8～32 位', 'error');
-        return;
+        syncRedeemButton();
+        return false;
       }
 
       setMessage('正在查询…');
       setBusy(true);
       try {
         renderPreview(await request('check', code));
+        return lastCheckedCode === code;
       } catch (error) {
         setMessage(error.message, 'error');
+        return false;
       } finally {
         setBusy(false);
       }
@@ -240,17 +260,22 @@
         window.location.reload();
         return;
       }
-      if (!lastCheckedCode || input.value.trim() !== lastCheckedCode) {
-        setMessage('兑换码已变更，请重新查询', 'error');
-        lastCheckedCode = '';
-        redeemButton.disabled = true;
+
+      var code = input.value.trim();
+      if (!isValidCode(code)) {
+        setMessage('兑换码长度应为 8～32 位', 'error');
+        syncRedeemButton();
+        return;
+      }
+
+      if (lastCheckedCode !== code && !(await checkCode())) {
         return;
       }
 
       setMessage('正在兑换…');
       setBusy(true);
       try {
-        var data = await request('redeem', lastCheckedCode);
+        var data = await request('redeem', code);
         redeemed = true;
         preview.textContent = '';
         preview.appendChild(createElement('div', 'xgc-preview-title', data.message || '兑换成功！'));
@@ -277,10 +302,15 @@
     checkButton.addEventListener('click', checkCode);
     redeemButton.addEventListener('click', redeemCode);
     input.addEventListener('input', function () {
-      if (input.value.trim() !== lastCheckedCode) {
+      var code = input.value.trim();
+      if (code !== lastCheckedCode) {
         lastCheckedCode = '';
-        redeemButton.disabled = true;
+        rejectedCode = '';
+        preview.className = 'xgc-preview';
+        preview.textContent = '';
+        setMessage('');
       }
+      syncRedeemButton();
     });
     input.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') checkCode();
