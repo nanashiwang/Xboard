@@ -22,7 +22,19 @@ class GiftCardCheckRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'code' => 'required|string|min:8|max:32',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'code.required' => '请输入兑换码',
+            'code.min' => '兑换码长度不能少于8位',
+            'code.max' => '兑换码长度不能超过32位',
         ];
     }
 }
