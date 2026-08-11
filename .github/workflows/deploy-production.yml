@@ -1,0 +1,129 @@
+name: Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Remote operation
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+          - deploy
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  remote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install SSH client helper
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+      - name: Inspect or deploy production
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          test -n "$SSHPASS"
+          sshpass -e ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=15 \
+            -p 22 root@107.173.191.23 \
+            "bash -s -- '$OPERATION'" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          operation="${1:-inspect}"
+
+          show_state() {
+            echo "host=$(hostname)"
+            echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "--- running containers ---"
+            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' 2>/dev/null || true
+
+            echo "--- Xboard container metadata ---"
+            docker ps -q 2>/dev/null | while read -r container_id; do
+              [ -n "$container_id" ] || continue
+              name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's#^/##')
+              image=$(docker inspect --format '{{.Config.Image}}' "$container_id")
+              case "${name} ${image}" in
+                *[Xx]board*|*nanashiwang/[Xx]board*)
+                  echo "container=${name} image=${image}"
+                  docker inspect --format 'compose_dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} compose_files={{index .Config.Labels "com.docker.compose.project.config_files"}} compose_service={{index .Config.Labels "com.docker.compose.service"}}' "$container_id"
+                  docker inspect --format '{{range .Mounts}}mount={{.Source}}:{{.Destination}} type={{.Type}}{{println}}{{end}}' "$container_id"
+                  ;;
+              esac
+            done
+
+            echo "--- Git deployments ---"
+            for root in /www/wwwroot /opt /root /srv; do
+              [ -d "$root" ] || continue
+              find "$root" -maxdepth 4 -type d -name .git -print 2>/dev/null | sed 's#/.git$##'
+            done
+          }
+
+          show_state
+          [ "$operation" = "deploy" ] || exit 0
+
+          container_id=""
+          while read -r candidate; do
+            [ -n "$candidate" ] || continue
+            name=$(docker inspect --format '{{.Name}}' "$candidate" | sed 's#^/##')
+            image=$(docker inspect --format '{{.Config.Image}}' "$candidate")
+            case "${name} ${image}" in
+              *[Xx]board*|*nanashiwang/[Xx]board*) container_id="$candidate"; break ;;
+            esac
+          done <<EOF_CONTAINERS
+          $(docker ps -q 2>/dev/null || true)
+          EOF_CONTAINERS
+
+          if [ -n "$container_id" ]; then
+            compose_dir=$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$container_id")
+            compose_service=$(docker inspect --format '{{index .Config.Labels "com.docker.compose.service"}}' "$container_id")
+            if [ -n "$compose_dir" ] && [ -d "$compose_dir" ] && [ -n "$compose_service" ]; then
+              echo "Deploying Docker Compose service ${compose_service} from ${compose_dir}"
+              cd "$compose_dir"
+              docker compose pull "$compose_service"
+              docker compose run --rm "$compose_service" php artisan xboard:update
+              docker compose up -d
+              sleep 8
+              show_state
+              exit 0
+            fi
+          fi
+
+          git_dir=""
+          for root in /www/wwwroot /opt /root /srv; do
+            [ -d "$root" ] || continue
+            git_dir=$(find "$root" -maxdepth 4 -type d -name .git -print -quit 2>/dev/null | sed 's#/.git$##')
+            [ -z "$git_dir" ] || break
+          done
+
+          if [ -n "$git_dir" ]; then
+            echo "Deploying Git checkout from ${git_dir}"
+            cd "$git_dir"
+            git fetch origin master
+            git reset --hard origin/master
+            if command -v php >/dev/null 2>&1; then
+              php artisan xboard:update
+            elif command -v docker >/dev/null 2>&1; then
+              container_id=$(docker ps -q | head -1)
+              docker exec "$container_id" php artisan xboard:update
+              docker restart "$container_id"
+            else
+              echo "No PHP or Docker runtime found" >&2
+              exit 1
+            fi
+            show_state
+            exit 0
+          fi
+
+          echo "Unable to identify a supported Xboard deployment" >&2
+          exit 1
+          REMOTE_SCRIPT
