@@ -58,7 +58,9 @@ jobs:
             exit 1
           fi
 
-          docker compose run --rm xboard php artisan xboard:update
+          # Do not let the one-off container consume the SSH heredoc containing
+          # the remaining deployment commands.
+          docker compose run --rm -T xboard php artisan xboard:update </dev/null
           docker compose up -d xboard
           sleep 8
           container_id=$(docker compose ps -q xboard)
