@@ -24,7 +24,7 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         return [
             'secret_key' => ['label' => 'Stripe Secret Key', 'type' => 'string', 'description' => '先使用 sk_test_ 测试密钥；上线时替换为 sk_live_。不要填写 pk_ 公钥。'],
             'webhook_secret' => ['label' => 'Webhook 签名密钥', 'type' => 'string', 'description' => '填写对应回调端点的 whsec_ 密钥，测试与正式环境分别配置。'],
-            'currency' => ['label' => '收款币种', 'type' => 'select', 'default' => 'cny', 'select_options' => ['cny' => '人民币 CNY'], 'description' => '与本站人民币价格一致，金额以分传给 Stripe，不自动换汇。'],
+            'currency' => ['label' => '收款币种', 'type' => 'select', 'default' => 'cny', 'select_options' => [['value' => 'cny', 'label' => '人民币 CNY']], 'description' => '与本站人民币价格一致，金额以分传给 Stripe，不自动换汇。'],
         ];
     }
 

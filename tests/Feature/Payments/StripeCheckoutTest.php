@@ -126,7 +126,9 @@ class StripeCheckoutTest extends TestCase
         $manager->install('stripe');
         $manager->enable('stripe');
         $this->assertContains('StripeCheckout', PaymentService::getAllPaymentMethodNames());
-        $this->assertArrayHasKey('webhook_secret', (new PaymentService('StripeCheckout'))->form());
+        $form = (new PaymentService('StripeCheckout'))->form();
+        $this->assertArrayHasKey('webhook_secret', $form);
+        $this->assertSame([['value' => 'cny', 'label' => '人民币 CNY']], $form['currency']['options']);
     }
 
     public function test_duplicate_callback_does_not_reprocess_completed_order(): void
