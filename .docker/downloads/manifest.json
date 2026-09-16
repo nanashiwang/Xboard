@@ -1,0 +1,38 @@
+[
+  {
+    "name": "cmfa-2.11.24-meta-arm64-v8a-release.apk",
+    "size": 30703020,
+    "sha256": "0e9bf2774f70f9317cb195901d982356b809d4318ebd2e7f15b39c8ba9959d8f",
+    "url": "https://github.com/MetaCubeX/ClashMetaForAndroid/releases/download/v2.11.24/cmfa-2.11.24-meta-arm64-v8a-release.apk"
+  },
+  {
+    "name": "cmfa-2.11.24-meta-universal-release.apk",
+    "size": 78165364,
+    "sha256": "1364617db9e5371999e9ab029ccb9486907f61a1dfc48fa46ad1b28efd247232",
+    "url": "https://github.com/MetaCubeX/ClashMetaForAndroid/releases/download/v2.11.24/cmfa-2.11.24-meta-universal-release.apk"
+  },
+  {
+    "name": "Clash.Verge_2.4.7_aarch64.dmg",
+    "size": 50208570,
+    "sha256": "b4967eeefccc9688c100810fdfefa99147030c23949d1f278d5a5536aa86abf3",
+    "url": "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/v2.4.7/Clash.Verge_2.4.7_aarch64.dmg"
+  },
+  {
+    "name": "Clash.Verge_2.4.7_amd64.deb",
+    "size": 56855980,
+    "sha256": "c1fcbaa79e454416e3dff644f83ea30c9437cd9cd7e4d199ac7add651882c65d",
+    "url": "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/v2.4.7/Clash.Verge_2.4.7_amd64.deb"
+  },
+  {
+    "name": "Clash.Verge_2.4.7_x64-setup.exe",
+    "size": 38672014,
+    "sha256": "6642881b212bcd4766e81d56aec7497063ba5198c287f7d00a2ecf13b6f8b61a",
+    "url": "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/v2.4.7/Clash.Verge_2.4.7_x64-setup.exe"
+  },
+  {
+    "name": "Clash.Verge_2.4.7_x64.dmg",
+    "size": 53795360,
+    "sha256": "89b32dd2aec2bccad52507ccc994cbdf67335a29de6ff794ebe844eb7c387792",
+    "url": "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/v2.4.7/Clash.Verge_2.4.7_x64.dmg"
+  }
+]
