@@ -50,13 +50,13 @@ class PluginManager
 
         $pluginClass = $this->getPluginNamespace($pluginCode) . '\\Plugin';
 
+        $pluginFile = $this->getPluginPath($pluginCode) . '/Plugin.php';
+        if (!File::exists($pluginFile)) {
+            // A missing mount/file is not an uninstall. Preserve configuration.
+            Log::warning("Plugin class file not found: {$pluginFile}");
+            return null;
+        }
         if (!class_exists($pluginClass)) {
-            $pluginFile = $this->getPluginPath($pluginCode) . '/Plugin.php';
-            if (!File::exists($pluginFile)) {
-                Log::warning("Plugin class file not found: {$pluginFile}");
-                Plugin::query()->where('code', $pluginCode)->delete();
-                return null;
-            }
             require_once $pluginFile;
         }
 

@@ -13,7 +13,6 @@ class PaymentService
     protected $config;
     protected $payment;
     protected $pluginManager;
-    protected $class;
 
     public function __construct($method, $id = NULL, $uuid = NULL)
     {
@@ -61,7 +60,7 @@ class PaymentService
             }
         }
 
-        $this->payment = new $this->class($this->config);
+        throw new ApiException('支付插件不存在或未启用，请检查插件管理');
     }
 
     public function notify($params)
@@ -86,7 +85,7 @@ class PaymentService
             'trade_no' => $order['trade_no'],
             'total_amount' => $order['total_amount'],
             'user_id' => $order['user_id'],
-            'stripe_token' => $order['stripe_token']
+            'stripe_token' => $order['stripe_token'] ?? null
         ]);
     }
 

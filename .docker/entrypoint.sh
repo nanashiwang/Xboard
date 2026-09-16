@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+# Restore bundled plugins before Laravel boots: /www/plugins may be an empty
+# host mount, including on a one-off xboard:update container.
+if [ -d /opt/default-plugins ]; then
+    mkdir -p /www/plugins
+    cp -a /opt/default-plugins/. /www/plugins/
+fi
+
 # Resolve the binding scheme based on whether the embedded Caddy is enabled.
 #
 # When ENABLE_CADDY=true (default), Caddy owns the public port (7001) and

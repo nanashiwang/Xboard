@@ -22,6 +22,11 @@ class PaymentController extends Controller
                 HookManager::call('payment.notify.failed', [$method, $uuid, $request]);
                 return $this->fail([422, 'verify error']);
             }
+            // A verified event that does not represent a paid order needs only
+            // an acknowledgement (for example an unpaid Checkout session).
+            if (!empty($verify['skip_order'])) {
+                return $verify['custom_result'] ?? 'success';
+            }
             HookManager::call('payment.notify.verified', $verify);
             if (!$this->handle($verify['trade_no'], $verify['callback_no'])) {
                 return $this->fail([400, 'handle error']);
@@ -35,18 +40,21 @@ class PaymentController extends Controller
 
     private function handle($tradeNo, $callbackNo)
     {
-        $order = Order::where('trade_no', $tradeNo)->first();
-        if (!$order) {
-            return $this->fail([400202, 'order is not found']);
-        }
-        if ($order->status !== Order::STATUS_PENDING)
-            return true;
-        $orderService = new OrderService($order);
-        if (!$orderService->paid($callbackNo)) {
-            return false;
-        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($tradeNo, $callbackNo) {
+            $order = Order::where('trade_no', $tradeNo)->lockForUpdate()->first();
+            if (!$order) {
+                return false;
+            }
+            if ($order->status !== Order::STATUS_PENDING) {
+                return true;
+            }
+            $orderService = new OrderService($order);
+            if (!$orderService->paid($callbackNo)) {
+                throw new \RuntimeException('Payment fulfilment failed');
+            }
 
-        HookManager::call('payment.notify.success', $order);
-        return true;
+            HookManager::call('payment.notify.success', $order);
+            return true;
+        });
     }
 }

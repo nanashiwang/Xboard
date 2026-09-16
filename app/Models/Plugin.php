@@ -37,6 +37,7 @@ class Plugin extends Model
         'coin_payments',  // CoinPayments
         'mgate',          // MGate
         'telegram',       // Telegram
+        'stripe',         // Stripe Checkout
     ];
 
     protected $guarded = [

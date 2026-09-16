@@ -6,3 +6,5 @@
 !Epay
 !Mgate
 !Telegram
+!Stripe/
+!Stripe/**
