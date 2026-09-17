@@ -2,7 +2,7 @@
     "name": "Stripe Checkout",
     "code": "stripe",
     "type": "payment",
-    "version": "1.0.0",
-    "description": "Stripe 托管收银台，人民币计价与签名回调",
+    "version": "1.1.0",
+    "description": "Stripe 托管收银台，人民币记账、美元报价与签名回调",
     "author": "Xboard"
 }

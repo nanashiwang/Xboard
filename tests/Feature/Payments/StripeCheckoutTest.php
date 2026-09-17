@@ -62,7 +62,8 @@ class StripeCheckoutTest extends TestCase
         $this->assertSame(1, $result['type']);
         Http::assertSent(fn ($r) => $r['line_items'][0]['price_data']['unit_amount'] === 1050
             && $r['line_items'][0]['price_data']['currency'] === 'cny'
-            && $r['metadata']['payment_id'] === '7' && $r['payment_method_types'] === ['card']);
+            && $r['metadata']['payment_id'] === '7' && !isset($r['payment_method_types'])
+            && $r['adaptive_pricing']['enabled'] === false);
         $requests = Http::recorded();
         $this->assertSame($requests[0][0]->header('Idempotency-Key'), $requests[1][0]->header('Idempotency-Key'));
     }
@@ -128,7 +129,7 @@ class StripeCheckoutTest extends TestCase
         $this->assertContains('StripeCheckout', PaymentService::getAllPaymentMethodNames());
         $form = (new PaymentService('StripeCheckout'))->form();
         $this->assertArrayHasKey('webhook_secret', $form);
-        $this->assertSame([['value' => 'cny', 'label' => '人民币 CNY']], $form['currency']['options']);
+        $this->assertSame([['value' => 'usd', 'label' => '美元 USD'], ['value' => 'cny', 'label' => '人民币 CNY']], $form['currency']['options']);
     }
 
     public function test_duplicate_callback_does_not_reprocess_completed_order(): void
@@ -156,5 +157,92 @@ class StripeCheckoutTest extends TestCase
         $gateway->setConfig(['secret_key' => 'sk_test_example']);
         $this->expectException(ApiException::class);
         $gateway->pay(['total_amount' => 1000]);
+    }
+
+    private function usdGateway(array $overrides = []): Plugin
+    {
+        $gateway = $this->gateway();
+        $gateway->setConfig(array_replace($gateway->getConfig(), ['currency' => 'usd', 'exchange_rate' => '6.7075', 'cost_percent' => '4.4', 'cost_fixed_usd' => '0.30'], $overrides));
+        return $gateway;
+    }
+
+    public function test_usd_formula_rounds_up_and_covers_the_configured_budget(): void
+    {
+        foreach ([990 => 186, 2000 => 344, 2990 => 498, 4990 => 810] as $cny => $usd) {
+            $quote = \Plugin\Stripe\UsdPricing::calculate($cny, '6.7075', '4.4', '0.30');
+            $this->assertSame($usd, $quote['amount']);
+        }
+        foreach (['0', '-1', 'NaN', '1e2', '6.1234567', '21'] as $rate) {
+            try {
+                \Plugin\Stripe\UsdPricing::calculate(990, $rate, '4.4', '0.30');
+                $this->fail('Invalid rate accepted');
+            } catch (ApiException $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
+    }
+
+    public function test_usd_quote_is_persisted_and_rate_changes_do_not_change_an_existing_quote(): void
+    {
+        $this->order();
+        Http::preventStrayRequests();
+        Http::fake(['api.stripe.com/*' => Http::response(['url' => 'https://checkout.stripe.com/c/pay/cs_test_example'])]);
+        $input = ['total_amount' => 1050, 'trade_no' => 'test-order', 'return_url' => 'https://board.example/#/order/test-order'];
+        $this->usdGateway()->pay($input);
+        $this->usdGateway(['exchange_rate' => '7.5', 'cost_percent' => '8'])->pay($input);
+        $this->assertDatabaseCount('v2_stripe_quotes', 1);
+        $requests = Http::recorded();
+        $this->assertSame($requests[0][0]['line_items'], $requests[1][0]['line_items']);
+        $this->assertSame('usd', $requests[0][0]['line_items'][0]['price_data']['currency']);
+        $quote = \Illuminate\Support\Facades\DB::table('v2_stripe_quotes')->first();
+        $this->assertSame(1050, (int) $quote->cny_amount);
+        $changes = ['currency' => 'usd', 'amount_total' => (int) $quote->amount,
+            'metadata' => ['trade_no' => 'test-order', 'payment_id' => '7', 'quote_id' => $quote->id]];
+        $this->assertIsArray($this->notify($this->usdGateway(['exchange_rate' => '8']), $this->event($changes)));
+        $this->assertFalse($this->notify($this->usdGateway(), $this->event(array_replace($changes, ['amount_total' => 1050]))));
+        $this->assertFalse($this->notify($this->usdGateway(), $this->event(array_replace($changes, ['currency' => 'cny']))));
+        $this->assertFalse($this->notify($this->usdGateway(), $this->event(['currency' => 'usd', 'amount_total' => $quote->amount])));
+        Order::where('trade_no', 'test-order')->update(['total_amount' => 900]);
+        $this->assertFalse($this->notify($this->usdGateway(), $this->event($changes)));
+    }
+
+    public function test_usd_catalog_price_is_only_used_for_exact_amount_and_discount_uses_same_product(): void
+    {
+        $order = $this->order();
+        $order->update(['period' => 'monthly', 'total_amount' => 990, 'handling_amount' => 0]);
+        Http::preventStrayRequests();
+        Http::fake(['api.stripe.com/*' => Http::response(['url' => 'https://checkout.stripe.com/c/pay/cs_test_example'])]);
+        $gateway = $this->usdGateway(['catalog_usd' => ['1' => ['product' => 'prod_example', 'prices' => ['monthly' => ['id' => 'price_example', 'amount' => 186]]]]]);
+        $input = ['total_amount' => 990, 'trade_no' => 'test-order', 'return_url' => 'https://board.example/#/order/test-order'];
+        $gateway->pay($input);
+        $order->update(['total_amount' => 700]);
+        $gateway->pay(array_replace($input, ['total_amount' => 700]));
+        $requests = Http::recorded();
+        $this->assertSame('price_example', $requests[0][0]['line_items'][0]['price']);
+        $this->assertSame('prod_example', $requests[1][0]['line_items'][0]['price_data']['product']);
+        $this->assertArrayNotHasKey('product_data', $requests[1][0]['line_items'][0]['price_data']);
+        $this->assertDatabaseCount('v2_stripe_quotes', 2);
+    }
+
+    public function test_restricted_api_key_accepts_a_signed_live_event(): void
+    {
+        $this->order();
+        $gateway = $this->gateway();
+        $gateway->setConfig(array_replace($gateway->getConfig(), ['secret_key' => 'rk_live_example']));
+        $event = $this->event();
+        $event['livemode'] = true;
+        $this->assertIsArray($this->notify($gateway, $event));
+    }
+
+    public function test_usd_quote_rejects_invalid_fee_budget_and_tiny_payments(): void
+    {
+        foreach ([[1, '6.7075', '0', '0'], [990, '6.7075', '100', '0.30'], [990, '6.7075', '4.4', '-1'], [100000001, '6.7075', '4.4', '0.30']] as $args) {
+            try {
+                \Plugin\Stripe\UsdPricing::calculate(...$args);
+                $this->fail('Invalid quote accepted');
+            } catch (ApiException $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
     }
 }
