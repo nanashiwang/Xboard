@@ -1,0 +1,44 @@
+name: Configure Primary Domain
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-primary-domain
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure certificate and primary domain
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$SSHPASS"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          # Pinned from the server's previously verified SSH host key.
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'install -d -m 700 /root/Xboard/.docker/production'
+          sshpass -e scp "${ssh_opts[@]}" .docker/production/configure-primary-domain.sh root@107.173.191.23:/root/Xboard/.docker/production/configure-primary-domain.sh
+          remote_script='bash /root/Xboard/.docker/production/configure-primary-domain.sh'
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "$remote_script prepare"
+          test "$(curl -fsS --max-time 30 http://taige.us/.well-known/acme-challenge/xboard-domain-probe)" = xboard-taige-domain-ready
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "$remote_script activate"
+          for host in taige.us board.taige.us; do
+            curl -fsS --retry 4 --retry-delay 5 --max-time 30 "https://$host/" -o /dev/null
+            curl -fsS --max-time 30 "https://$host/downloads/SHA256SUMS.txt" -o /dev/null
+          done
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "$remote_script promote"
+          for host in taige.us board.taige.us; do
+            curl -fsS --retry 3 --max-time 30 "https://$host/api/v1/guest/comm/config" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["data"]["app_url"] == "https://taige.us", d; print("Primary URL verified")'
+          done

@@ -1,6 +1,6 @@
 # 客户端安装包本站托管
 
-生产下载地址为 `https://board.taige.us/downloads/`，由宿主机 Nginx 提供静态文件，不经过 Xboard 容器。当前托管 CMFA 2.11.24 的两个安卓包，以及 Clash Verge Rev 2.4.7 的 Windows x64、macOS Intel/Apple Silicon、Linux AMD64 DEB 包，总计约 295 MiB。
+主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。当前托管 CMFA 2.11.24 的两个安卓包，以及 Clash Verge Rev 2.4.7 的 Windows x64、macOS Intel/Apple Silicon、Linux AMD64 DEB 包，总计约 295 MiB。
 
 ## 安装和更新
 
@@ -28,4 +28,4 @@ SHA-256 和文件大小来自对应官方 GitHub Release 的资产元数据，�
 
 回滚时先恢复备份文章的正文，再移除 Nginx include，检查配置并平滑重载；无需删除安装包。不要回滚文章的其他字段或覆盖备份之后产生的无关编辑。
 
-当前沿用站点已有的 Cloudflare HTTPS 入口，没有新增域名或 DNS 依赖。用户无需访问 GitHub，但大陆实际速度仍受用户到站点的网络线路影响。下载会产生服务器流量，应结合主机套餐观察用量。
+两个域名均通过 Cloudflare HTTPS 入口访问；主域名解析、证书和续期见 [主域名配置](primary-domain.md)。用户无需访问 GitHub，但大陆实际速度仍受用户到站点的网络线路影响。下载会产生服务器流量，应结合主机套餐观察用量。
