@@ -63,8 +63,16 @@ class StripeCheckoutTest extends TestCase
         Http::assertSent(fn ($r) => $r['line_items'][0]['price_data']['unit_amount'] === 1050
             && $r['line_items'][0]['price_data']['currency'] === 'cny'
             && $r['metadata']['payment_id'] === '7' && !isset($r['payment_method_types'])
-            && $r['adaptive_pricing']['enabled'] === false);
+            && $r['adaptive_pricing']['enabled'] === 'false');
         $requests = Http::recorded();
+        foreach ($requests as [$request]) {
+            // Assert the encoded body: Laravel's array access retains the original
+            // parameters and can hide Guzzle serializing a PHP false as "0".
+            parse_str($request->body(), $form);
+            $this->assertSame('false', $form['adaptive_pricing']['enabled']);
+            $this->assertSame('cny', $form['line_items'][0]['price_data']['currency']);
+            $this->assertSame('1050', $form['line_items'][0]['price_data']['unit_amount']);
+        }
         $this->assertSame($requests[0][0]->header('Idempotency-Key'), $requests[1][0]->header('Idempotency-Key'));
     }
 
@@ -195,6 +203,12 @@ class StripeCheckoutTest extends TestCase
         $this->assertSame($requests[0][0]['line_items'], $requests[1][0]['line_items']);
         $this->assertSame('usd', $requests[0][0]['line_items'][0]['price_data']['currency']);
         $quote = \Illuminate\Support\Facades\DB::table('v2_stripe_quotes')->first();
+        foreach ($requests as [$request]) {
+            parse_str($request->body(), $form);
+            $this->assertSame('false', $form['adaptive_pricing']['enabled']);
+            $this->assertSame('usd', $form['line_items'][0]['price_data']['currency']);
+            $this->assertSame((string) $quote->amount, $form['line_items'][0]['price_data']['unit_amount']);
+        }
         $this->assertSame(1050, (int) $quote->cny_amount);
         $changes = ['currency' => 'usd', 'amount_total' => (int) $quote->amount,
             'metadata' => ['trade_no' => 'test-order', 'payment_id' => '7', 'quote_id' => $quote->id]];

@@ -9,6 +9,7 @@ use App\Models\Plan;
 use Illuminate\Support\Facades\DB;
 use App\Services\Plugin\AbstractPlugin;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
 
 class Plugin extends AbstractPlugin implements PaymentInterface
@@ -85,7 +86,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         }
         $params = [
             'mode' => 'payment',
-            'adaptive_pricing' => ['enabled' => false],
+            // Guzzle form encoding converts PHP false to "0", which Stripe rejects.
+            'adaptive_pricing' => ['enabled' => 'false'],
             'integration_identifier' => 'xboard-usd-kqmvzjtr',
             'client_reference_id' => $metadata['trade_no'],
             'metadata' => $metadata,
@@ -122,6 +124,14 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         ])->connectTimeout(10)->timeout(30)->post('https://api.stripe.com/v1/checkout/sessions', $params);
         $url = $response->json('url');
         if (!$response->successful() || !is_string($url) || !str_starts_with($url, 'https://checkout.stripe.com/')) {
+            // Keep credentials, checkout URLs and raw request/response bodies out of logs.
+            Log::warning('Stripe Checkout session creation failed', [
+                'http_status' => $response->status(),
+                'stripe_request_id' => $response->header('Request-Id'),
+                'error_type' => $response->json('error.type'),
+                'error_code' => $response->json('error.code'),
+                'error_param' => $response->json('error.param'),
+            ]);
             throw new ApiException('Stripe 创建支付失败，请检查密钥、收款币种权限和订单金额');
         }
         return ['type' => 1, 'data' => $url];

@@ -46,6 +46,12 @@ Checkout 关闭 Adaptive Pricing，确保扣款币种为 USD；可用支付方�
 
 ## 验证与来源
 
+### 1.1.1 修复说明
+
+- 修复表单编码将关闭 Adaptive Pricing 的布尔值发送为 `0`，导致 Stripe 返回 `Invalid boolean: 0`、网站无法创建结账页面的问题；现在明确发送字符串 `false`。
+- 回归测试检查实际 HTTP 表单正文，覆盖人民币和美元结账，避免仅检查编码前的参数。
+- 创建失败时记录 HTTP 状态、Stripe 请求编号和错误类型/参数，便于定位；不记录密钥、结账链接或完整请求/响应正文。
+
 `vendor/bin/phpunit tests/Feature/Payments` 覆盖金额取整、报价锁定、余额/优惠后的目录价回退、人民币历史回调、错误币种/金额/通道/环境、签名时间窗口、重复回调、受限密钥与配置缺失。
 
 - [Stripe 美国标准定价](https://stripe.com/pricing?country=US)
