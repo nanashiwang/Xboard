@@ -35,6 +35,7 @@
   </script>
   <div id="app"></div>
   <script defer src="/theme/{{$theme}}/assets/gift-card.js?v={{$version}}"></script>
+  <script defer src="/theme/{{$theme}}/assets/client-download-entry.js?v={{$version}}"></script>
   {!! $theme_config['custom_html'] !!}
 </body>
 

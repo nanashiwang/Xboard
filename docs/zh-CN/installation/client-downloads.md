@@ -1,5 +1,29 @@
 # 客户端安装包本站托管
 
+## 用户下载与导入入口
+
+`/clients` 提供独立的中文下载与导入页面。Xboard 默认主题的侧栏增加“客户端下载”，仪表盘增加“下载与导入”入口；不修改压缩后的 `umi.js`。页面会识别操作系统，也允许手动切换，macOS 芯片类型由用户选择，避免浏览器将 Apple 芯片误判为 Intel。
+
+- Windows、macOS、Linux：Clash Verge Rev 2.4.7。
+- Android：Clash Meta for Android 2.11.24，提供 ARM64 和通用包。
+- iPhone/iPad：sing-box 官方 App Store 入口。当前官方要求 iOS 15+ 和中国大陆以外地区的 Apple 账户；安装由用户在 App Store 完成。
+
+桌面与安卓继续使用下方已托管的固定版本，并保留每个包的官方备用链接、大小和 SHA-256。目录由 `app/Services/ClientDownloadService.php` 组织，安装包校验信息读取 `.docker/downloads/manifest.json`。升级版本时同时更新这两处，回归测试会检查清单一致性；不会自动把未经验证的 latest 推给用户。
+
+下载页面无需登录。个人订阅通过带现有登录态的 `GET /api/v1/user/client/import?client=...` 获取，仅支持 `clash-verge`、`clash-meta`、`sing-box` 三种值。无有效订阅、到期、流量用完或被封禁的账号不能获取导入信息。响应标记 `private, no-store`，页面不使用第三方订阅转换服务，也不将个人订阅写进公开 HTML、安装包或浏览器持久存储。
+
+一键导入使用项目官方支持的 URI Scheme：`clash-verge://`、`clashmeta://`、`sing-box://`。其中 Clash Verge 的 `url` 参数放在最后，兼容其读取余下整段查询串的实现。订阅 URL 不强行指定 `flag`，保留客户端 User-Agent 对格式和内核能力版本的识别。浏览器拉起客户端后，仍需用户在客户端确认保存和开启连接；页面只提示“请确认导入”，不把拉起动作当作连接成功。自动复制不可用时提供可选中的手动地址。
+
+部署应用镜像前先确认原有 `/downloads/` 文件仍在。应用更新需刷新当前主题，才能发布新的侧栏入口脚本；现有 `xboard:update` 已调用 `refreshCurrentTheme()`。`/clients` 使用的静态文件位于 `public/assets/client-downloads.*`，随应用镜像发布。
+
+协议及平台要求核验来源：
+
+- [Clash Verge Rev 2.4.7 导入解析](https://github.com/clash-verge-rev/clash-verge-rev/blob/v2.4.7/src-tauri/src/utils/resolve/scheme.rs)
+- [CMFA 2.11.24 URI 注册](https://github.com/MetaCubeX/ClashMetaForAndroid/blob/v2.11.24/app/src/main/AndroidManifest.xml)
+- [sing-box Apple 官方安装说明](https://sing-box.sagernet.org/clients/apple/)
+
+本地验证：`vendor/bin/phpunit tests/Feature/Desktop/ClientDownloadTest.php`，并在真实主题壳中检查登录与未登录入口、各平台切换、窄屏、暗色、过期账号、复制失败和网络错误提示。浏览器测试不能替代各操作系统上实际安装客户端、导入、连接节点的验收。
+
 主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。当前托管 CMFA 2.11.24 的两个安卓包，以及 Clash Verge Rev 2.4.7 的 Windows x64、macOS Intel/Apple Silicon、Linux AMD64 DEB 包，总计约 295 MiB。
 
 ## 安装和更新

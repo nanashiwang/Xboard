@@ -2,6 +2,7 @@
 namespace App\Http\Routes\V1;
 
 use App\Http\Controllers\V1\User\CommController;
+use App\Http\Controllers\V1\User\ClientDownloadController;
 use App\Http\Controllers\V1\User\CouponController;
 use App\Http\Controllers\V1\User\GiftCardController;
 use App\Http\Controllers\V1\User\InviteController;
@@ -30,6 +31,7 @@ class UserRoute
             $router->post('/changePassword', [UserController::class, 'changePassword']);
             $router->post('/update', [UserController::class, 'update']);
             $router->get('/getSubscribe', [UserController::class, 'getSubscribe']);
+            $router->get('/client/import', [ClientDownloadController::class, 'import']);
             $router->get('/getStat', [UserController::class, 'getStat']);
             $router->get('/checkLogin', [UserController::class, 'checkLogin']);
             $router->post('/transfer', [UserController::class, 'transfer']);

@@ -73,6 +73,18 @@ Route::get('/', function (Request $request) {
     }
 });
 
+Route::get('/clients', function (Request $request) {
+    if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)
+        && $request->getHost() !== parse_url(admin_setting('app_url'), PHP_URL_HOST)) {
+        abort(403);
+    }
+    return response()->view('client.downloads', [
+        'title' => admin_setting('app_name', 'Xboard'),
+        'clients' => app(\App\Services\ClientDownloadService::class)->catalog(),
+        'assetVersion' => '1',
+    ])->header('Referrer-Policy', 'no-referrer');
+});
+
 //TODO:: 兼容
 Route::get('/' . admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key')))), function () {
     return view('admin', [
