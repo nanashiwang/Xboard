@@ -16,13 +16,13 @@
       "id": 5,
       "title": "软件下载（通用客户端）",
       "file": "articles/05-downloads.md",
-      "expected_body_sha256": "25d8e2ed6c2942a0eedd51e6e3db3b6d60505b65cb87458c1b12f8f28955ab6b"
+      "expected_body_sha256": "674b702e6fb9ca18870510d16e23881b9ee0265917de42bf4e9e66c0345cdb7b"
     },
     {
       "id": 7,
       "title": "订阅操作指南",
       "file": "articles/07-subscription.md",
-      "expected_body_sha256": "426686002ab66e98fb401d910a8dce151feda21c6af9f2e862dff0648fea3754"
+      "expected_body_sha256": "d9d03085cbae9943ae0dcf1d04f2fbf5ee2927082f91a102ada473f1606b95b7"
     },
     {
       "id": 8,
@@ -34,7 +34,7 @@
       "id": 9,
       "title": "小众平台（例如路由器、鸿蒙NEXT）和旧版系统怎么办？",
       "file": "articles/09-platform-compatibility.md",
-      "expected_body_sha256": "45a475f23af992084841ec640ea55f6227b0fe132eda5a1ef259df2844d1ade5"
+      "expected_body_sha256": "5b349d43095a8f3031d805dc82c7b9beb605e9f6ee31bb5b5f22cd794b63ef1d"
     },
     {
       "id": 13,

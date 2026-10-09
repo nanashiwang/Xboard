@@ -6,13 +6,11 @@
 
 ## 一、按设备选择
 
-| 设备 | 当前接入的客户端 | 安装入口与要求 |
-|---|---|---|
-| Windows | Clash Verge Rev | [Windows 下载与导入](/clients#windows)，当前本站包适用于 Windows 10 / 11、x64 |
-| macOS | Clash Verge Rev | [macOS 下载与导入](/clients#macos)，macOS 11 或更新版本；按 Apple 芯片或 Intel 芯片选择 |
-| Android | Clash Meta for Android | [安卓下载与导入](/clients#android)，多数手机选择 ARM64，不确定架构时选择通用版 |
-| iPhone / iPad | sing-box | [iPhone / iPad 下载与导入](/clients#ios)，通过 App Store 安装，注意系统版本及账户地区要求 |
-| Linux | Clash Verge Rev | [Linux 下载与导入](/clients#linux)，本站提供 AMD64 的 DEB 包，面向 Debian / Ubuntu 系；还需满足安装包依赖 |
+- **Windows**：[下载与导入 Clash Verge Rev](/clients#windows)。当前本站包适用于 Windows 10 / 11、x64。
+- **macOS**：[下载与导入 Clash Verge Rev](/clients#macos)。需要 macOS 11 或更新版本；按 Apple 芯片或 Intel 芯片选择。
+- **Android**：[下载与导入 Clash Meta for Android](/clients#android)。多数手机选择 ARM64，不确定架构时选择通用版。
+- **iPhone / iPad**：[安装与导入 sing-box](/clients#ios)。通过 App Store 安装，注意系统版本及账户地区要求。
+- **Linux**：[下载与导入 Clash Verge Rev](/clients#linux)。本站提供 AMD64 的 DEB 包，面向 Debian / Ubuntu 系；还需满足安装包依赖。
 
 安装包版本、大小、校验值和官方备用下载统一在下载页查看，避免教程与安装包版本不同步。其他架构或 Linux 发行版请使用页面上的“其他版本与架构”入口，并核对官方兼容性要求。
 

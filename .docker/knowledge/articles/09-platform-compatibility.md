@@ -4,13 +4,11 @@
 
 ## 一、当前下载页覆盖的平台
 
-| 平台 | 当前入口 | 注意事项 |
-|---|---|---|
-| Windows 10 / 11 | [Clash Verge Rev](/clients#windows) | 本站包为 x64，ARM 设备需核对官方下载 |
-| macOS 11 或更新版本 | [Clash Verge Rev](/clients#macos) | 区分 Apple 芯片和 Intel 芯片 |
-| Android | [Clash Meta for Android](/clients#android) | 提供 ARM64 和通用版，按系统版本及架构选择 |
-| iPhone / iPad | [sing-box](/clients#ios) | 通过 App Store 安装，核对系统及账户地区要求 |
-| Linux 桌面 | [Clash Verge Rev](/clients#linux) | 本站提供 AMD64 DEB 包，面向 Debian / Ubuntu 系，需满足依赖 |
+- **Windows 10 / 11**：[Clash Verge Rev](/clients#windows)。本站包为 x64，ARM 设备需核对官方下载。
+- **macOS 11 或更新版本**：[Clash Verge Rev](/clients#macos)。区分 Apple 芯片和 Intel 芯片。
+- **Android**：[Clash Meta for Android](/clients#android)。提供 ARM64 和通用版，按系统版本及架构选择。
+- **iPhone / iPad**：[sing-box](/clients#ios)。通过 App Store 安装，核对系统及账户地区要求。
+- **Linux 桌面**：[Clash Verge Rev](/clients#linux)。本站提供 AMD64 DEB 包，面向 Debian / Ubuntu 系，需满足依赖。
 
 具体版本、系统要求和备用下载以下载页及对应项目的官方说明为准。
 
