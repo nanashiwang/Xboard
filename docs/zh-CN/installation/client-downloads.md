@@ -24,6 +24,32 @@
 
 本地验证：`vendor/bin/phpunit tests/Feature/Desktop/ClientDownloadTest.php`，并在真实主题壳中检查登录与未登录入口、各平台切换、窄屏、暗色、过期账号、复制失败和网络错误提示。浏览器测试不能替代各操作系统上实际安装客户端、导入、连接节点的验收。
 
+## 同步线上使用文档
+
+用户中心的“使用文档”保存在数据库 `v2_knowledge` 中，更新镜像不会自动修改文章。已审阅的客户端教程源文位于 `.docker/knowledge/articles/`，清单覆盖文章 1、3、5、7、8、9、13：导入排查、iOS、软件下载、订阅操作、安卓、平台兼容性和新手节点选择。
+
+教程统一链接到 `/clients` 及各平台锚点，不重复维护安装包版本和下载 URL；不在文章中保存个人订阅。下载页获取订阅的登录、有效期与流量检查继续由现有接口负责。
+
+将 `.docker/knowledge/` 完整复制到服务器的运维目录，例如 `/opt/xboard-knowledge/`，然后先预览：
+
+```bash
+python3 /opt/xboard-knowledge/sync.py \
+  --database /root/Xboard/.docker/.data/database.sqlite
+```
+
+确认待更新文章后执行：
+
+```bash
+python3 /opt/xboard-knowledge/sync.py \
+  --database /root/Xboard/.docker/.data/database.sqlite \
+  --backup-dir /root/xboard-backups/knowledge \
+  --apply
+```
+
+脚本核对文章 ID、标题和审阅时的正文 SHA-256；正文在后台被编辑过会拒绝覆盖。执行前保存受影响文章的完整快照，只更新正文及更新时间，不改变分类、语言、排序、显示状态或其他文章。整批在一个 SQLite 事务内执行，重复执行不会重复写入。
+
+后续修改教程前重新读取线上正文，并更新清单中的审阅哈希，不要跳过冲突检查。回滚时用快照恢复对应文章的 `body` 和 `updated_at`；先核对当前正文仍匹配快照的 `after_body_sha256`，避免覆盖发布后产生的新编辑。无需重启应用，但已打开的文档需要刷新或重新打开。发布后用真实用户页面检查文章、平台锚点、返回操作和窄屏显示。
+
 主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。当前托管 CMFA 2.11.24 的两个安卓包，以及 Clash Verge Rev 2.4.7 的 Windows x64、macOS Intel/Apple Silicon、Linux AMD64 DEB 包，总计约 295 MiB。
 
 ## 安装和更新
