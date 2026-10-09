@@ -1,95 +1,96 @@
 {
-  "stripe_account": "acct_1UGbyu1DvmJXrFlV",
-  "currency": "usd",
-  "exchange_rate": "6.7075",
-  "rate_date": "2026-09-17",
-  "rate_source": "https://api.frankfurter.dev/v1/2026-09-17?base=USD&symbols=CNY",
-  "cost_percent": "4.4",
-  "cost_fixed_usd": "0.30",
-  "catalog_usd": {
-    "1": {
-      "product": "taige_xboard_plan_1",
-      "prices": {
-        "monthly": {
-          "id": "price_1UGj9O1DvmJXrFlVkxyEh9rR",
-          "amount": 186
+    "stripe_account": "acct_1U4aRn23UvHgD4dF",
+    "payment_method_configuration": "pmc_1UOe6623UvHgD4dFh9FhQDvg",
+    "currency": "usd",
+    "exchange_rate": "6.7075",
+    "rate_date": "2026-09-17",
+    "rate_source": "https://api.frankfurter.dev/v1/2026-09-17?base=USD&symbols=CNY",
+    "cost_percent": "4.4",
+    "cost_fixed_usd": "0.30",
+    "catalog_usd": {
+        "1": {
+            "product": "taige_xboard_plan_1",
+            "prices": {
+                "monthly": {
+                    "id": "price_1UOe6623UvHgD4dFayit3qg9",
+                    "amount": 186
+                },
+                "quarterly": {
+                    "id": "price_1UOe6623UvHgD4dFagzFrxiM",
+                    "amount": 453
+                },
+                "half_yearly": {
+                    "id": "price_1UOe6723UvHgD4dFymRGJDob",
+                    "amount": 812
+                },
+                "yearly": {
+                    "id": "price_1UOe6723UvHgD4dFQJkQvVQY",
+                    "amount": 1529
+                }
+            }
         },
-        "quarterly": {
-          "id": "price_1UGj9P1DvmJXrFlVv7FjbZNY",
-          "amount": 453
+        "2": {
+            "product": "taige_xboard_plan_2",
+            "prices": {
+                "monthly": {
+                    "id": "price_1UOe6723UvHgD4dFACQsHxcu",
+                    "amount": 344
+                },
+                "quarterly": {
+                    "id": "price_1UOe6723UvHgD4dFrxAuGaod",
+                    "amount": 921
+                },
+                "half_yearly": {
+                    "id": "price_1UOe6723UvHgD4dF1Hc0Q9JX",
+                    "amount": 1716
+                },
+                "yearly": {
+                    "id": "price_1UOe6823UvHgD4dFpuZt9HuH",
+                    "amount": 3135
+                }
+            }
         },
-        "half_yearly": {
-          "id": "price_1UGj9R1DvmJXrFlVyVUuV7cp",
-          "amount": 812
+        "3": {
+            "product": "taige_xboard_plan_3",
+            "prices": {
+                "monthly": {
+                    "id": "price_1UOe6823UvHgD4dFuF1UZ3VA",
+                    "amount": 498
+                },
+                "quarterly": {
+                    "id": "price_1UOe6823UvHgD4dFLpZRygzI",
+                    "amount": 1342
+                },
+                "half_yearly": {
+                    "id": "price_1UOe6823UvHgD4dFimYldMRB",
+                    "amount": 2511
+                },
+                "yearly": {
+                    "id": "price_1UOe6823UvHgD4dFis8qJgYL",
+                    "amount": 4695
+                }
+            }
         },
-        "yearly": {
-          "id": "price_1UGj9T1DvmJXrFlV1wzcpFBA",
-          "amount": 1529
+        "4": {
+            "product": "taige_xboard_plan_4",
+            "prices": {
+                "monthly": {
+                    "id": "price_1UOe6923UvHgD4dFPtlCCv0i",
+                    "amount": 810
+                },
+                "quarterly": {
+                    "id": "price_1UOe6923UvHgD4dF4h9P5slo",
+                    "amount": 2278
+                },
+                "half_yearly": {
+                    "id": "price_1UOe6923UvHgD4dFk4JsmThw",
+                    "amount": 4383
+                },
+                "yearly": {
+                    "id": "price_1UOe6923UvHgD4dFmhJaGxRR",
+                    "amount": 7814
+                }
+            }
         }
-      }
-    },
-    "2": {
-      "product": "taige_xboard_plan_2",
-      "prices": {
-        "monthly": {
-          "id": "price_1UGj9V1DvmJXrFlVWLZ45F5k",
-          "amount": 344
-        },
-        "quarterly": {
-          "id": "price_1UGj9W1DvmJXrFlVHH2FqrGn",
-          "amount": 921
-        },
-        "half_yearly": {
-          "id": "price_1UGj9Y1DvmJXrFlVcl5vG0LJ",
-          "amount": 1716
-        },
-        "yearly": {
-          "id": "price_1UGj9a1DvmJXrFlVxlcNlbkN",
-          "amount": 3135
-        }
-      }
-    },
-    "3": {
-      "product": "taige_xboard_plan_3",
-      "prices": {
-        "monthly": {
-          "id": "price_1UGj9b1DvmJXrFlV4ULeno48",
-          "amount": 498
-        },
-        "quarterly": {
-          "id": "price_1UGj9d1DvmJXrFlVSUChplrW",
-          "amount": 1342
-        },
-        "half_yearly": {
-          "id": "price_1UGj9f1DvmJXrFlVG2ks99Yz",
-          "amount": 2511
-        },
-        "yearly": {
-          "id": "price_1UGj9g1DvmJXrFlVNbwMyIlI",
-          "amount": 4695
-        }
-      }
-    },
-    "4": {
-      "product": "taige_xboard_plan_4",
-      "prices": {
-        "monthly": {
-          "id": "price_1UGj9i1DvmJXrFlV39wsWWGO",
-          "amount": 810
-        },
-        "quarterly": {
-          "id": "price_1UGj9j1DvmJXrFlVB1AdhhtM",
-          "amount": 2278
-        },
-        "half_yearly": {
-          "id": "price_1UGj9l1DvmJXrFlVt5b31EOa",
-          "amount": 4383
-        },
-        "yearly": {
-          "id": "price_1UGj9m1DvmJXrFlVkyWPN06T",
-          "amount": 7814
-        }
-      }
     }
-  }
 }

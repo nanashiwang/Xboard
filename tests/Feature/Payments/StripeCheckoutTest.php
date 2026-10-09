@@ -56,6 +56,7 @@ class StripeCheckoutTest extends TestCase
         Http::preventStrayRequests();
         Http::fake(['api.stripe.com/*' => Http::response(['url' => 'https://checkout.stripe.com/c/pay/cs_test_example'])]);
         $gateway = $this->gateway();
+        admin_setting(['app_url' => 'https://taige.us']);
         $order = ['total_amount' => 1050, 'trade_no' => 'test-order', 'return_url' => 'https://board.example/#/order/test-order'];
         $result = $gateway->pay($order);
         $gateway->pay($order);
@@ -72,8 +73,35 @@ class StripeCheckoutTest extends TestCase
             $this->assertSame('false', $form['adaptive_pricing']['enabled']);
             $this->assertSame('cny', $form['line_items'][0]['price_data']['currency']);
             $this->assertSame('1050', $form['line_items'][0]['price_data']['unit_amount']);
+            $this->assertSame('xboard', $form['metadata']['project']);
+            $this->assertSame('taige.us', $form['metadata']['site']);
+            $this->assertSame($form['metadata'], $form['payment_intent_data']['metadata']);
+            $this->assertSame('web', $form['payment_method_options']['wechat_pay']['client']);
+            $this->assertArrayNotHasKey('payment_method_configuration', $form);
         }
         $this->assertSame($requests[0][0]->header('Idempotency-Key'), $requests[1][0]->header('Idempotency-Key'));
+    }
+
+    public function test_checkout_can_select_a_payment_method_configuration(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake(['api.stripe.com/*' => Http::response(['url' => 'https://checkout.stripe.com/c/pay/cs_test_example'])]);
+        $gateway = $this->gateway();
+        $gateway->setConfig(array_merge($gateway->getConfig(), ['payment_method_configuration' => 'pmc_xboard']));
+        $gateway->pay(['total_amount' => 1050, 'trade_no' => 'test-order', 'return_url' => 'https://taige.us']);
+        Http::assertSent(fn ($r) => $r['payment_method_configuration'] === 'pmc_xboard' && !isset($r['payment_method_types']));
+        $gateway->setConfig(array_merge($gateway->getConfig(), ['payment_method_configuration' => 'invalid']));
+        $this->expectException(ApiException::class);
+        $gateway->pay(['total_amount' => 1050, 'trade_no' => 'test-order', 'return_url' => 'https://taige.us']);
+    }
+
+    public function test_other_project_events_are_acknowledged_without_fulfilling_xboard_orders(): void
+    {
+        $order = $this->order();
+        foreach ([['project' => 'newapi', 'trade_no' => $order->trade_no, 'payment_id' => '7'], []] as $metadata) {
+            $this->assertSame(['skip_order' => true], $this->notify($this->gateway(), $this->event(['metadata' => $metadata])));
+        }
+        $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
     }
 
     public function test_valid_paid_event_matches_order_and_includes_handling_fee(): void

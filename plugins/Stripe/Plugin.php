@@ -32,6 +32,7 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             'cost_percent' => ['label' => '美元售价比例成本预算（%）', 'type' => 'string', 'default' => '4.4', 'description' => '美国国际卡标准成本预算，不代表每张卡的实际费率。'],
             'cost_fixed_usd' => ['label' => '美元售价固定成本预算（USD）', 'type' => 'string', 'default' => '0.30'],
             'catalog_usd' => ['label' => '美元商品价格映射（JSON）', 'type' => 'string', 'description' => '已配置的套餐商品和价格对应关系；通常无需修改。'],
+            'payment_method_configuration' => ['label' => 'Stripe 支付方式配置 ID', 'type' => 'string', 'description' => '可选，填写当前账户的 pmc_ 配置；留空使用账户默认配置。微信支付须在对应配置中启用。'],
         ];
     }
 
@@ -56,7 +57,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         if ($amount <= 0 || !$this->getConfig('id') || !$this->getConfig('uuid')) {
             throw new ApiException('Stripe 支付金额或通道配置无效');
         }
-        $metadata = ['trade_no' => (string) $order['trade_no'], 'payment_id' => (string) $this->getConfig('id')];
+        $metadata = ['project' => 'xboard', 'site' => (string) parse_url((string) admin_setting('app_url', ''), PHP_URL_HOST),
+            'trade_no' => (string) $order['trade_no'], 'payment_id' => (string) $this->getConfig('id')];
         $currency = strtolower((string) $this->getConfig('currency', 'cny'));
         $productData = ['name' => '订单 ' . $metadata['trade_no']];
         $quote = null;
@@ -79,6 +81,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             }
             $amount = (int) $quote->amount;
             $metadata['quote_id'] = $quoteId;
+            $metadata['plan_id'] = (string) $dbOrder->plan_id;
+            $metadata['period'] = (string) $dbOrder->period;
             $period = Plan::getAvailablePeriods()[$dbOrder->period]['name'] ?? $dbOrder->period;
             $productData = ['name' => ($dbOrder->plan?->name ?? 'taige 套餐') . ' · ' . $period,
                 'description' => sprintf('人民币参考金额 ¥%.2f；结算汇率 1 USD = %s CNY。美元售价含 %s%% + $%s 的支付成本预算。发卡行可能另收换汇费。',
@@ -91,7 +95,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             'integration_identifier' => 'xboard-usd-kqmvzjtr',
             'client_reference_id' => $metadata['trade_no'],
             'metadata' => $metadata,
-            'payment_intent_data' => ['metadata' => $metadata],
+            'payment_intent_data' => ['metadata' => $metadata, 'description' => 'Xboard · ' . $productData['name']],
+            'payment_method_options' => ['wechat_pay' => ['client' => 'web']],
             'line_items' => [[
                 'price_data' => ['currency' => $currency, 'unit_amount' => $amount, 'product_data' => $productData],
                 'quantity' => 1,
@@ -99,6 +104,13 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             'success_url' => $order['return_url'],
             'cancel_url' => $order['return_url'],
         ];
+        $methodConfiguration = trim((string) $this->getConfig('payment_method_configuration', ''));
+        if ($methodConfiguration !== '') {
+            if (!preg_match('/^pmc_[a-zA-Z0-9]+$/', $methodConfiguration)) {
+                throw new ApiException('Stripe 支付方式配置 ID 无效');
+            }
+            $params['payment_method_configuration'] = $methodConfiguration;
+        }
         if ($quote) {
             $params['custom_text']['submit']['message'] = $productData['name'] . '。' . $productData['description'];
             // Provisioned catalog prices are used only if they exactly match the quote.
@@ -153,6 +165,12 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             return ['skip_order' => true];
         }
         $session = $event->data->object;
+        // All endpoints on a shared account receive the subscribed event types.
+        // Acknowledge other projects without looking up or fulfilling their orders.
+        if ((isset($session->metadata->project) && $session->metadata->project !== 'xboard')
+            || empty($session->metadata->trade_no) || empty($session->metadata->payment_id)) {
+            return ['skip_order' => true];
+        }
         if ($session->payment_status !== 'paid') {
             return ['skip_order' => true];
         }

@@ -25,6 +25,18 @@
 
 商品/价格 ID 与报价配置保存在 `.docker/stripe/taige-usd-catalog.json`，不包含任何密钥。4 个商品采用一次性 USD 价格，默认价为月付；原 16 个 CNY 价格归档。原独立的“taige订阅”自动续费商品不在此次映射中。
 
+## Raymi 账户与项目分开统计（1.2.0）
+
+2026-10-09 的目标收款账户为 `raymi admin`（RAYMI LABS INC，`acct_1U4aRn23UvHgD4dF`）。目录清单更新为该账户内 Xboard 专用的 4 个商品、16 个一次性美元价格；保留上述人民币记账、汇率和成本预算。
+
+- Xboard 商品名称以 `Xboard / taige` 开头，商品与价格附有 `project=xboard`、`site=taige.us`、`plan_id`，价格另有 `period`。不复用 newapi 的“额度”等商品及 Price。
+- Checkout Session 和 PaymentIntent 同时携带 `project=xboard`、`site`、`trade_no`、`payment_id`；美元订单另有 `plan_id`、`period`、`quote_id`。Stripe 支付搜索/API 可使用 `metadata['project']:'xboard'` 筛选，导出时保留这些标记。商品统计可按 Xboard 商品筛选；折扣或余额抵扣仍记在对应商品下。
+- 独立支付方式配置 `pmc_1UOe6623UvHgD4dFh9FhQDvg` 开启微信支付和银行卡等方式，不修改 newapi 使用的默认配置。请求指定该配置并传入 `payment_method_options.wechat_pay.client=web`，继续使用动态支付方式。
+- Xboard 使用自己的 Webhook 端点和签名密钥。共享账户会向各端点投递订阅类型的事件；Xboard 对其他项目或缺少 Xboard 订单标识的已验签事件返回成功，不开通订单。原有未带 `project`、但包含完整订单与通道标识的历史事件仍按金额及归属校验。
+- 项目订单、商品收入可以分开统计；同一 Stripe 账户的余额、提现和账户级费用仍合并。旧账户历史收入不会自动迁入新账户，跨切换日期的报表需要分别导出后汇总。
+
+切换前保存旧通道配置，检查并关闭旧账户尚未付款的 Checkout 链接；保留站内订单，用户重新打开付款时创建新账户报价。不要直接把旧账户的 Price 或 Webhook 签名密钥带入新账户。完成接口、签名回调和未付款 Checkout 验证后，仍应以首笔真实付款及订单开通确认最终到账链路。
+
 ## 后台设置
 
 1. 保持站点币种 `CNY`，选择 `StripeCheckout`，收款币种选 `USD`。
