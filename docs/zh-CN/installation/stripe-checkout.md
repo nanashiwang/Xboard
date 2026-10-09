@@ -33,6 +33,7 @@
 - Checkout Session 和 PaymentIntent 同时携带 `project=xboard`、`site`、`trade_no`、`payment_id`；美元订单另有 `plan_id`、`period`、`quote_id`。Stripe 支付搜索/API 可使用 `metadata['project']:'xboard'` 筛选，导出时保留这些标记。商品统计可按 Xboard 商品筛选；折扣或余额抵扣仍记在对应商品下。
 - 独立支付方式配置 `pmc_1UOe6623UvHgD4dFh9FhQDvg` 开启微信支付和银行卡等方式，不修改 newapi 使用的默认配置。请求指定该配置并传入 `payment_method_options.wechat_pay.client=web`，继续使用动态支付方式。
 - Xboard 使用自己的 Webhook 端点和签名密钥。共享账户会向各端点投递订阅类型的事件；Xboard 对其他项目或缺少 Xboard 订单标识的已验签事件返回成功，不开通订单。原有未带 `project`、但包含完整订单与通道标识的历史事件仍按金额及归属校验。
+- newapi 按 `client_reference_id` 查找自己的订单，缺少该字段时直接忽略。Xboard 新会话通过 `metadata.trade_no` 识别订单，省略 `client_reference_id`，避免 newapi 把 Xboard 付款写成“订单不存在”的风控记录；Xboard 历史会话仍要求已有 reference 与订单号一致。
 - 项目订单、商品收入可以分开统计；同一 Stripe 账户的余额、提现和账户级费用仍合并。旧账户历史收入不会自动迁入新账户，跨切换日期的报表需要分别导出后汇总。
 
 切换前保存旧通道配置，检查并关闭旧账户尚未付款的 Checkout 链接；保留站内订单，用户重新打开付款时创建新账户报价。不要直接把旧账户的 Price 或 Webhook 签名密钥带入新账户。完成接口、签名回调和未付款 Checkout 验证后，仍应以首笔真实付款及订单开通确认最终到账链路。

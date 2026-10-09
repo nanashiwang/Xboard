@@ -93,7 +93,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             // Guzzle form encoding converts PHP false to "0", which Stripe rejects.
             'adaptive_pricing' => ['enabled' => 'false'],
             'integration_identifier' => 'xboard-usd-kqmvzjtr',
-            'client_reference_id' => $metadata['trade_no'],
+            // newapi shares this merchant and routes its orders by client_reference_id.
+            // Xboard uses its namespaced metadata so newapi can ignore these events.
             'metadata' => $metadata,
             'payment_intent_data' => ['metadata' => $metadata, 'description' => 'Xboard · ' . $productData['name']],
             'payment_method_options' => ['wechat_pay' => ['client' => 'web']],
@@ -176,8 +177,10 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         }
         $tradeNo = (string) ($session->metadata->trade_no ?? '');
         $order = Order::where('trade_no', $tradeNo)->first();
+        $referenceMatches = $session->client_reference_id === $tradeNo
+            || (($session->metadata->project ?? null) === 'xboard' && empty($session->client_reference_id));
         if (!$order || $session->mode !== 'payment' || !in_array($session->currency, ['cny', 'usd'], true)
-            || $session->client_reference_id !== $tradeNo
+            || !$referenceMatches
             || (string) ($session->metadata->payment_id ?? '') !== (string) $this->getConfig('id')
             || (int) $order->payment_id !== (int) $this->getConfig('id')
             || !is_string($session->payment_intent) || !str_starts_with($session->payment_intent, 'pi_')) {

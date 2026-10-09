@@ -78,6 +78,7 @@ class StripeCheckoutTest extends TestCase
             $this->assertSame($form['metadata'], $form['payment_intent_data']['metadata']);
             $this->assertSame('web', $form['payment_method_options']['wechat_pay']['client']);
             $this->assertArrayNotHasKey('payment_method_configuration', $form);
+            $this->assertArrayNotHasKey('client_reference_id', $form);
         }
         $this->assertSame($requests[0][0]->header('Idempotency-Key'), $requests[1][0]->header('Idempotency-Key'));
     }
@@ -102,6 +103,20 @@ class StripeCheckoutTest extends TestCase
             $this->assertSame(['skip_order' => true], $this->notify($this->gateway(), $this->event(['metadata' => $metadata])));
         }
         $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
+    }
+
+    public function test_tagged_xboard_callbacks_use_metadata_without_a_newapi_reference(): void
+    {
+        $this->order();
+        $event = $this->event(['client_reference_id' => null,
+            'metadata' => ['project' => 'xboard', 'trade_no' => 'test-order', 'payment_id' => '7']]);
+        foreach (['checkout.session.completed', 'checkout.session.async_payment_succeeded'] as $type) {
+            $event['type'] = $type;
+            $this->assertSame(['trade_no' => 'test-order', 'callback_no' => 'pi_example'], $this->notify($this->gateway(), $event));
+        }
+        $event['data']['object']['client_reference_id'] = 'another-order';
+        $this->assertFalse($this->notify($this->gateway(), $event));
+        $this->assertFalse($this->notify($this->gateway(), $this->event(['client_reference_id' => null])));
     }
 
     public function test_valid_paid_event_matches_order_and_includes_handling_fee(): void
