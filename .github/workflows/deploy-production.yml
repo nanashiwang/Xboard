@@ -11,32 +11,45 @@ on:
         options:
           - inspect
           - deploy
+          - install-cli
 
 permissions:
   contents: read
   packages: read
+
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
 
 jobs:
   remote:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
       - name: Install SSH client helper
         run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
 
-      - name: Inspect or deploy production
+      - name: Inspect, install CLI or deploy production
         env:
           SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
           OPERATION: ${{ inputs.operation }}
           EXPECTED_REVISION: ${{ github.sha }}
         run: |
+          set -euo pipefail
           test -n "$SSHPASS"
-          sshpass -e ssh \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o ConnectTimeout=20 \
-            -o ServerAliveInterval=15 \
-            -p 22 root@107.173.191.23 \
+          install -d -m 700 ~/.ssh
+          # Same verified host key as configure-primary-domain.yml.
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [ "$OPERATION" = install-cli ] || [ "$OPERATION" = deploy ]; then
+            bash -n .docker/production/xboard.sh
+            remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'mktemp -d /tmp/xboard-cli.XXXXXX')
+            trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/xboard; rmdir -- $remote_dir"' EXIT
+            sshpass -e scp "${ssh_opts[@]}" .docker/production/xboard.sh "root@107.173.191.23:$remote_dir/xboard"
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "bash '$remote_dir/xboard' install"
+          fi
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
             "bash -s -- '$OPERATION' '$EXPECTED_REVISION'" <<'REMOTE_SCRIPT'
           set -euo pipefail
 
@@ -48,27 +61,17 @@ jobs:
           cd /root/Xboard
           docker compose config --services | grep -Fxq xboard
           docker compose ps xboard
-          [ "$operation" = "deploy" ] || exit 0
-
-          docker compose pull xboard
-          image=$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["xboard"]["image"])')
-          revision=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
-          if [ "$revision" != "$expected_revision" ]; then
-            echo "Image revision mismatch: expected $expected_revision, found $revision" >&2
-            exit 1
-          fi
-
-          # Do not let the one-off container consume the SSH heredoc containing
-          # the remaining deployment commands.
-          docker compose run --rm -T xboard php artisan xboard:update </dev/null
-          docker compose up -d xboard
-          sleep 8
-          container_id=$(docker compose ps -q xboard)
-          test -n "$container_id"
-          running_image=$(docker inspect --format '{{.Image}}' "$container_id")
-          running_revision=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$running_image")
-          test "$running_revision" = "$expected_revision"
-          test "$(docker inspect --format '{{.State.Running}}' "$container_id")" = true
-          docker compose ps xboard
-          echo "Deployed revision=$running_revision"
+          case "$operation" in
+            inspect) exit 0 ;;
+            install-cli)
+              bash -lc 'command -v xboard && xboard version'
+              /usr/local/bin/xboard status
+              # Exercise the menu without mutating the application.
+              printf '0\n' | /usr/local/bin/xboard
+              ;;
+            deploy)
+              XBOARD_EXPECTED_REVISION="$expected_revision" /usr/local/bin/xboard update --yes </dev/null
+              ;;
+            *) echo "Unsupported operation: $operation" >&2; exit 1 ;;
+          esac
           REMOTE_SCRIPT

@@ -46,6 +46,7 @@ docker compose up -d
 - [Plugin Development Guide](./docs/en/development/plugin-development-guide.md) - Complete guide for developing XBoard plugins
 
 ### Deployment Guides
+- [服务器快捷管理菜单（中文）](./docs/zh-CN/installation/server-manager.md) - 输入 `xboard` 更新、重启、查看状态或卸载服务
 - [Deploy with 1Panel](./docs/en/installation/1panel.md)
 - [Deploy with Docker Compose](./docs/en/installation/docker-compose.md)
 - [Deploy with aaPanel](./docs/en/installation/aapanel.md)

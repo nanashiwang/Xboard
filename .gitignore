@@ -19,6 +19,8 @@ composer.phar
 yarn.lock
 docker-compose.yml
 .DS_Store
+.xboard-manager.lock
+__pycache__/
 /docker
 storage/laravels.conf
 storage/laravels.pid
