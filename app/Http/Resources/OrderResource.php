@@ -21,6 +21,8 @@ class OrderResource extends JsonResource
     {
         return [
             ...parent::toArray($request),
+            // Bundled themes still use the old API name for credit returned to the balance.
+            'refund_amount' => $this->surplus_credit,
             'period' => PlanService::getLegacyPeriod((string)$this->period),
             'plan' => $this->whenLoaded('plan', fn() => PlanResource::make($this->plan)),
         ];

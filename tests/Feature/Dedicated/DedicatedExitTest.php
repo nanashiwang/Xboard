@@ -3,6 +3,7 @@
 namespace Tests\Feature\Dedicated;
 
 use App\Exceptions\ApiException;
+use App\Jobs\OrderHandleJob;
 use App\Models\DedicatedAssignment;
 use App\Models\DedicatedExit;
 use App\Models\Order;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class DedicatedExitTest extends TestCase
@@ -85,6 +87,87 @@ class DedicatedExitTest extends TestCase
     {
         $order->update(['status' => Order::STATUS_PROCESSING]);
         (new OrderService($order))->open();
+    }
+
+    private function ordinarySubscriber(int $paidAmount = 12000, int $creditedAmount = 2000): array
+    {
+        $this->freezeTime();
+        admin_setting(['surplus_enable' => 1, 'plan_change_enable' => 1, 'change_order_event_id' => 0]);
+        $oldPlan = Plan::create([
+            'name' => '普通套餐', 'group_id' => 1, 'transfer_enable' => 100,
+            'prices' => ['monthly' => 120], 'show' => true, 'sell' => true, 'renew' => true,
+        ]);
+        $user = $this->user();
+        $user->update([
+            'plan_id' => $oldPlan->id, 'group_id' => 1, 'balance' => 0,
+            'transfer_enable' => 100 * 1073741824, 'expired_at' => now()->addMonth()->timestamp,
+        ]);
+        $previous = Order::create([
+            'user_id' => $user->id, 'plan_id' => $oldPlan->id, 'period' => Plan::PERIOD_MONTHLY,
+            'trade_no' => Helper::generateOrderNo(), 'total_amount' => $paidAmount,
+            'surplus_credit' => $creditedAmount, 'type' => Order::TYPE_UPGRADE,
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        return [$user, $previous];
+    }
+
+    public function test_upgrade_with_excess_surplus_creates_and_completes_without_gateway_payment(): void
+    {
+        Queue::fake()->except([OrderHandleJob::class]);
+        [$user, $previous] = $this->ordinarySubscriber();
+        Sanctum::actingAs($user);
+        $tradeNo = $this->postJson('/api/v1/user/order/save', [
+            'plan_id' => $this->plan->id, 'period' => 'month_price',
+        ])->assertOk()->json('data');
+
+        $order = Order::where('trade_no', $tradeNo)->firstOrFail();
+        $this->assertSame(0, $order->total_amount);
+        $this->assertSame(10000, $order->surplus_amount);
+        $this->assertSame(4100, $order->surplus_credit);
+        $this->assertEquals(0, $user->fresh()->balance);
+        $this->assertSame(Order::STATUS_COMPLETED, $previous->fresh()->status);
+        $this->assertSame($order->id, DedicatedAssignment::sole()->order_id);
+        $this->getJson('/api/v1/user/order/detail?trade_no=' . $tradeNo)->assertOk()
+            ->assertJsonPath('data.surplus_credit', 4100)
+            ->assertJsonPath('data.refund_amount', 4100);
+
+        $this->postJson('/api/v1/user/order/checkout', ['trade_no' => $tradeNo])
+            ->assertOk()->assertJsonPath('type', -1)->assertJsonPath('data', true);
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertSame(Order::STATUS_DISCOUNTED, $previous->fresh()->status);
+        $this->assertEquals(4100, $user->fresh()->balance);
+        $this->assertSame($this->plan->id, $user->fresh()->plan_id);
+        $this->assertSame(200 * 1073741824, $user->fresh()->transfer_enable);
+        $this->assertNull(DedicatedAssignment::sole()->reserved_until);
+        $expiry = $user->fresh()->expired_at;
+        (new OrderService($order->fresh()))->open();
+        $this->assertEquals(4100, $user->fresh()->balance);
+        $this->assertSame($expiry, $user->fresh()->expired_at);
+        $this->assertSame(1, DedicatedAssignment::count());
+    }
+
+    public function test_cancelled_upgrade_does_not_credit_balance_or_consume_previous_subscription(): void
+    {
+        [$user, $previous] = $this->ordinarySubscriber();
+        $order = $this->order($user);
+        $this->assertSame(4100, $order->surplus_credit);
+        $this->assertTrue((new OrderService($order))->cancel());
+        $this->assertEquals(0, $user->fresh()->balance);
+        $this->assertSame($previous->plan_id, $user->fresh()->plan_id);
+        $this->assertSame(Order::STATUS_COMPLETED, $previous->fresh()->status);
+        $this->assertTrue((new PlanService($this->plan))->hasCapacity($this->plan));
+        $this->assertSame(0, app(DedicatedExitService::class)->occupied($this->plan->id)->count());
+    }
+
+    public function test_upgrade_deducts_previous_credit_before_calculating_amount_still_due(): void
+    {
+        [$user] = $this->ordinarySubscriber(5000, 2000);
+        $order = $this->order($user);
+        $this->assertSame(3000, $order->surplus_amount);
+        $this->assertSame(2900, $order->total_amount);
+        $this->assertNull($order->surplus_credit);
+        $this->assertEquals(0, $user->fresh()->balance);
     }
 
     public function test_five_pending_orders_fill_an_exit_and_hide_the_plan_without_authorizing_unpaid_users(): void
