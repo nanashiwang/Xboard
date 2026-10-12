@@ -63,7 +63,41 @@ abstract class AbstractProtocol
         $this->clientVersion = $clientVersion;
         $this->userAgent = $userAgent;
         $this->protocolRequirements = $this->normalizeProtocolRequirements($this->protocolRequirements);
-        $this->servers = HookManager::filter('protocol.servers.filtered', $this->filterServersByVersion());
+        $this->servers = $this->uniqueServerNames(
+            HookManager::filter('protocol.servers.filtered', $this->filterServersByVersion())
+        );
+    }
+
+    /**
+     * 节点名称同时用于代理定义和策略组引用，同名节点必须保留并区分。
+     */
+    protected function uniqueServerNames(array $servers): array
+    {
+        $names = array_column($servers, 'name');
+        $counts = array_count_values($names);
+        // 预留原始名称，避免自动编号与另一个节点已有的名称冲突。
+        $reserved = array_fill_keys($names, true);
+
+        foreach ($servers as $index => &$server) {
+            $name = $server['name'];
+            if ($counts[$name] < 2) {
+                continue;
+            }
+
+            $id = $server['id'] ?? ($index + 1);
+            $candidate = "{$name} [{$id}]";
+            $suffix = 2;
+            while (isset($reserved[$candidate])) {
+                $candidate = "{$name} [{$id}-{$suffix}]";
+                $suffix++;
+            }
+
+            $server['name'] = $candidate;
+            $reserved[$candidate] = true;
+        }
+        unset($server);
+
+        return $servers;
     }
 
     /**
