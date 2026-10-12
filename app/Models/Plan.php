@@ -89,12 +89,14 @@ class Plan extends Model
         'sell',
         'device_limit',
         'registered_device_limit',
+        'dedicated',
         'tags'
     ];
 
     protected $casts = [
         'show' => 'boolean',
         'renew' => 'boolean',
+        'dedicated' => 'boolean',
         'created_at' => 'timestamp',
         'updated_at' => 'timestamp',
         'group_id' => 'integer',

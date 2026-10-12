@@ -64,7 +64,8 @@ class NodeSyncService
             if (!self::isNodeOnline($server->id))
                 continue;
 
-            if ($user->isAvailable()) {
+            $authorizedIds = app(DedicatedExitService::class)->authorizedUserIds($server);
+            if ($user->isAvailable() && ($authorizedIds === null || in_array($user->id, $authorizedIds))) {
                 self::push($server->id, 'sync.user.delta', [
                     'action' => 'add',
                     'users' => [

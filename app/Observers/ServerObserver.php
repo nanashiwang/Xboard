@@ -16,7 +16,7 @@ class ServerObserver
 
     public function updated(Server $server): void
     {
-        if ($server->wasChanged('group_ids')) {
+        if ($server->wasChanged(['group_ids', 'dedicated_exit_id'])) {
             NodeSyncService::notifyFullSync($server->id);
         } elseif ($server->wasChanged([
             'server_port',

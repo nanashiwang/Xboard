@@ -54,6 +54,8 @@ class ServerService
      */
     public static function getAvailableServers(User $user): array
     {
+        $dedicated = app(DedicatedExitService::class);
+        $assignedExit = $dedicated->assignedExit($user);
         $servers = Server::whereJsonContains('group_ids', (string) $user->group_id)
             ->where('show', true)
             ->where(function ($query) {
@@ -63,6 +65,8 @@ class ServerService
             })
             ->orderBy('sort', 'ASC')
             ->get()
+            ->filter(fn ($server) => !$dedicated->nodeExitId($server)
+                || $dedicated->nodeExitId($server) === $assignedExit)
             ->append(['last_check_at', 'last_push_at', 'online', 'is_online', 'available_status', 'cache_key', 'server_key']);
 
         $servers = collect($servers)->map(function ($server) use ($user) {
@@ -93,8 +97,10 @@ class ServerService
         if (empty($groupIds)) {
             return collect();
         }
+        $authorizedIds = app(DedicatedExitService::class)->authorizedUserIds($node);
         $users = User::toBase()
             ->whereIn('group_id', $groupIds)
+            ->when($authorizedIds !== null, fn ($q) => $q->whereIn('id', $authorizedIds))
             ->whereRaw('u + d < transfer_enable')
             ->where(function ($query) {
                 $query->where('expired_at', '>=', time())

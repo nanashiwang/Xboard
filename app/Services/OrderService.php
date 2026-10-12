@@ -56,6 +56,13 @@ class OrderService
         HookManager::call('order.create.before', [$user, $plan, $period, $couponCode]);
 
         return DB::transaction(function () use ($user, $plan, $period, $couponCode, $userService) {
+            if ($plan->dedicated) {
+                app(DedicatedExitService::class)->lock($plan);
+                $user = User::lockForUpdate()->findOrFail($user->id);
+                if ($userService->isNotCompleteOrderByUserId($user->id)) {
+                    throw new ApiException(__('You have an unpaid or pending order, please try again later or cancel it'));
+                }
+            }
             $newPeriod = PlanService::getPeriodKey($period);
 
             $order = new Order([
@@ -84,12 +91,16 @@ class OrderService
                 throw new ApiException(__('Failed to create order'));
             }
 
+            if ($plan->dedicated && $newPeriod !== Plan::PERIOD_RESET_TRAFFIC) {
+                app(DedicatedExitService::class)->reserve($order, $user, $plan);
+            }
+
             HookManager::call('order.create.after', $order);
             // 兼容旧钩子
             HookManager::call('order.after_create', $order);
 
             return $order;
-        });
+        }, 5);
     }
 
     public function open(): void
@@ -100,7 +111,14 @@ class OrderService
         HookManager::call('order.open.before', $order);
 
 
-        DB::transaction(function () use ($order, $plan) {
+        $opened = DB::transaction(function () use ($order, $plan) {
+            if ($plan->dedicated) {
+                app(DedicatedExitService::class)->lock($plan);
+            }
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
+            if ($lockedOrder->status === Order::STATUS_COMPLETED) {
+                return false;
+            }
             $this->user = User::lockForUpdate()->find($order->user_id);
 
             if ($order->refund_amount) {
@@ -126,11 +144,18 @@ class OrderService
                 throw new \RuntimeException('用户信息保存失败');
             }
 
+            app(DedicatedExitService::class)->activate($this->user, $plan);
+
             $order->status = Order::STATUS_COMPLETED;
             if (!$order->save()) {
                 throw new \RuntimeException('订单信息保存失败');
             }
-        });
+            return true;
+        }, 5);
+
+        if (!$opened) {
+            return;
+        }
 
         $eventId = match ((int) $order->type) {
             Order::STATUS_PROCESSING => admin_setting('new_order_event_id', 0),

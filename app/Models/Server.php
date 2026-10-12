@@ -133,6 +133,7 @@ class Server extends Model
         'u' => 'integer',
         'd' => 'integer',
         'machine_id' => 'integer',
+        'dedicated_exit_id' => 'integer',
     ];
 
     private const MULTIPLEX_CONFIGURATION = [

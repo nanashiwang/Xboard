@@ -164,6 +164,9 @@ class PlanService
 
     public function hasCapacity(Plan $plan): bool
     {
+        if ($plan->dedicated) {
+            return app(DedicatedExitService::class)->hasCapacity($plan);
+        }
         if ($plan->capacity_limit === null) {
             return true;
         }

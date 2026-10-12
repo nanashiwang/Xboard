@@ -1,0 +1,13 @@
+{
+  "name": "美国独享家宽IP",
+  "transfer_enable": 200,
+  "prices": {"monthly": 59},
+  "speed_limit": 10,
+  "device_limit": null,
+  "registered_device_limit": null,
+  "capacity_limit": 15,
+  "reset_traffic_method": 1,
+  "sort": 5,
+  "tags": ["固定美国出口", "200 GB"],
+  "content": "## 套餐说明\n\n- 每月 200 GB 流量，按订阅周期每月重置。\n- 包含公共线路和 1 个固定分配的美国出口，共用套餐流量。\n- 连接速率上限 10 Mbps，不限制同时在线公网 IP 数量。\n- 专属出口按 1 倍率计费；公共线路按各线路标注倍率计费。\n- 有效期内正常续费保留出口，更新订阅不会主动更换 IP。\n- 出口故障时自动分配可用出口，更新订阅后重新连接，实际 IP 可能改变。\n- 名额有限，售罄后暂停新购，已购用户可在有效期内续费。"
+}
