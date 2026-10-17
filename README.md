@@ -76,7 +76,7 @@ python3 .agents/workflow.py verify
 
 ### 安卓 Clash Meta 下载等待排查（2026-10-18）
 
-手机日志确认两类异常：`services.googleapis.cn` 被 `.cn → DIRECT` 规则提前匹配，约 31 秒内出现 38 次 DNS 失败；另有 1 次入口 TCP 建连超时和 2 次 UDP 代理客户端建立超时。仓库默认 Clash 模板的规则顺序与日志一致，服务器侧独立 DNS 查询能解析该 Google 域名。该采样实际是规则模式和美国 01，没有覆盖用户另述的全局 / CN2 对照，也未捕获视频或应用包下载请求，因此尚不能把全部故障归为单一原因。证据、修复方向与验收边界见[安卓下载排查记录](./progress-log.md#2026-10-18安卓-clash-meta-下载等待日志排查)。后续修复已更新线上 Clash Meta 模板：Google 域名优先分流、双境外 DoH 经所选代理组、节点域名独立解析。实际重新下载的订阅通过双版本内核检查，美国 02 / CN2 的有限下载和 YouTube 连通性复测成功；手机 Play 下载与视频播放仍待用户确认。实现与取舍见[修复笔记](./.agents/notes/implemented/bug-fix/2026-10-18-clashmeta-google-dns.md)，新安装默认使用 [Clash Meta 模板](./resources/rules/default.clashmeta.yaml)。
+手机日志确认两类异常：`services.googleapis.cn` 被 `.cn → DIRECT` 规则提前匹配，约 31 秒内出现 38 次 DNS 失败；另有 1 次入口 TCP 建连超时和 2 次 UDP 代理客户端建立超时。仓库默认 Clash 模板的规则顺序与日志一致，服务器侧独立 DNS 查询能解析该 Google 域名。该采样实际是规则模式和美国 01，没有覆盖用户另述的全局 / CN2 对照，也未捕获视频或应用包下载请求，因此尚不能把全部故障归为单一原因。证据、修复方向与验收边界见[安卓下载排查记录](./progress-log.md#2026-10-18安卓-clash-meta-下载等待日志排查)。后续修复已更新线上 Clash Meta 模板：Google 域名优先分流、双境外 DoH 经所选代理组、节点域名独立解析。实际重新下载的订阅通过双版本内核检查，美国 02 / CN2 的有限下载和 YouTube 连通性复测成功；用户已在安卓手机更新订阅并重连后确认：Play 下载与 YouTube 视频均恢复。实现与取舍见[修复笔记](./.agents/notes/implemented/bug-fix/2026-10-18-clashmeta-google-dns.md)，新安装默认使用 [Clash Meta 模板](./resources/rules/default.clashmeta.yaml)。 构建与手机验收状态见[修复交付记录](./progress-log.md#2026-10-18clash-meta-google-分流与代理-dns-修复)。
 
 ## 🚀 Quick Start
 

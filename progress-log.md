@@ -302,8 +302,10 @@ NAS 当前使用 `/home/nanashiwang/xboard-node-probe`，镜像 1.0.1、重启�
 - 官方 Mihomo 1.18.10 / 1.19.32 检查候选和实际下发订阅均通过。首次测试因本地缺少 GeoIP 数据库且自动下载超时，补齐官方数据库后重验；保留 GEOIP 规则。
 - 真实内核绑定本机 en0、严格 TLS：services.googleapis.cn 与 redirector.gvt1.com 解析状态 0 并返回 A 记录；内核日志明确境外 DoH 经代理组，services.googleapis.cn 命中 googleapis.cn 代理规则。
 - 实际订阅首次完整请求发生一次 hk.taige.us 建连超时；后续独立查询确认入口域名返回当前 IP。以每请求新建 HTTP 会话的方式再测美国 02 / CN2：Google 根路径均取得 HTTP 404（只验证 TLS/HTTP 可达），dl.google.com 均返回 HTTP 206 与完整 262144 字节，约 1.92 / 1.96 秒；YouTube generate_204 均返回 204，约 1.21 / 1.22 秒。测试只调整本地监听端口和网络接口，未更改系统代理。
-- 手机 Play 应用包下载与 YouTube 实际播放仍待用户更新订阅后确认；间歇入口超时未据此宣称消失。未测速持续带宽，未重启或升级面板/节点。
+- 用户在安卓手机更新订阅并重连后明确反馈「下载和视频都恢复」，手机 Play 下载与 YouTube 播放验收通过；间歇入口超时未据此宣称永久消失。未测速持续带宽，未重启或升级面板/节点。
 
 ### 交付状态
 
-本地回读、差异和决策流程检查通过后，只提交本轮修改并推送 master，保留既有香港迁移工作区改动。代码推送沿用 Docker 多架构构建和现有 CI；构建完成状态在后续交付记录核实。线上模板已独立生效，面板程序仍为原部署版本。仓库没有 GitHub Release / 安装包发布流程，本次不创建人为版本号或 Release。
+本地回读、差异、工作区及暂存快照决策流程检查通过；代码提交 `db666f5` 已推送 `master`，只包含本轮修改，既有香港迁移工作区改动保留。GitHub [Docker 构建](https://github.com/nanashiwang/Xboard/actions/runs/39066084418)、[探针检查](https://github.com/nanashiwang/Xboard/actions/runs/39066084422)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39066084478) 均为 success。发布镜像 `ghcr.io/nanashiwang/xboard:db666f5` 已核实含 linux/amd64 与 linux/arm64；工作流按 UTC 生成应用版本 `20261017-db666f5`。
+
+线上模板独立保存生效并经手机验收，面板程序仍为 `20261018-12d1728`，未因镜像构建完成而部署程序或重启节点。README / progress-log 已按代码提交从 GitHub 回读，字节一致；本次手机验收和构建交付记录以 `[skip ci]` 文档提交同步，推送后再次按提交回读。仓库没有 GitHub Release / 安装包发布流程，本次无 Release 链接。
