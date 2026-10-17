@@ -260,3 +260,28 @@ NAS 当前使用 `/home/nanashiwang/xboard-node-probe`，镜像 1.0.1、重启�
 - NAS 发起的无凭据 agent 请求返回 401、无管理员凭据的管理请求返回 403。未关闭 Cloudflare、防火墙或 TLS 校验，未调整原有节点、套餐或客户路由。
 - 修复提交 `07b5a42`、`b3915dc` 已推送 master。`b3915dc` 的 [探针检查](https://github.com/nanashiwang/Xboard/actions/runs/39060125709)（含实际 Compose 启动）、[决策笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39060125677)、[双架构镜像发布](https://github.com/nanashiwang/Xboard/actions/runs/39060125711) 均成功；GHCR manifest `sha256:32674d341a42825590138afa78ebdf038139e8916fbe83af108450dcfa7360c2` 已确认 amd64/arm64。生产面板仍为 `12d1728`，后续提交只涉及 NAS 探针、检查及文档，面板应用代码一致，未为此再次重启。
 - 原有香港入口任务的未提交内容继续保留；本轮只暂存自身文件与记录段落。README 和 progress-log 按提交完整 SHA 从 GitHub 回读核对；当前仓库采用 Docker 镜像发布，无 GitHub Release/安装包流程。
+
+## 2026-10-18：安卓 Clash Meta 下载等待日志排查
+
+### 用户反馈与确认事实
+
+用户使用 Android Clash Meta，Google Play 下载一直等待且速度为零；Google / YouTube 页面能打开，视频不能播放。用户反馈规则和全局模式均失败，按建议尝试 CN2 也未恢复。本次分析用户提供的约 31 秒日志（03:31:25–03:31:56），不提交原始设备日志、订阅或身份凭据。
+
+- 136 行日志共有 41 条 Warning：38 条针对 `services.googleapis.cn:443`，匹配 `DomainSuffix/cn` 后使用 `DIRECT`，错误为 `no ip address` 或 `dns resolve failed: couldn't find ip`。
+- 默认 [Clash 模板](./resources/rules/default.clash.yaml) 中 `DOMAIN-SUFFIX,cn,DIRECT` 位于 `DOMAIN-KEYWORD,google,$app_name` 前，Google 的 `.cn` 域名被通用直连规则提前匹配；模板虽配置 `+.googleapis.cn` 的 DNS 策略，但 DNS 策略不等于连接分流规则，也不能据配置文本认定手机能访问该解析器。
+- 新入口服务器的系统解析、Google DoH 和 Cloudflare DoH 对 `services.googleapis.cn` 均返回有效 A 记录，两个 DoH 状态均为 0；支持手机所用解析路径存在异常，不支持该域名全球无记录的判断。尚未取得手机完整生效 DNS 配置，不能精确归因某个解析器。
+- 其余 3 条 Warning：访问 `connectivitycheck.gstatic.com` 时连接 `hk.taige.us:443` 超时 1 次；访问 NTP 时建立 VLESS UDP 客户端超时 2 次。UDP 错误发生于客户端建立阶段，不能直接认定 QUIC 或 UDP 转发不支持。
+- 日志中的代理成功建连记录均显示「美国自建｜01｜第一阶段入口」，并有多条实际规则匹配；没有 GLOBAL / CN2 记录。本文件不能验证用户此前另一轮全局 / CN2 测试的执行状态，也不否定其反馈。
+- 本片段没有 `googlevideo`、`gvt1` 或 `gvt2` 请求，无法确认视频和应用包下载连接具体卡在哪一环。广告域名的 REJECT 命中不单独作为下载失败证据。
+
+### 同期独立对照
+
+新入口 Nginx、防火墙、WireGuard 为 active，13 个对端最近握手均在约 126 秒内；服务状态不代替客户端验收。正式 NAS 看板 03:24 左右显示最近统计 664/734 次 HTTP 成功（约 90.5%），部分节点波动；该位置与手机网络不等同。
+
+本机绑定 en0、固定新入口 IP、严格 TLS，通过临时 VLESS / WebSocket 诊断客户端分别走美国 02 与 CN2：两条线路各从 `dl.google.com` 返回 HTTP 206 和完整 262144 字节，用时约 2.16 / 2.18 秒；美国 02 的 Cloudflare 256 KiB 下载返回 HTTP 200 且完整，约 2.29 秒；CN2 同一 Cloudflare 测试建连约 12.20 秒超时。临时诊断不改变系统代理或节点配置，测试数据只在内存中接收。以上支持下载链路并非全断，但不等于手机、Google Play 应用包或视频 CDN 已恢复，也不证明持续带宽容量。
+
+### 修复方向与交付边界
+
+先修正 Google `.cn` 域名相对于通用 `.cn` 直连的优先级，并核对实际下发模板和手机 DNS 解析器的可达性；规则修正本身不能替代 DNS 及入口稳定性验证。随后重新导入 / 更新订阅，核对实际模式与节点，采集一次真正的视频播放 / Play 下载请求，以域名、命中策略、节点及错误阶段验收。沿用[入口架构](./.agents/notes/implemented/architecture/2026-10-17-stage1-replacement.md)，本次没有新的架构决策。
+
+本轮仅保存诊断摘要，不修改业务代码、线上订阅模板、DNS、节点或防火墙，不声称已修复。README 与本记录进行本地回读、相对链接和工作区 / 暂存快照校验；仅提交本轮记录并推送 master，原有迁移文档改动保留，推送后从 GitHub 按提交回读两文件。文档提交使用 `[skip ci]`，不运行业务构建、部署或版本发布；仓库无 GitHub Release / 安装包流程，本次不创建版本。最终检查、commit、push 和回读结果由交付回复报告。
