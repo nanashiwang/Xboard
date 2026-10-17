@@ -1,5 +1,6 @@
 .np-page-host>:not(#node-quality-page){display:none!important}
-.np-page-host{overflow-y:auto!important;overscroll-behavior:contain}
+.np-page-active main{height:100dvh}
+.np-page-host{min-height:0;overflow-y:auto!important;overscroll-behavior:contain;overflow-anchor:none}
 .np-page-heading>h1:not(#node-quality-title){display:none}
 #node-quality-page{width:100%;min-width:0}
 #node-quality-frame{display:block;width:100%;min-height:400px;border:0;background:transparent}

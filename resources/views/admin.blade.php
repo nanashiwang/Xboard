@@ -81,8 +81,8 @@
 
 <body data-admin-path="{{ $secure_path }}">
   <div id="root"></div>
-  <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=2">
-  <script src="/assets/node-probe-dashboard.js?v=2" defer></script>
+  <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=3">
+  <script src="/assets/node-probe-dashboard.js?v=3" defer></script>
 </body>
 
 </html>

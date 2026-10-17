@@ -5,7 +5,7 @@
   const pageHash = '#/?page=node-quality';
   const activeClasses = ['bg-secondary', 'text-secondary-foreground', 'shadow-sm', 'hover:bg-secondary/80'];
   const initialTitle = document.title;
-  let page, frame, host, heading, title, auth = '', listScroll = 0;
+  let page, frame, host, heading, title, auth = '', listScroll = 0, pendingScroll = null;
   const token = () => {
     try {
       const t = JSON.parse(localStorage.getItem('XBOARD_ACCESS_TOKEN'));
@@ -25,6 +25,7 @@
     host?.classList.remove('np-page-host');
     heading?.parentElement?.classList.remove('np-page-heading');
     page = frame = host = heading = title = null;
+    pendingScroll = null;
     document.body.classList.remove('np-page-active');
     if (document.title === '节点质量 · ' + initialTitle) document.title = initialTitle;
   }
@@ -68,17 +69,19 @@
     frame = document.createElement('iframe'); frame.id = 'node-quality-frame'; frame.title = '节点质量与探针管理';
     frame.src = '/' + path + '/node-probes?' + new URLSearchParams({embedded: '1', theme: theme()});
     frame.addEventListener('load', syncTheme); page.append(frame); host.append(page);
-    host.classList.add('np-page-host'); document.body.classList.add('np-page-active');
+    host.classList.add('np-page-host'); document.body.classList.add('np-page-active'); host.scrollTop = 0;
     document.title = '节点质量 · ' + initialTitle;
   }
   window.addEventListener('message', event => {
     if (!frame || event.origin !== location.origin || event.source !== frame.contentWindow) return;
     if (event.data?.type === 'node-probes:height' && Number.isFinite(event.data.height)) {
       frame.style.height = Math.max(400, Math.min(200000, event.data.height)) + 'px';
+      if (pendingScroll !== null) { host.scrollTop = pendingScroll; pendingScroll = null; }
     }
     if (event.data?.type === 'node-probes:history') {
       if (event.data.open) { listScroll = host.scrollTop; host.scrollTop = 0; }
-      else host.scrollTop = listScroll;
+      // The list height arrives after it is shown; restoring before that would clamp to zero.
+      else pendingScroll = listScroll;
     }
   });
   const root = document.getElementById('root');
