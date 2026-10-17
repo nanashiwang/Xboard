@@ -18,7 +18,7 @@ import urllib.request
 from urllib.parse import urlsplit, urlencode
 import uuid
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 STOP = threading.Event()
 
 
@@ -156,8 +156,15 @@ class Agent:
         request = urllib.request.Request(self.url + '/api/v2/probe/' + path, data=json.dumps(data).encode(),
                                          headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json',
                                                   'Accept': 'application/json', 'User-Agent': 'Xboard-Node-Probe/' + VERSION})
-        with self.http.open(request, timeout=20) as response:
-            return json.loads(response.read(2 * 1024 * 1024))['data']
+        for attempt in range(2):
+            try:
+                with self.http.open(request, timeout=20) as response:
+                    return json.loads(response.read(2 * 1024 * 1024))['data']
+            except OSError as error:
+                # Reuse the same sample UUID: a lost acknowledgement must not double-count.
+                if attempt or (isinstance(error, urllib.error.HTTPError) and error.code < 500 and error.code != 429):
+                    raise
+                if STOP.wait(.5): raise
 
     def cycle(self):
         config = self.post('config', {'agent_version': VERSION})
@@ -184,9 +191,10 @@ class Agent:
                     print(json.dumps({'node': sample['server_id'], 'checked_at': sample['checked_at'], 'error': sample.get('error'),
                                       'checks': [{k: c[k] for k in ('id', 'status', 'ms', 'bytes', 'error')} for c in sample['checks']],
                                       'exit_ip': sample.get('exit_ip')}), flush=True)
-                except (OSError, ValueError):
+                except (OSError, ValueError) as error:
                     # Do not print credentials, URLs, raw exception/remote response or core stderr.
-                    print(json.dumps({'node': sample['server_id'], 'error': 'report_failed'}), flush=True)
+                    print(json.dumps({'node': sample['server_id'], 'error': 'report_failed',
+                                      'error_type': type(error).__name__, 'http_status': getattr(error, 'code', None)}), flush=True)
         return config['interval_seconds']
 
 
@@ -200,8 +208,9 @@ def main():
         agent = Agent(json.loads(Path(os.getenv('PROBE_CONFIG', '/config/agent.json')).read_text()), state)
         while not STOP.is_set():
             try: interval = agent.cycle()
-            except (OSError, ValueError, KeyError, urllib.error.HTTPError):
-                print(json.dumps({'error': 'panel_unavailable_or_config_invalid'}), flush=True)
+            except (OSError, ValueError, KeyError, urllib.error.HTTPError) as error:
+                print(json.dumps({'error': 'panel_unavailable_or_config_invalid',
+                                  'error_type': type(error).__name__, 'http_status': getattr(error, 'code', None)}), flush=True)
                 interval = 60
             STOP.wait(interval)
 

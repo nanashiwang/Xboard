@@ -5,12 +5,26 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 spec = importlib.util.spec_from_file_location('probe', Path(__file__).resolve().parents[2] / 'tools/node-probe/probe.py')
 p = importlib.util.module_from_spec(spec); spec.loader.exec_module(p)
 
 class AgentTest(unittest.TestCase):
+    def test_transient_report_retry_keeps_identity_and_never_retries_auth_rejection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            a=p.Agent({'panel_url':'https://panel.test','token':'a'*64},folder)
+            response=MagicMock();response.__enter__.return_value.read.return_value=b'{"data":{"accepted":false}}'
+            sample={'sample_id':'00000000-0000-4000-8000-000000000001'}
+            with patch.object(a.http,'open',side_effect=[TimeoutError(),response]) as send,patch.object(p.STOP,'wait',return_value=False):
+                self.assertEqual(a.post('report',sample),{'accepted':False})
+                self.assertEqual(send.call_count,2)
+                self.assertEqual(send.call_args_list[0].args[0].data,send.call_args_list[1].args[0].data)
+            denied=p.urllib.error.HTTPError('https://panel.test',403,'denied',{},None)
+            with patch.object(a.http,'open',side_effect=denied) as send:
+                with self.assertRaises(p.urllib.error.HTTPError): a.post('report',sample)
+                self.assertEqual(send.call_count,1)
+
     def test_panel_request_identifies_probe_without_browser_impersonation(self):
         with tempfile.TemporaryDirectory() as folder:
             a=p.Agent({'panel_url':'https://panel.test','token':'a'*64},folder)

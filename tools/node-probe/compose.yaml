@@ -1,7 +1,7 @@
 services:
   xboard-node-probe:
     build: .
-    image: xboard-node-probe:1.0.1
+    image: xboard-node-probe:1.0.2
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
