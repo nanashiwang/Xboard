@@ -4,6 +4,31 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-17：替换 VPN 第一阶段并加固 SSH
+
+用户指定 `143.203.200.5`、root / 22、既有 `flawless_la_02` 密钥替代第一阶段；另明确允许在原香港入口和面板临时添加运维公钥，并要求结束后删除。执行前核对了既有节点、套餐、父子后端和隧道，保持现有 UUID、公开 ID、权限组与订阅地址。方案取舍见[架构笔记](./.agents/notes/implemented/architecture/2026-10-17-stage1-replacement.md)，日常维护和回退见[第一阶段运维](./docs/zh-CN/installation/vpn-stage1.md)。
+
+### 已实施与生产证据
+
+- 新机独立密钥登录成功；有效 SSH 配置仅接受 publickey，密码与键盘交互认证关闭，MaxAuthTries=3、LoginGraceTime=30、MaxStartups=10:30:40、X11 关闭。新连接强制密码方式得到 `Permission denied (publickey)`。
+- 持久化防火墙默认拒绝输入和转发，放行管理、TLS、ACME、必要 ICMP 和已建立连接；UDP 51872 仅允许 13 个出口。Fail2ban sshd jail 使用 systemd 日志与 nftables；TEST-NET 地址实际封禁、集合存在、解封均通过。SSH、Nginx、防火墙、Fail2ban、WireGuard 服务状态及开机启用通过，限时安全回退已取消。
+- 13 个出口通过新的 `wg-vpn-stage1` / `10.79.0.x` 加密路径接入，精确 `/32` 路由不替换默认路由；旧 `wg-xboard` 保留。所有出口节点、防火墙、新隧道正常，原 11 台美国机上的 CPA 与独立 sing-box 服务保持 active。
+- 新 IP 切换前和原域名切换后，各完整通过 13 条严格 TLS 的 HTTPS 请求（出口 IP 逐一匹配）、13 条 SOCKS5 UDP ASSOCIATE / XUDP DNS；第二个付费用户首末两条通过，随机无效 UUID 被拒绝。
+- 独立面板主机确认 13 台后端的公网 TCP 31443/24443 均不可连接；CF 基础备用线完整 HTTPS 请求返回原自有出口。第三方 outbound 数量为零，Windows 与独享家宽套餐仍维持停用。
+- Cloudflare 的 `hk.taige.us` A 记录已从原香港 IP 改为新 IP，保持 DNS only。1.1.1.1 和 8.8.8.8 的 A 查询、面板系统解析及 HTTPS 健康检查均命中新入口；8.8.8.8 TCP 查询确认没有 AAAA 记录。13 条公开名称改为「第一阶段入口」，其他关键字段前后相同。
+- 权限组 1–4 可用数为 14/15/16/17；两名现有付费用户各 14 条，14 台启用机器心跳新鲜。
+- 安装检查曾发现 nftables 文件缺少换行、Ubuntu 默认 Nginx 的 server_tokens 与新增配置重复，均在 DNS 切换前修正。首次香港代理请求遭遇出口 DNS 瞬时超时，日志定位后重测通过，随后两轮完整验收通过；未据单次失败改变所有节点的 DNS 配置。
+
+- 新入口的 Certbot 模拟续期通过（独立 systemd 任务 Result=success / ExecMainStatus=0），证书有效至 2027-01-09，自动续期定时器 active/enabled；原香港机仅有此证书，旧续期定时器停用，原 Nginx/节点/双隧道继续 active。首次 SSH 承载的 dry-run 因随机等待超过连接超时后出现 Broken pipe，改为服务器独立任务并禁用测试随机等待后通过。
+
+- 原香港入口与面板的临时公钥均已删除，新独立连接确认该钥匙被拒绝；香港临时 SSH 配置已移除，恢复原有认证方式。本机本次临时私钥与三份临时密码文件已删除，用户原有密钥保留。
+
+### 维护和交付边界
+
+原香港机器继续作为香港出口及迁移回退点，旧入口与旧隧道未清退。此前 sing-box 订阅模板的 legacy 格式兼容问题仍为独立待办，本次未改模板，也未声称全部客户端可用；未进行大陆运营商测速、长期观察、整机重启演练或计费对账。
+
+本次仅提交第一阶段迁移的新增运维记录，保留开始时已有的香港入口文档改动及笔记，不混入本次提交。应用源码与版本号未改；仓库没有 GitHub Release/安装包发布流程，本次不创建版本或 Release。文档提交使用 `[skip ci]`，不触发相同业务代码的镜像构建；本地结构/链接检查、提交、推送和 GitHub 回读终态在任务交付时报告。
+
 ## 2026-10-17：接入 project-decision-kit v1.0.1
 
 ### 项目反馈
