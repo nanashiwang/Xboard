@@ -79,9 +79,14 @@
   @endif
 </head>
 
-<body>
+<body data-admin-path="{{ $secure_path }}">
   <div id="root"></div>
-  <a href="/{{ $secure_path }}/node-probes" aria-label="节点质量探针" style="position:fixed;right:18px;bottom:18px;z-index:40;padding:8px 14px;border:1px solid #b7cbc4;border-radius:20px;background:#fff;color:#17644e;box-shadow:0 2px 10px #0001;font:14px system-ui">节点质量 ↗</a>
+  <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=1">
+  <script src="/assets/node-probe-dashboard.js?v=1" defer></script>
+  <dialog id="node-probe-dialog" aria-label="节点质量监控">
+    <div class="np-dialog-head"><strong>节点质量监控</strong><button id="node-probe-dialog-close">关闭</button></div>
+    <iframe id="node-probe-frame" title="探针管理与节点明细" src="about:blank"></iframe>
+  </dialog>
 </body>
 
 </html>

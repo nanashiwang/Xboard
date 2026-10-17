@@ -127,6 +127,18 @@ class NodeProbeTest extends TestCase
         $this->assertCount(2,json_decode($state->transfers,true));
         $this->assertSame($s['checked_at'],(int)$state->transfer_checked_at);
     }
+    public function test_successful_small_requests_do_not_clear_a_failed_upload(): void
+    {
+        $s=$this->sample();
+        $s['checks'][]=['id'=>'upload','status'=>0,'ms'=>8000,'bytes'=>0,'error'=>'timeout'];
+        $s['checks'][]=['id'=>'download','status'=>200,'ms'=>1000,'bytes'=>262144,'error'=>null];
+        $this->report($s)->assertOk();
+        $this->report($this->sample(1))->assertOk(); $this->report($this->sample(2))->assertOk();
+        $this->assertDatabaseHas('v2_node_probe_state',['status'=>'degraded','successes'=>0]);
+        $s=$this->sample(3); foreach (['upload','download'] as $id) $s['checks'][]=['id'=>$id,'status'=>200,'ms'=>1000,'bytes'=>262144,'error'=>null];
+        $this->report($s)->assertOk(); $this->report($this->sample(4))->assertOk();
+        $this->assertDatabaseHas('v2_node_probe_state',['status'=>'healthy']);
+    }
     public function test_cli_keeps_credentials_private_and_does_not_reuse_a_customer(): void
     {
         config(['app.url'=>'https://panel.example.test']);

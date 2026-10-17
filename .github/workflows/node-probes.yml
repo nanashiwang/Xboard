@@ -2,9 +2,9 @@ name: Node Probe Checks
 on:
   push:
     branches: [master]
-    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probes.*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
+    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
   pull_request:
-    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probes.*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
+    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
 permissions:
   contents: read
 jobs:
@@ -19,6 +19,6 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: vendor/bin/phpunit tests/Feature/Probes
-      - run: node --check public/assets/node-probes.js
+      - run: node --check public/assets/node-probes.js && node --check public/assets/node-probe-dashboard.js
       - run: docker build -t xboard-node-probe:test tools/node-probe
       - run: docker run --rm --entrypoint python3 -v "$PWD:/work:ro" -w /work xboard-node-probe:test -m unittest discover -s tests/Probes -v

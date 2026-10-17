@@ -96,7 +96,11 @@ class NodeProbeService
             $exit = $sample['exit_ip'] ?? null;
             $expected = $probe->expected_exits[$sample['server_id']] ?? null;
             $exitMismatch = $expected && $exit !== $expected;
-            $allGood = !$error && !$exitMismatch && count($checks) >= 2 && count(array_filter($checks, fn ($c) => !$c['ok'])) === 0;
+            $transferChecks = array_values(array_filter($checks, fn ($c) => in_array($c['id'], ['upload', 'download'])));
+            $lastTransfers = $transferChecks ?: ($state?->transfers ? json_decode($state->transfers, true) : []);
+            // A lightweight round cannot prove that a failed upload/download has recovered.
+            $transferHealthy = count(array_filter($lastTransfers, fn ($c) => !$c['ok'])) === 0;
+            $allGood = !$error && !$exitMismatch && $transferHealthy && count($checks) >= 2 && count(array_filter($checks, fn ($c) => !$c['ok'])) === 0;
             // A long gap breaks consecutive streaks; the missing period is not evidence of recovery.
             $fresh = $state && $sample['checked_at'] - $state->checked_at <= $probe->staleAfter();
             $failures = !$error && $successes === 0 ? ($fresh ? $state->failures : 0) + 1 : 0;
@@ -106,8 +110,7 @@ class NodeProbeService
             $encoded = json_encode($payload);
             DB::table('v2_node_probe_sample')->insert([...$scope, 'sample_id' => $sample['sample_id'], 'checked_at' => $sample['checked_at'], 'checks' => $encoded, 'exit_ip' => $exit]);
             $stateUpdate = ['status' => $status, 'failures' => $failures, 'successes' => $goods, 'checked_at' => $sample['checked_at'], 'checks' => $encoded, 'exit_ip' => $exit];
-            $transfers = array_values(array_filter($checks, fn ($c) => in_array($c['id'], ['upload', 'download'])));
-            if ($transfers) $stateUpdate += ['transfers' => json_encode($transfers), 'transfer_checked_at' => $sample['checked_at']];
+            if ($transferChecks) $stateUpdate += ['transfers' => json_encode($transferChecks), 'transfer_checked_at' => $sample['checked_at']];
             DB::table('v2_node_probe_state')->updateOrInsert($scope, $stateUpdate);
             if ($status !== ($state->status ?? 'unknown')) DB::table('v2_node_probe_event')->insert([...$scope, 'from_status' => $state->status ?? 'unknown', 'to_status' => $status, 'created_at' => $sample['checked_at']]);
             // Config failures have no HTTP observations, so never count as successful requests.

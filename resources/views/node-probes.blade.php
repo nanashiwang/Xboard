@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="/assets/node-probes.css?v=1">
   <script src="/assets/node-probes.js?v=1" defer></script>
 </head>
-<body data-admin-path="{{ $secure_path }}">
+<body data-admin-path="{{ $secure_path }}" @if(request()->boolean('embedded')) class="embedded" data-theme="{{ request('theme') === 'dark' ? 'dark' : 'light' }}" @endif>
 <header><a href="/{{ $secure_path }}">← 返回管理后台</a><span>Xboard · 网络观测</span></header>
 <main>
   <section class="intro"><div><p class="eyebrow">NODE QUALITY</p><h1>节点质量</h1><p>从探针所在网络，检查用户实际经过的节点线路。</p></div><button id="refresh">刷新结果</button></section>
