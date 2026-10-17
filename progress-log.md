@@ -309,3 +309,13 @@ NAS 当前使用 `/home/nanashiwang/xboard-node-probe`，镜像 1.0.1、重启�
 本地回读、差异、工作区及暂存快照决策流程检查通过；代码提交 `db666f5` 已推送 `master`，只包含本轮修改，既有香港迁移工作区改动保留。GitHub [Docker 构建](https://github.com/nanashiwang/Xboard/actions/runs/39066084418)、[探针检查](https://github.com/nanashiwang/Xboard/actions/runs/39066084422)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39066084478) 均为 success。发布镜像 `ghcr.io/nanashiwang/xboard:db666f5` 已核实含 linux/amd64 与 linux/arm64；工作流按 UTC 生成应用版本 `20261017-db666f5`。
 
 线上模板独立保存生效并经手机验收，面板程序仍为 `20261018-12d1728`，未因镜像构建完成而部署程序或重启节点。README / progress-log 已按代码提交从 GitHub 回读，字节一致；本次手机验收和构建交付记录以 `[skip ci]` 文档提交同步，推送后再次按提交回读。仓库没有 GitHub Release / 安装包发布流程，本次无 Release 链接。
+
+## 2026-10-18：节点质量改为后台完整页面
+
+用户反馈仪表盘监控与侧栏节点质量重复，并要求取消大弹窗，采用与其他后台页面一致的展示。移除首页监控卡片与其轮询入口，保留侧栏「节点质量」，在现有后台主内容区展示探针和节点表；节点历史也改为页面内查看并提供返回列表。探针 API、权限、统计口径、采样与 NAS 运行配置不变。取舍见[页面简化决策](./.agents/notes/implemented/simplification/2026-10-18-node-quality-page.md)。
+
+- 兼容固定版本管理前端的首页查询路由 `#/?page=node-quality`；旧 `#node-quality` 自动转向新入口。未改编译子模块，保留侧栏、主题、登录和其他菜单。
+- 本地使用现有后台编译资源、隔离 SQLite 测试数据与 Docker PHP 环境验收：无重复卡片；完整页面及侧栏高亮；刷新、前进后退、系统配置往返、旧入口、历史返回、深浅主题、390px 窄屏通过；窄屏选择后菜单自动收起。退出测试账号后监控视图与入口均清除。测试数据不作为生产节点质量结论。
+- 相关 PHP 回归通过：13 项测试、71 个断言；两份 JavaScript 语法检查、差异空白检查通过。笔记和文档链接检查在提交前执行。
+- 本地精简测试库缺少完整收入统计环境，原仪表盘统计接口出现错误提示；本次监控接口和页面加载成功，正式环境仍须单独核验。
+- 当前尚未提交、推送、构建或部署；后续使用现有双架构镜像和 Production Deploy 流程，按具体 revision 回读线上结果。仓库没有 GitHub Release / 安装包发布流程，不创建空版本。

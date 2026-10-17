@@ -3,3 +3,21 @@
 body.embedded header{display:none}body.embedded main{padding-top:20px}body.embedded .intro{margin-bottom:16px}body.embedded h1{font-size:28px}
 
 body[data-theme=dark]{color-scheme:dark;--bg:#131a20;--card:#1c252d;--text:#e4edf3;--muted:#a3b1bc;--line:#35424d;--accent:#64c9ab;--bad:#ff91a0;--warn:#e8ba70}body[data-theme=light]{color-scheme:light;--bg:#f4f6f8;--card:#fff;--text:#182631;--muted:#63717d;--line:#dce3e8;--accent:#136c58;--bad:#b32635;--warn:#9b6100}
+
+/* Full-page content inside the existing admin shell. */
+body.embedded{font-size:14px;line-height:1.6;background:var(--card)}
+body.embedded main{max-width:none;padding:0 0 24px}
+body.embedded .intro{gap:16px;margin-bottom:20px;align-items:center}
+body.embedded .intro h1,body.embedded .eyebrow{display:none}
+body.embedded .intro p{margin:0;color:var(--muted)}
+body.embedded .card{border-radius:8px;padding:24px;margin:20px 0;box-shadow:0 1px 2px #00000005}
+body.embedded h2{font-size:18px;font-weight:600}
+body.embedded button,body.embedded input,body.embedded select{font-size:13px;border-radius:6px}
+body.embedded #refresh,body.embedded button[type=submit]{background:#0f172a;border-color:#0f172a;color:#fff}
+body.embedded[data-theme=light]{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0}
+body.embedded[data-theme=dark]{--bg:#18212e;--card:#020817;--text:#f8fafc;--muted:#94a3b8;--line:#1e293b}
+body.embedded[data-theme=dark] #refresh,body.embedded[data-theme=dark] button[type=submit]{background:#f8fafc;border-color:#f8fafc;color:#0f172a}
+body.showing-history .intro{display:none}
+#history h2{margin:0;overflow-wrap:anywhere}
+#history .toolbar{align-items:flex-start}
+@media(max-width:640px){body.embedded .card{padding:16px}body.embedded .intro{align-items:flex-start;flex-wrap:wrap}body.embedded .meta{gap:6px 12px}.actions{width:100%}}

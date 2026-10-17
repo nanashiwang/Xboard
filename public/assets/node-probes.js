@@ -4,13 +4,14 @@
   const base = '/api/v2/' + document.body.dataset.adminPath + '/node-probes';
   const names = {healthy:'正常',degraded:'波动 / 确认中',down:'故障',config_error:'配置异常',unknown:'尚无数据',stale:'数据过期',disabled:'已停用'};
   const errors = {timeout:'超时',dns:'DNS 失败',connect:'连接失败',tls:'TLS 失败',http:'HTTP 异常',incomplete:'传输不完整',proxy:'代理失败',unknown:'检测失败',account_unavailable:'监控账号不可用或节点无权限',node_unavailable:'节点不可用',unsupported_protocol:'协议暂不支持',insecure_tls:'节点未启用证书校验',core_unavailable:'探针缺少内核',core_config:'内核配置不兼容'};
-  let detailOpened = false;
+  let detailOpened = false, historyRequest = 0, historyTrigger;
+  const notifyParent = message => { if (document.body.classList.contains('embedded')) parent.postMessage(message, location.origin); };
   let data, token = '', busy = false, controller = new AbortController();
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = t => t ? new Date(t * 1000).toLocaleString('zh-CN', {hour12:false}) : '尚无数据';
   const val = (v, suffix='') => v === null || v === undefined ? '—' : esc(v) + suffix;
   function readToken() { try { const t = JSON.parse(localStorage.getItem('XBOARD_ACCESS_TOKEN')); return t && (!t.expire || t.expire > Date.now()) ? t.value : ''; } catch { return ''; } }
-  function resetAuth() { controller.abort(); controller = new AbortController(); data = null; $('probes').replaceChildren(); $('server-options').replaceChildren(); $('workspace').hidden = true; $('auth').hidden = false; $('credentials').close(); $('history').close(); $('agent-config').value = ''; }
+  function resetAuth() { controller.abort(); controller = new AbortController(); data = null; $('probes').replaceChildren(); $('server-options').replaceChildren(); $('workspace').hidden = true; $('auth').hidden = false; $('credentials').close(); closeHistory(); $('agent-config').value = ''; }
   function message(text, error=false) { $('message').textContent = text.replace('Failed to fetch', '连接面板失败，请检查网络。'); $('message').className = error ? 'error' : ''; }
   async function api(path='', body) {
     if (!token || token !== readToken()) { resetAuth(); throw new Error('登录已失效，请重新登录。'); }
@@ -32,7 +33,7 @@
     if (!token) { resetAuth(); message('登录后查看节点质量。'); return; }
     busy = true; $('refresh').disabled = true;
     try {
-      data = await api(); $('auth').hidden = true; $('workspace').hidden = false;
+      data = await api(); $('auth').hidden = true; $('workspace').hidden = !$('history').hidden;
       const selected = $('location').value;
       $('location').innerHTML = '<option value="">全部位置</option>' + [...new Set(data.probes.map(p => p.location))].map(l => `<option>${esc(l)}</option>`).join('');
       $('location').value = selected;
@@ -47,7 +48,13 @@
   $('refresh').onclick = load; $('location').onchange = render;
   $('close-credentials').onclick = () => $('credentials').close();
   $('credentials').addEventListener('close', () => { $('agent-config').value = ''; });
-  $('close-history').onclick = () => $('history').close();
+  function closeHistory() {
+    historyRequest++; document.body.classList.remove('showing-history'); $('history').hidden = true; $('history-content').replaceChildren();
+    $('workspace').hidden = !data;
+    if (historyTrigger) [...document.querySelectorAll('[data-history]')].find(button => button.dataset.history === historyTrigger)?.focus({preventScroll:true});
+    notifyParent({type:'node-probes:history',open:false});
+  }
+  $('close-history').onclick = closeHistory;
   $('create-form').onsubmit = async e => {
     e.preventDefault(); const form = e.target; const button = form.querySelector('button'); button.disabled = true;
     try { const fields = new FormData(form); const server_ids = [...document.querySelectorAll('[name=server]:checked')].map(e => Number(e.value)); if (!server_ids.length) throw new Error('至少选择一个节点。'); const r = await api('', {name:fields.get('name'),location:fields.get('location'),user_id:Number(fields.get('user_id')),server_ids}); credentials(r.agent_config); form.reset(); await load(); }
@@ -61,14 +68,25 @@
       if (button.dataset.rotate) { if (!confirm('轮换后旧令牌立即失效，NAS 需要更新配置。继续？')) return; credentials((await api('/' + button.dataset.rotate + '/rotate', {})).agent_config); await load(); }
       if (button.dataset.history) {
         const [probe, node] = button.dataset.history.split(':'); const p = data.probes.find(p => String(p.id) === probe); const n = p.nodes.find(n => String(n.id) === node);
-        $('history-title').textContent = p.location + ' · ' + n.name; $('history-content').textContent = '正在读取…'; $('history').showModal();
+        const requestId = ++historyRequest; historyTrigger = button.dataset.history; document.body.classList.add('showing-history');
+        $('history-title').textContent = p.location + ' · ' + n.name; $('history-content').textContent = '正在读取…'; $('workspace').hidden = true; $('history').hidden = false; $('history-title').focus({preventScroll:true});
+        notifyParent({type:'node-probes:history',open:true});
         const h = await api('/' + probe + '/history/' + node);
+        if (requestId !== historyRequest || $('history').hidden) return;
         $('history-content').innerHTML = `<p>24 小时成功请求 P95：${val(h.latency_p95_ms,' ms')}。超时和失败单独列出，不包含在成功耗时内。</p><h3>状态变化</h3>${h.events.length ? h.events.slice(0,20).map(v => `<p>${date(v.created_at)} · ${names[v.from_status]} → ${names[v.to_status]}</p>`).join(''):'<p>尚无状态变化。</p>'}<h3>最近检测（最多 200 轮）</h3><div class="table-wrap"><table><thead><tr><th>时间</th><th>目标</th><th>结果</th><th>耗时</th><th>传输字节</th><th>小样本速率</th></tr></thead><tbody>${h.samples.map(s => s.checks.error ? `<tr><td>${date(s.checked_at)}</td><td colspan="5">${esc(errors[s.checks.error] || s.checks.error)}</td></tr>` : s.checks.checks.map(c => `<tr><td>${date(s.checked_at)}</td><td>${esc(c.id)}</td><td>${c.ok?'成功':esc(errors[c.error] || '失败')} (${c.status})</td><td>${val(c.ms,' ms')}</td><td>${c.bytes}</td><td>${val(c.mbps,' Mbps')}</td></tr>`).join('')).join('') || '<tr><td colspan="6">尚无检测记录</td></tr>'}</tbody></table></div><h3>30 天小时统计</h3><div class="table-wrap"><table><thead><tr><th>时段</th><th>轮数</th><th>HTTP 成功 / 总数</th><th>上传完成 / 总数</th><th>下载完成 / 总数</th></tr></thead><tbody>${h.hours.slice().reverse().map(v=>`<tr><td>${date(v.hour)}</td><td>${v.rounds}</td><td>${v.successes}/${v.requests}</td><td>${v.upload_successes}/${v.uploads}</td><td>${v.download_successes}/${v.downloads}</td></tr>`).join('') || '<tr><td colspan="5">尚无统计</td></tr>'}</tbody></table></div>`;
       }
-    } catch(e) { message(e.message,true); if ($('history').open) $('history-content').textContent = '读取失败，请关闭后重试。'; }
+    } catch(e) { message(e.message,true); if (!$('history').hidden) $('history-content').textContent = '读取失败，请返回节点列表后重试。'; }
     finally { button.disabled=false; }
   };
   window.addEventListener('storage', e => { if (e.key === 'XBOARD_ACCESS_TOKEN' || e.key === null) { resetAuth(); load(); } });
   setInterval(() => { if (token !== readToken()) resetAuth(); if (!document.hidden) load(); },30000);
+  if (document.body.classList.contains('embedded')) {
+    const notifyHeight = () => notifyParent({type:'node-probes:height',height:Math.ceil(document.querySelector('main').getBoundingClientRect().height)});
+    new ResizeObserver(notifyHeight).observe(document.querySelector('main'));
+    window.addEventListener('message', event => {
+      if (event.origin === location.origin && event.source === parent && event.data?.type === 'node-probes:theme' && ['light','dark'].includes(event.data.theme)) document.body.dataset.theme = event.data.theme;
+    });
+    notifyHeight();
+  }
   load();
 })();

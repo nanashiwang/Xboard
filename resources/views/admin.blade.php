@@ -81,12 +81,8 @@
 
 <body data-admin-path="{{ $secure_path }}">
   <div id="root"></div>
-  <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=1">
-  <script src="/assets/node-probe-dashboard.js?v=1" defer></script>
-  <dialog id="node-probe-dialog" aria-label="节点质量监控">
-    <div class="np-dialog-head"><strong>节点质量监控</strong><button id="node-probe-dialog-close">关闭</button></div>
-    <iframe id="node-probe-frame" title="探针管理与节点明细" src="about:blank"></iframe>
-  </dialog>
+  <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=2">
+  <script src="/assets/node-probe-dashboard.js?v=2" defer></script>
 </body>
 
 </html>
