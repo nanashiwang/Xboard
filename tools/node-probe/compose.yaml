@@ -1,0 +1,18 @@
+services:
+  xboard-node-probe:
+    build: .
+    image: xboard-node-probe:1.0.0
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 384m
+    cpus: 1.0
+    tmpfs: [/tmp:size=32m,mode=1777]
+    volumes:
+      - ./agent.json:/config/agent.json:ro
+      - ./state:/state
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}

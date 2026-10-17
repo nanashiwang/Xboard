@@ -1,0 +1,4 @@
+agent.json
+state
+__pycache__
+*.pyc

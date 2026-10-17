@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 节点质量探针（2026-10-18）
+
+新增 Xboard 独立探针和管理页面：后台右下角「节点质量」可查看各位置的真实代理 HTTPS 成功率、延迟、上下行小样本速率与完成率，以及故障/恢复记录。探针失联、账号不可用和配置错误不会继续显示正常；不发送外部通知。首个探针按用户指定放在家庭 NAS，容器镜像已准备，正式面板接入与真实采样仍需核验。
+
+默认每轮后等待 60 秒，每节点每 30 分钟各上传/下载 256 KiB；17 节点仅传输载荷约 408 MiB/天，另有协议开销。应使用独立监控账号，数据不能代表所有运营商或线路带宽上限。安装、权限、指标口径和运维见[探针文档](./docs/zh-CN/installation/node-probes.md)、[决策笔记](./.agents/notes/implemented/feature/2026-10-18-node-quality-probes.md)及[进展记录](./progress-log.md#2026-10-18xboard-节点质量探针实施)。
+
 ### 节点监控覆盖核对（2026-10-18）
 
 已有服务器心跳、资源与收发速率监控，后台可查看 1–24 小时趋势；它们不能证明用户经过入口后的访问稳定性。公开节点状态沿用隐藏后端心跳，当前新入口 143.203.200.5 未列入服务器管理；已核对的新入口服务、计时器和 root cron 中未发现 VPN 全链路持续探测。独立 Flawless 流量页面监控的是另一台业务跳板。现有掉线通知命令未注册在仓库主调度表，线上独立调度与通知送达尚未核验。具体覆盖、代码边界与建议探测方法见[监控核对记录](./progress-log.md#2026-10-18节点稳定性监控覆盖核对)；本次没有部署或启用新监控。

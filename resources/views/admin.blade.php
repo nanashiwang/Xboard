@@ -81,6 +81,7 @@
 
 <body>
   <div id="root"></div>
+  <a href="/{{ $secure_path }}/node-probes" aria-label="节点质量探针" style="position:fixed;right:18px;bottom:18px;z-index:40;padding:8px 14px;border:1px solid #b7cbc4;border-radius:20px;background:#fff;color:#17644e;box-shadow:0 2px 10px #0001;font:14px system-ui">节点质量 ↗</a>
 </body>
 
 </html>

@@ -85,6 +85,13 @@ Route::get('/clients', function (Request $request) {
     ])->header('Referrer-Policy', 'no-referrer');
 });
 
+Route::get('/' . admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key')))) . '/node-probes', function () {
+    return response()->view('node-probes', [
+        'title' => admin_setting('app_name', 'Xboard'),
+        'secure_path' => admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key')))),
+    ])->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer');
+});
+
 //TODO:: 兼容
 Route::get('/' . admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key')))), function () {
     return view('admin', [
