@@ -11,6 +11,17 @@ spec = importlib.util.spec_from_file_location('probe', Path(__file__).resolve().
 p = importlib.util.module_from_spec(spec); spec.loader.exec_module(p)
 
 class AgentTest(unittest.TestCase):
+    def test_panel_request_identifies_probe_without_browser_impersonation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            a=p.Agent({'panel_url':'https://panel.test','token':'a'*64},folder)
+            with patch.object(a.http,'open') as send:
+                send.return_value.__enter__.return_value.read.return_value=b'{"data":{}}'
+                self.assertEqual(a.post('config',{'agent_version':p.VERSION}),{})
+                request=send.call_args.args[0]
+                self.assertEqual(request.get_header('User-agent'),'Xboard-Node-Probe/'+p.VERSION)
+                self.assertEqual(request.get_header('Authorization'),'Bearer '+'a'*64)
+                self.assertEqual(request.full_url,'https://panel.test/api/v2/probe/config')
+
     def test_only_selected_outbound_and_no_direct_fallback(self):
         c=p.runtime_config({'type':'vless','server':'node.test','server_port':443,'uuid':'test'},1080)
         self.assertEqual(len(c['outbounds']),1); self.assertEqual(c['route']['final'],'node')

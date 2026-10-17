@@ -18,7 +18,7 @@ import urllib.request
 from urllib.parse import urlsplit, urlencode
 import uuid
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 STOP = threading.Event()
 
 
@@ -154,7 +154,8 @@ class Agent:
 
     def post(self, path, data):
         request = urllib.request.Request(self.url + '/api/v2/probe/' + path, data=json.dumps(data).encode(),
-                                         headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json', 'Accept': 'application/json'})
+                                         headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json',
+                                                  'Accept': 'application/json', 'User-Agent': 'Xboard-Node-Probe/' + VERSION})
         with self.http.open(request, timeout=20) as response:
             return json.loads(response.read(2 * 1024 * 1024))['data']
 

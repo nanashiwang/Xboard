@@ -22,3 +22,11 @@ jobs:
       - run: node --check public/assets/node-probes.js && node --check public/assets/node-probe-dashboard.js
       - run: docker build -t xboard-node-probe:test tools/node-probe
       - run: docker run --rm --entrypoint python3 -v "$PWD:/work:ro" -w /work xboard-node-probe:test -m unittest discover -s tests/Probes -v
+      - name: Start the actual Compose runtime
+        working-directory: tools/node-probe
+        run: |
+          printf '{}' > agent.json
+          mkdir -p state
+          image=$(docker compose config --images)
+          docker tag xboard-node-probe:test "$image"
+          docker compose run --rm --no-deps --pull never --entrypoint sing-box xboard-node-probe version
