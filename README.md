@@ -30,9 +30,9 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
-### 当前节点上传异常排查（2026-10-17 晚间）
+### 当前节点速度复测（2026-10-17 晚间）
 
-「美国自建 01」上传为零可在当前 Shadowrocket 代理复现为 CONNECT / TLS 超时。主要异常在旧香港入口链路：旧入口到美国 01 的 WireGuard 30 包丢包 20%，而新入口到同一出口 30 包无丢包。检查期间 DNS 与客户端连接正在从旧入口过渡到新入口，新旧连接并存；同一账号固定新入口的小样本上传明显改善，但实际客户端仍出现一次超时、一次成功，尚不能认定恢复稳定。完整测试口径、缓存证据及后续步骤见[排查记录](./progress-log.md#2026-10-17晚间当前节点上传异常只读排查)。
+重连后客户端选中「美国自建｜02｜第一阶段入口」，实际仅连接新入口 143.203.200.5，出口为 192.220.36.213。当前账号后台限速为 **10 Mbps（约 1.25 MB/s）**；同账号服务器侧 16 MiB 上传实测 9.92 Mbps。真实 Shadowrocket 单连接上传为 1.33–5.49 Mbps、下载为 4.80–5.56 Mbps（含连接开销），四连接下载合计 7.43 Mbps。到新入口的公网 TCP 连接仍有约 190 ms 延迟及明显重传，入口到出口隧道短测无丢包。本次未调整限速或网络配置，完整口径、无效样本和后续步骤见[速度复测记录](./progress-log.md#2026-10-17晚间新入口上传下载复测与账号限速核对)；前次旧入口故障记录继续保留，不能代表重连后的状态。
 
 ### 当前反馈与结论（2026-10-17）
 
