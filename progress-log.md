@@ -230,3 +230,11 @@ API 使用独立令牌，数据库仅存哈希；禁用和轮换撤销旧访问�
 前端子模块为固定版本的编译产物；本仓库维护的扩展卡片挂载到该版本已有看板容器，不改写上游编译文件或 React 管理的子元素。更新管理端子模块时必须复验首页挂载、路由切换、深浅主题和明细对话框。管理 API 拒绝访问时停止重新挂载，避免循环请求。
 
 复核补充：上传/下载失败状态必须等待传输复测成功，轻量请求成功不清除传输故障；新增回归后本地完整测试为 88 项 / 471 条断言，探针专项为 13 项 / 71 条断言。后台首页已在原管理端内验收：侧栏入口、节点直达历史、深色主题、390px 宽度以及切页返回后单一卡片均通过。首次实施提交 fdfa528 的探针 CI、笔记 CI 和双架构镜像发布已成功，后续看板集成仍以新提交构建结果为准。
+
+### 看板交付与上线边界
+
+- 功能提交 `fdfa528`、后台首页集成提交 `6e8d35d` 均已推送 `master`；README 与本记录已经按后者完整 SHA 从 GitHub 回读核对。
+- `6e8d35d` 的 [Node Probe Checks](https://github.com/nanashiwang/Xboard/actions/runs/39057540278)、[Agent Workflow Notes](https://github.com/nanashiwang/Xboard/actions/runs/39057540263)、[双架构镜像构建发布](https://github.com/nanashiwang/Xboard/actions/runs/39057540268) 均成功。构建版本 `20261017-6e8d35d`（CI 使用 UTC 日期）；GHCR manifest `sha256:ff6228380caaa0904c57197ccec37c0a86b08c30f8b4dc361053dce1944853df` 已回读确认 linux/amd64 与 linux/arm64。未创建 GitHub Release，仓库当前以镜像发布。
+- 补充浏览器验收：撤销本地测试账号管理员资格后，看板移除、监控请求被拒绝，观察期间仅发起一次请求，没有重新挂载循环；测试资格随后恢复。
+- NAS 源码、Compose 与 linux/amd64 镜像已经同步；镜像内非 root 用户和 sing-box 1.14.3 实际运行通过，NAS 直连正式面板 HTTPS 返回 200。尚未放入正式探针令牌，也未启动常驻采集。
+- [生产只读检查](https://github.com/nanashiwang/Xboard/actions/runs/39057851426) 成功，原面板容器运行正常；未触发 deploy。生产上线与通过浏览器创建持续访问凭据的确认已提交给用户，仍待回复。因此当前截图、上下行数值和状态事件属于隔离验收数据，不能作为生产监控已上线的证据。
