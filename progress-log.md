@@ -285,3 +285,25 @@ NAS 当前使用 `/home/nanashiwang/xboard-node-probe`，镜像 1.0.1、重启�
 先修正 Google `.cn` 域名相对于通用 `.cn` 直连的优先级，并核对实际下发模板和手机 DNS 解析器的可达性；规则修正本身不能替代 DNS 及入口稳定性验证。随后重新导入 / 更新订阅，核对实际模式与节点，采集一次真正的视频播放 / Play 下载请求，以域名、命中策略、节点及错误阶段验收。沿用[入口架构](./.agents/notes/implemented/architecture/2026-10-17-stage1-replacement.md)，本次没有新的架构决策。
 
 本轮仅保存诊断摘要，不修改业务代码、线上订阅模板、DNS、节点或防火墙，不声称已修复。README 与本记录进行本地回读、相对链接和工作区 / 暂存快照校验；仅提交本轮记录并推送 master，原有迁移文档改动保留，推送后从 GitHub 按提交回读两文件。文档提交使用 `[skip ci]`，不运行业务构建、部署或版本发布；仓库无 GitHub Release / 安装包流程，本次不创建版本。最终检查、commit、push 和回读结果由交付回复报告。
+
+## 2026-10-18：Clash Meta Google 分流与代理 DNS 修复
+
+用户授权修改正式订阅模板。线上后台回读确认原 Clash Meta 内容与仓库共享默认模板一致，备份后只更新 Clash Meta；未改变节点身份、权限、TLS 校验或服务端路由。决策见[修复笔记](./.agents/notes/implemented/bug-fix/2026-10-18-clashmeta-google-dns.md)。
+
+### 变更与取舍
+
+- 新增独立 [default.clashmeta.yaml](./resources/rules/default.clashmeta.yaml)，新安装的种子数据使用该文件；保留 custom.clashmeta / custom.clash 优先级，已有数据库模板不自动覆盖，原 Clash / Stash 默认文件不改。
+- Google API、视频与下载域名置于宽泛中国直连规则前；境外 nameserver-policy 与 fallback 使用 Cloudflare / Google 两个 HTTPS DNS，通过 `$app_name` 策略组查询。节点域名使用独立国内 DoH，避免依赖尚未建立的代理。
+- 已有站点通过后台订阅模板编辑器保存，刷新回读内容与候选一致（编辑器省略末尾换行）；重新下载订阅确认 DNS 占位符已替换为真实组名，规则优先级生效。前后 17 个代理定义及全部策略组内容一致。
+
+### 验证结果与限制
+
+- PHP 8.2 容器执行 ClashMetaTemplateTest 与 SubscriptionNamesTest：10 测试、129 断言通过；覆盖新安装模板、实际协议序列化、国内直连、Google 规则以及自定义模板与其他客户端保留。
+- 官方 Mihomo 1.18.10 / 1.19.32 检查候选和实际下发订阅均通过。首次测试因本地缺少 GeoIP 数据库且自动下载超时，补齐官方数据库后重验；保留 GEOIP 规则。
+- 真实内核绑定本机 en0、严格 TLS：services.googleapis.cn 与 redirector.gvt1.com 解析状态 0 并返回 A 记录；内核日志明确境外 DoH 经代理组，services.googleapis.cn 命中 googleapis.cn 代理规则。
+- 实际订阅首次完整请求发生一次 hk.taige.us 建连超时；后续独立查询确认入口域名返回当前 IP。以每请求新建 HTTP 会话的方式再测美国 02 / CN2：Google 根路径均取得 HTTP 404（只验证 TLS/HTTP 可达），dl.google.com 均返回 HTTP 206 与完整 262144 字节，约 1.92 / 1.96 秒；YouTube generate_204 均返回 204，约 1.21 / 1.22 秒。测试只调整本地监听端口和网络接口，未更改系统代理。
+- 手机 Play 应用包下载与 YouTube 实际播放仍待用户更新订阅后确认；间歇入口超时未据此宣称消失。未测速持续带宽，未重启或升级面板/节点。
+
+### 交付状态
+
+本地回读、差异和决策流程检查通过后，只提交本轮修改并推送 master，保留既有香港迁移工作区改动。代码推送沿用 Docker 多架构构建和现有 CI；构建完成状态在后续交付记录核实。线上模板已独立生效，面板程序仍为原部署版本。仓库没有 GitHub Release / 安装包发布流程，本次不创建人为版本号或 Release。

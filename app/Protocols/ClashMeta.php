@@ -13,7 +13,7 @@ class ClashMeta extends AbstractProtocol
     public $flags = ['meta', 'verge', 'flclash', 'nekobox', 'clashmetaforandroid'];
     const CUSTOM_TEMPLATE_FILE = 'resources/rules/custom.clashmeta.yaml';
     const CUSTOM_CLASH_TEMPLATE_FILE = 'resources/rules/custom.clash.yaml';
-    const DEFAULT_TEMPLATE_FILE = 'resources/rules/default.clash.yaml';
+    const DEFAULT_TEMPLATE_FILE = 'resources/rules/default.clashmeta.yaml';
     public $allowedProtocols = [
         Server::TYPE_SHADOWSOCKS,
         Server::TYPE_VMESS,
