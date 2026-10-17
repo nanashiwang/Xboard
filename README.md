@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 当前节点上传异常排查（2026-10-17 晚间）
+
+「美国自建 01」上传为零可在当前 Shadowrocket 代理复现为 CONNECT / TLS 超时。主要异常在旧香港入口链路：旧入口到美国 01 的 WireGuard 30 包丢包 20%，而新入口到同一出口 30 包无丢包。检查期间 DNS 与客户端连接正在从旧入口过渡到新入口，新旧连接并存；同一账号固定新入口的小样本上传明显改善，但实际客户端仍出现一次超时、一次成功，尚不能认定恢复稳定。完整测试口径、缓存证据及后续步骤见[排查记录](./progress-log.md#2026-10-17晚间当前节点上传异常只读排查)。
+
 ### 当前反馈与结论（2026-10-17）
 
 用户要求让项目反馈和验证证据随 GitHub 仓库保存，并在完成后回读核对。排查确认：已有业务代码和运维文档可复用，原先缺少统一能力索引及笔记校验；`composer.json` 使用 Laravel 12，本文两处 Laravel 11 的旧说明已修正。
