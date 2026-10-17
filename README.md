@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 节点监控覆盖核对（2026-10-18）
+
+已有服务器心跳、资源与收发速率监控，后台可查看 1–24 小时趋势；它们不能证明用户经过入口后的访问稳定性。公开节点状态沿用隐藏后端心跳，当前新入口 143.203.200.5 未列入服务器管理；已核对的新入口服务、计时器和 root cron 中未发现 VPN 全链路持续探测。独立 Flawless 流量页面监控的是另一台业务跳板。现有掉线通知命令未注册在仓库主调度表，线上独立调度与通知送达尚未核验。具体覆盖、代码边界与建议探测方法见[监控核对记录](./progress-log.md#2026-10-18节点稳定性监控覆盖核对)；本次没有部署或启用新监控。
+
 ### 当前节点稳定性复测（2026-10-17 晚间）
 
 23:09–23:14 连续约 5 分钟主测，仍使用「美国自建｜02｜第一阶段入口」，新入口 143.203.200.5、出口 192.220.36.213。海外小请求 **46/60 成功、14 次 CONNECT / TLS 超时**；1 MiB 上传 5/5 完成，下载 4/5 完成，当前连接不能判为稳定。同账号从入口服务器经相同出口的 36 次对照全部成功，入口到出口隧道 300 包零丢包；本地网关虽无丢包，但最高延迟约 345 ms。问题重点在本地网络、客户端及到入口的公网链路，尚未定位到其中某一处。完整采样口径、前置失败样本和后续对照建议见[稳定性记录](./progress-log.md#2026-10-17晚间美国-02-节点稳定性复测)。
