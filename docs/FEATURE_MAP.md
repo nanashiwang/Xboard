@@ -22,6 +22,8 @@
 | 能力核对、决策与进展 | [README](../README.md)、[progress-log](../progress-log.md)、[决策说明](./AGENT_NOTES.md) | [项目规则](../AGENTS.md)、[workflow.py](../.agents/workflow.py)、[安装清单](../.agents/workflow-install.json)、[笔记 CI](../.github/workflows/agent-workflow.yml) | Python 3.9+、Bun；`doctor` 检查完整性，`verify` 检查结构、相对链接和归档封印；不替代业务验收或自动配置分支保护 |
 | 节点质量探针 | 侧栏节点质量完整页面 `#/?page=node-quality`、页面内历史明细（仪表盘无重复卡片）；`/<安全路径>/node-probes`；`probes:create` | 管理 API 使用 admin/log；agent 使用独立哈希令牌，仅获取自身配置及上报指定节点。NodeProbeService、SingBox 出站复用、五张探针表；NAS Python + sing-box | 双目标 HTTPS、上下行完整字节、过期/故障/恢复、24h 明细/30d 汇总；独立监控账号、无直连回退。见[运维文档](./zh-CN/installation/node-probes.md)、[决策](../.agents/notes/implemented/feature/2026-10-18-node-quality-probes.md)、`tests/Feature/Probes` 与 `tests/Probes`；NAS 探针 1.0.2 已接入正式后台；[页面简化决策](../.agents/notes/implemented/simplification/2026-10-18-node-quality-page.md)，实际验收状态见进展记录 |
 
+| 第一段入口分层监控 | 节点质量页入口卡片、逐节点隧道列、页面内入口历史；`probes:ingress` | [IngressProbeService](../app/Services/Probes/IngressProbeService.php)、独立入口表与采样表；NAS HTTPS 直连健康任务；[只读采集器](../tools/ingress-monitor/monitor.py)复用机器资源上报 | 显式节点/隧道映射，入口检测与完整代理统计隔离；资源 180 秒过期，入口明细 24h，隧道只存最新轮；[文档](./zh-CN/installation/node-probes.md#第一段入口机器资源与出口隧道)、[决策](../.agents/notes/implemented/feature/2026-10-19-ingress-observability.md)，生产状态见进展记录 |
+
 ## 验证入口
 
 仅运行改动相关的检查，记录实际结果；以下是入口，不代表本次已全部执行。

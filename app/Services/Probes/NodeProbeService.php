@@ -63,6 +63,7 @@ class NodeProbeService
             'transfer_interval_seconds' => $probe->transfer_interval_seconds, 'transfer_bytes' => $probe->transfer_bytes,
             'targets' => config('node_probe.targets'), 'upload_url' => config('node_probe.upload_url'),
             'download_url' => config('node_probe.download_url'), 'nodes' => $nodes,
+            'ingresses' => app(IngressProbeService::class)->configuration($probe),
         ];
     }
 

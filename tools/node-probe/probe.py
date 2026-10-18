@@ -18,7 +18,7 @@ import urllib.request
 from urllib.parse import urlsplit, urlencode
 import uuid
 
-VERSION = '1.0.2'
+VERSION = '1.1.0'
 STOP = threading.Event()
 
 
@@ -138,6 +138,37 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def measure_ingress(entry):
+    """Explicit first-hop health request; never used as a node proxy fallback."""
+    parsed = urlsplit(entry['url'])
+    if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
+        raise ValueError('invalid ingress endpoint')
+    with tempfile.TemporaryDirectory(prefix='xboard-ingress-') as folder:
+        body = Path(folder) / 'health'
+        args = ['curl', '--silent', '--show-error', '--proxy', '', '--noproxy', '*', '--proto', '=https',
+                '--connect-timeout', '5', '--max-time', '8', '--max-filesize', '4096',
+                '--output', str(body), '--write-out', '%{json}', entry['url']]
+        measurement = {'status': 0, 'body_ok': False, 'error': 'unknown', 'total_ms': 10000}
+        try:
+            result = subprocess.run(args, capture_output=True, timeout=10, env=clean_env())
+            metrics = json.loads(result.stdout or '{}')
+            status = int(metrics.get('http_code', 0))
+            body_ok = body.exists() and body.read_text(errors='replace').strip() == entry['expected_body']
+            error = error_code(result.returncode) if result.returncode else ('http' if status != 200 else (None if body_ok else 'body'))
+            measurement = {'status': status, 'body_ok': body_ok, 'error': error}
+            # DNS, TCP, TLS are stage durations; TTFB and total start at request initiation.
+            times = {key: float(metrics.get('time_' + key, 0)) for key in ('namelookup', 'connect', 'appconnect', 'starttransfer', 'total')}
+            duration = lambda end, start=0: round(min(60000, max(0, end-start)*1000), 2)
+            measurement.update(dns_ms=duration(times['namelookup']),
+                               tcp_ms=duration(times['connect'], times['namelookup']) if times['connect'] else None,
+                               tls_ms=duration(times['appconnect'], times['connect']) if times['appconnect'] else None,
+                               ttfb_ms=duration(times['starttransfer']) if times['starttransfer'] else None,
+                               total_ms=duration(times['total']))
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+        return {'sample_id': str(uuid.uuid4()), 'ingress_id': entry['id'], 'checked_at': int(time.time()), 'measurement': measurement}
+
+
 class Agent:
     def __init__(self, settings, state_dir):
         self.url = settings['panel_url'].rstrip('/')
@@ -171,6 +202,16 @@ class Agent:
         if config['version'] != 1 or not 1 <= len(config['nodes']) <= 50: raise ValueError('config version or scope')
         if not 60 <= config['interval_seconds'] <= 3600 or not 1800 <= config['transfer_interval_seconds'] <= 86400: raise ValueError('cadence')
         if not 65536 <= config['transfer_bytes'] <= 1048576: raise ValueError('transfer budget')
+        ingresses = config.get('ingresses', [])
+        if len(ingresses) > 50: raise ValueError('ingress scope')
+        # Shared entry is measured once per cycle, independent of how many nodes use it.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            for sample in executor.map(measure_ingress, ingresses):
+                try:
+                    self.post('ingress-report', sample)
+                    print(json.dumps({'ingress': sample['ingress_id'], 'checked_at': sample['checked_at'], 'measurement': sample['measurement']}), flush=True)
+                except (OSError, ValueError):
+                    print(json.dumps({'ingress': sample['ingress_id'], 'error': 'report_failed'}), flush=True)
         now = time.time()
         jobs = []
         for node in config['nodes']:

@@ -16,6 +16,8 @@ Status: implemented
 
 NAS 使用独立目录与容器，不要求特权、TUN 或主机路由修改。探针只有单个节点出站，没有 direct 回退；监控文件权限受限，结果不包含订阅令牌、UUID、WebSocket 路径或原始错误正文。
 
+入口与出口隧道分层观测由[入口观测决策](./2026-10-19-ingress-observability.md)扩展；入口 HTTPS 直连属于独立任务，不改变节点完整代理检测的无直连回退约束。
+
 ## Existing decision audit
 
 [第一阶段迁移](../../implemented/architecture/2026-10-17-stage1-replacement.md)部分重叠：复用公开入口和隐藏后端拓扑，但其临时验收脚本不负责持续探测。原有未提交香港入口笔记属于既有迁移任务，保留原归属。项目工作流笔记与运行时检测无关。

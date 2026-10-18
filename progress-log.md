@@ -4,6 +4,16 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-19：第一段入口分层监控
+
+用户要求区分共享第一段导致的慢速与个别出口问题。核对现有 ServerMachine、NAS 探针、实际 Nginx/WireGuard 拓扑后，复用机器资源接口，新增独立入口健康采样与显式节点到隧道映射；保留完整页面展示，不恢复仪表盘卡片或大弹窗。取舍见[入口观测决策](./.agents/notes/implemented/feature/2026-10-19-ingress-observability.md)。
+
+- 入口 HTTPS 验证固定健康响应、TLS 和 HTTP，提供 DNS/TCP/TLS/首字节/总耗时；每共享入口每轮一次，单独统计 24 小时成功率与明细，不影响节点原统计。
+- 只读入口采集器复用独立 machine 身份，上报 CPU、内存、物理网卡 bytes/s、Nginx/WireGuard 及每 peer 三包 ICMP / 握手。资源超过 180 秒失效；缺工具与 100% 丢包区分，不把 HTTP 健康或低负载当作带宽上限。
+- 本地 PHP 18 项测试 / 106 断言、真实 sing-box 容器 Python 12 项测试通过；页面验证卡片、逐节点对应、内联历史、资源过期及主题/窄屏布局。标准 Docker 本地构建受 Docker Hub metadata 连接超时影响；基于已有相同依赖的 NAS 1.0.2 镜像仅替换脚本构建 1.1.0，通过真实内核回归，完整 Dockerfile 构建另由 CI 核验。
+- 第一段只读实测：Nginx 和 WireGuard 运行，13 条隧道各 3 包无丢包；12 个美国 peer RTT 约 1.1–2.8 ms，香港约 153 ms。仅当前样本，不能代替持续稳定性与容量验证。
+- 本提交为实施版本；GitHub 构建、镜像、生产迁移、入口/NAS 持续接入与浏览器验收尚待本次后续记录。仓库沿用 Docker 发布，无 GitHub Release/安装包流程。
+
 ## 2026-10-17：替换 VPN 第一阶段并加固 SSH
 
 用户指定 `143.203.200.5`、root / 22、既有 `flawless_la_02` 密钥替代第一阶段；另明确允许在原香港入口和面板临时添加运维公钥，并要求结束后删除。执行前核对了既有节点、套餐、父子后端和隧道，保持现有 UUID、公开 ID、权限组与订阅地址。方案取舍见[架构笔记](./.agents/notes/implemented/architecture/2026-10-17-stage1-replacement.md)，日常维护和回退见[第一阶段运维](./docs/zh-CN/installation/vpn-stage1.md)。

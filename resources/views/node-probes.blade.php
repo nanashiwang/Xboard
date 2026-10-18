@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer"><title>节点质量 · {{ $title }}</title>
-  <link rel="stylesheet" href="/assets/node-probes.css?v=2">
-  <script src="/assets/node-probes.js?v=2" defer></script>
+  <link rel="stylesheet" href="/assets/node-probes.css?v=3">
+  <script src="/assets/node-probes.js?v=3" defer></script>
 </head>
 <body data-admin-path="{{ $secure_path }}" @if(request()->boolean('embedded')) class="embedded" data-theme="{{ request('theme') === 'dark' ? 'dark' : 'light' }}" @endif>
 <header><a href="/{{ $secure_path }}">← 返回管理后台</a><span>Xboard · 网络观测</span></header>
@@ -23,7 +23,7 @@
         <button type="submit">创建探针</button>
       </form>
     </details>
-    <section class="card guide"><h2>如何判断稳定性</h2><p>连续 3 轮两个 HTTPS 目标均失败记为故障；连续 2 轮全部成功记为正常。部分失败显示波动。探针或节点停止上报后显示数据过期，不继续显示正常。</p><p>成功率按最近 24 个小时桶内的实际 HTTP 请求计算，缺失时段不计为成功；详细记录保留 24 小时、小时统计保留 30 天。多个位置应分开比较。</p><p>出口 IP 可辅助核对落地点；入口地址显示订阅配置值，仍需结合客户端实际连接或入口日志确认所用入口。</p></section>
+    <section class="card guide"><h2>如何逐层排查</h2><p>多条共用入口的节点同时异常时，先对照 NAS 到入口的 HTTPS 耗时和入口资源；入口探测也异常，优先排查本地网络到入口、入口服务或负载。入口正常而某条隧道丢包时，再排查对应出口链路。各层都正常仍下载慢时，还需检查出口带宽、目标站和客户端。单轮 ICMP 失败可能是限速或防火墙，不能直接等同业务故障。</p><p>连续 3 轮两个 HTTPS 目标均失败记为故障；连续 2 轮全部成功记为正常。部分失败显示波动。探针或节点停止上报后显示数据过期，不继续显示正常。</p><p>成功率按最近 24 个小时桶内的实际 HTTP 请求计算，缺失时段不计为成功；详细记录保留 24 小时、小时统计保留 30 天。多个位置应分开比较。</p><p>出口 IP 可辅助核对落地点；入口地址显示订阅配置值，仍需结合客户端实际连接或入口日志确认所用入口。</p></section>
   </section>
   <section id="auth" class="card" hidden><h2>需要管理员登录</h2><p>请先登录管理后台，再返回此页。</p><a href="/{{ $secure_path }}">前往登录</a></section>
   <section id="history" class="card" hidden aria-labelledby="history-title"><div class="toolbar"><h2 id="history-title" tabindex="-1">检测明细</h2><button id="close-history">返回节点列表</button></div><div id="history-content"></div></section>

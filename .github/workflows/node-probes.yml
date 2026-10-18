@@ -2,9 +2,9 @@ name: Node Probe Checks
 on:
   push:
     branches: [master]
-    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
+    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tools/ingress-monitor/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
   pull_request:
-    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
+    paths: ['app/**', 'config/**', 'database/**', 'routes/**', 'resources/views/**', 'public/assets/node-probe*', 'tools/node-probe/**', 'tools/ingress-monitor/**', 'tests/Feature/Probes/**', 'tests/Probes/**', 'composer.*', '.github/workflows/node-probes.yml']
 permissions:
   contents: read
 jobs:

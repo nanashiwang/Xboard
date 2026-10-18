@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V2\Admin\Probe;
 use App\Http\Controllers\Controller;
 use App\Models\{NodeProbe, Server};
 use App\Services\Probes\NodeProbeService;
+use App\Services\Probes\IngressProbeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,8 +15,13 @@ class ProbeController extends Controller
 
     public function index(NodeProbeService $service)
     {
-        return $this->respond(['probes' => NodeProbe::orderBy('id')->get()->map(fn ($p) => $service->overview($p)),
+        return $this->respond(['probes' => NodeProbe::orderBy('id')->get()->map(fn ($p) => [...$service->overview($p), 'ingresses' => app(IngressProbeService::class)->overview($p)]),
             'servers' => Server::where('show', true)->orderBy('sort')->get(['id', 'name', 'host'])]);
+    }
+
+    public function ingressHistory(int $id, int $ingress, IngressProbeService $service)
+    {
+        return $this->respond($service->history(NodeProbe::findOrFail($id), $ingress));
     }
 
     public function create(Request $request, NodeProbeService $service)

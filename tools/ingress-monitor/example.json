@@ -1,0 +1,9 @@
+{
+  "name": "第一段服务器",
+  "host": "ingress.example.com",
+  "health_path": "/healthz",
+  "expected_body": "ingress-ready",
+  "network_interface": "ens3",
+  "wireguard_interface": "wg-ingress",
+  "server_tunnels": {"314": "10.79.0.4", "315": "10.79.0.5"}
+}

@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   const base = '/api/v2/' + document.body.dataset.adminPath + '/node-probes';
   const names = {healthy:'正常',degraded:'波动 / 确认中',down:'故障',config_error:'配置异常',unknown:'尚无数据',stale:'数据过期',disabled:'已停用'};
-  const errors = {timeout:'超时',dns:'DNS 失败',connect:'连接失败',tls:'TLS 失败',http:'HTTP 异常',incomplete:'传输不完整',proxy:'代理失败',unknown:'检测失败',account_unavailable:'监控账号不可用或节点无权限',node_unavailable:'节点不可用',unsupported_protocol:'协议暂不支持',insecure_tls:'节点未启用证书校验',core_unavailable:'探针缺少内核',core_config:'内核配置不兼容'};
+  const errors = {body:'健康响应内容不符',timeout:'超时',dns:'DNS 失败',connect:'连接失败',tls:'TLS 失败',http:'HTTP 异常',incomplete:'传输不完整',proxy:'代理失败',unknown:'检测失败',account_unavailable:'监控账号不可用或节点无权限',node_unavailable:'节点不可用',unsupported_protocol:'协议暂不支持',insecure_tls:'节点未启用证书校验',core_unavailable:'探针缺少内核',core_config:'内核配置不兼容'};
   let detailOpened = false, historyRequest = 0, historyTrigger;
   const notifyParent = message => { if (document.body.classList.contains('embedded')) parent.postMessage(message, location.origin); };
   let data, token = '', busy = false, controller = new AbortController();
@@ -22,10 +22,26 @@
     if (!response.ok) throw new Error(Object.values(result.errors || {}).flat().join('；') || result.message || '请求失败，请重试。');
     return result.data;
   }
+  const percent = (used, total) => total > 0 ? (used * 100 / total).toFixed(1) + '%' : '—';
+  const traffic = bytes => bytes === null || bytes === undefined ? '—' : (bytes * 8 / 1000000).toFixed(3) + ' Mbps';
+  function tunnel(p, node) {
+    const e = (p.ingresses || []).find(e => e.server_tunnels?.[node.id]);
+    if (!e) return '<span class="muted">未绑定入口</span>';
+    const ip = e.server_tunnels[node.id], peer = e.machine.load?.ingress?.peers?.find(v => v.ip === ip);
+    if (!e.machine.fresh) return `${esc(e.name)}<small>入口资源待更新</small>`;
+    if (!peer || peer.loss_percent === null) return `${esc(e.name)}<small>隧道 ICMP 尚无数据</small>`;
+    return `${esc(e.name)}<small class="${peer.loss_percent > 0 ? 'degraded' : 'healthy'}">RTT ${val(peer.rtt_ms,' ms')} · 丢包 ${val(peer.loss_percent,'%')}</small><small>握手 ${date(peer.handshake_at)}</small>`;
+  }
+  function ingressCards(p) {
+    return (p.ingresses || []).map(e => {
+      const m = e.measurement, r = e.machine.load, fresh = e.machine.fresh, services = r?.ingress;
+      return `<section class="ingress-card"><div class="toolbar"><h3>第一段入口 · ${esc(e.name)}</h3><button data-ingress-history="${p.id}:${e.id}">入口历史</button></div><p class="muted">${esc(e.host)} · 当前探针覆盖 ${Object.keys(e.server_tunnels).length} 条节点</p><div class="ingress-grid"><div><h4>${esc(p.location)} → 入口</h4><span class="badge ${esc(e.status)}">${names[e.status]}</span><p>HTTPS 总耗时 <strong>${val(m?.total_ms,' ms')}</strong></p><p>DNS ${val(m?.dns_ms,' ms')} · TCP ${val(m?.tcp_ms,' ms')} · TLS ${val(m?.tls_ms,' ms')}</p><p>24 小时成功率 ${val(e.availability,'%')} (${e.successes}/${e.samples})</p><small>${m?.error ? esc(errors[m.error] || m.error) + ' · ' : ''}${date(e.checked_at)}</small></div><div><h4>入口服务器资源</h4><span class="badge ${fresh?'healthy':'stale'}">${fresh?'采集在线':'等待采集 / 数据过期'}</span><p>CPU <strong>${val(r?.cpu,'%')}</strong> · 内存 <strong>${percent(r?.mem?.used,r?.mem?.total)}</strong></p><p>网卡接收 ${traffic(r?.net?.in_speed)}<br>网卡发送 ${traffic(r?.net?.out_speed)}</p><small>${esc(services?.interface || '网卡未报告')} · ${date(r?.updated_at)}</small></div><div><h4>入口 → 各出口</h4><p>Nginx <span class="${fresh && services?.nginx?'healthy':'stale'}">${fresh && services ? (services.nginx?'运行':'未运行'):'待确认'}</span> · WireGuard <span class="${fresh && services?.wireguard?'healthy':'stale'}">${fresh && services ? (services.wireguard?'运行':'未运行'):'待确认'}</span></p><p>各出口的隧道 RTT、3 次 ICMP 丢包及最近握手见下表。</p><small>网卡流量是当前负载；HTTPS 与 ICMP 小样本均不能证明带宽充足。</small></div></div></section>`;
+    }).join('');
+  }
   function render() {
     const selected = $('location').value;
     const probes = data.probes.filter(p => !selected || p.location === selected);
-    $('probes').innerHTML = probes.length ? probes.map(p => `<section class="card"><div class="toolbar"><div><h2>${esc(p.name)} <span class="badge ${p.online ? 'healthy':'stale'}">${p.unverified ? '通信状态待确认' : (p.enabled ? (p.online ? '探针在线':'等待探针 / 已失联'):'探针停用')}</span></h2><span>${esc(p.location)}</span></div><div class="actions"><button data-toggle="${p.id}" data-enabled="${!p.enabled}">${p.enabled?'停用':'启用'}</button><button data-rotate="${p.id}">轮换令牌</button></div></div><div class="meta"><span>最后通信 ${date(p.last_seen_at)}</span><span>账号 #${p.user_id} · 限速 ${p.account.speed_limit_mbps ? val(p.account.speed_limit_mbps, ' Mbps'):'未设'}</span><span>剩余 ${(p.account.remaining_bytes/1073741824).toFixed(2)} GiB</span><span>探针 ${esc(p.agent_version || '—')}</span></div><div class="table-wrap"><table><thead><tr><th>节点 / 配置入口</th><th>状态 / 最新采样</th><th>HTTP 成功率</th><th>平均耗时</th><th>上下行小样本速率</th><th>出口 IP</th><th></th></tr></thead><tbody>${p.nodes.map(n => `<tr><td>${esc(n.name)}<small>${esc(n.host || '—')}</small></td><td><span class="badge ${esc(n.status)}">${names[n.status] || esc(n.status)}</span><small>${n.latest?.error ? esc(errors[n.latest.error] || n.latest.error) : date(n.checked_at)}</small>${n.latest?.exit_mismatch?'<small>出口 IP 与预期不同</small>':''}</td><td>${val(n.availability,'%')}<small>${n.successes} / ${n.requests} 次</small></td><td>${val(n.latency_ms,' ms')}</td><td>${(n.transfers || []).map(c => `${c.id==='upload'?'↑':'↓'} ${c.ok ? val(c.mbps,' Mbps') : esc(errors[c.error] || '失败')}`).join('　') || '—'}<small>完成 ↑ ${n.upload_successes}/${n.uploads}　↓ ${n.download_successes}/${n.downloads}</small><small>${n.transfers_stale?'历史 / 待更新 · ':''}${date(n.transfer_checked_at)}</small></td><td>${esc(n.exit_ip || '—')}</td><td><button data-history="${p.id}:${n.id}">明细</button></td></tr>`).join('')}</tbody></table></div></section>`).join('') : '<section class="card empty"><h2>还没有探针结果</h2><p>添加探针并在 NAS 启动后，这里将显示真实线路检测结果。</p></section>';
+    $('probes').innerHTML = probes.length ? probes.map(p => `<section class="card"><div class="toolbar"><div><h2>${esc(p.name)} <span class="badge ${p.online ? 'healthy':'stale'}">${p.unverified ? '通信状态待确认' : (p.enabled ? (p.online ? '探针在线':'等待探针 / 已失联'):'探针停用')}</span></h2><span>${esc(p.location)}</span></div><div class="actions"><button data-toggle="${p.id}" data-enabled="${!p.enabled}">${p.enabled?'停用':'启用'}</button><button data-rotate="${p.id}">轮换令牌</button></div></div><div class="meta"><span>最后通信 ${date(p.last_seen_at)}</span><span>账号 #${p.user_id} · 限速 ${p.account.speed_limit_mbps ? val(p.account.speed_limit_mbps, ' Mbps'):'未设'}</span><span>剩余 ${(p.account.remaining_bytes/1073741824).toFixed(2)} GiB</span><span>探针 ${esc(p.agent_version || '—')}</span></div>${ingressCards(p)}<h3 class="route-heading">完整线路 · ${esc(p.location)} → 入口 → 出口 → 目标站</h3><div class="table-wrap"><table><thead><tr><th>节点 / 配置入口</th><th>第一段 / 出口隧道</th><th>状态 / 最新采样</th><th>HTTP 成功率</th><th>平均耗时</th><th>上下行小样本速率</th><th>出口 IP</th><th></th></tr></thead><tbody>${p.nodes.map(n => `<tr><td>${esc(n.name)}<small>${esc(n.host || '—')}</small></td><td>${tunnel(p,n)}</td><td><span class="badge ${esc(n.status)}">${names[n.status] || esc(n.status)}</span><small>${n.latest?.error ? esc(errors[n.latest.error] || n.latest.error) : date(n.checked_at)}</small>${n.latest?.exit_mismatch?'<small>出口 IP 与预期不同</small>':''}</td><td>${val(n.availability,'%')}<small>${n.successes} / ${n.requests} 次</small></td><td>${val(n.latency_ms,' ms')}</td><td>${(n.transfers || []).map(c => `${c.id==='upload'?'↑':'↓'} ${c.ok ? val(c.mbps,' Mbps') : esc(errors[c.error] || '失败')}`).join('　') || '—'}<small>完成 ↑ ${n.upload_successes}/${n.uploads}　↓ ${n.download_successes}/${n.downloads}</small><small>${n.transfers_stale?'历史 / 待更新 · ':''}${date(n.transfer_checked_at)}</small></td><td>${esc(n.exit_ip || '—')}</td><td><button data-history="${p.id}:${n.id}">明细</button></td></tr>`).join('')}</tbody></table></div></section>`).join('') : '<section class="card empty"><h2>还没有探针结果</h2><p>添加探针并在 NAS 启动后，这里将显示真实线路检测结果。</p></section>';
   }
   async function load() {
     if (busy) return;
@@ -41,7 +57,7 @@
       const checked = new Set([...document.querySelectorAll('[name=server]:checked')].map(e => e.value));
       $('server-options').innerHTML = data.servers.map(s => `<label><input type="checkbox" name="server" value="${s.id}" ${checked.has(String(s.id))?'checked':''}>${esc(s.name)} (#${s.id})</label>`).join('');
       render(); const query = new URLSearchParams(location.search); if (!detailOpened && /^\d+$/.test(query.get('probe') || '') && /^\d+$/.test(query.get('node') || '')) { detailOpened = true; document.querySelector(`[data-history="${query.get('probe')}:${query.get('node')}"]`)?.click(); } $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN'); message('自动刷新间隔 30 秒 · 数据按探测位置分别统计');
-    } catch(e) { if (e.name !== 'AbortError') { if (data) { data.probes.forEach(p => {p.online=false; p.unverified=true; p.nodes.forEach(n => {n.transfers_stale=true; if(n.status!=='disabled') n.status='stale';});}); render(); } message(e.message + ' 已显示结果未能更新。', true); } }
+    } catch(e) { if (e.name !== 'AbortError') { if (data) { data.probes.forEach(p => {p.online=false; p.unverified=true; (p.ingresses || []).forEach(e => {e.status='stale';e.machine.fresh=false;}); p.nodes.forEach(n => {n.transfers_stale=true; if(n.status!=='disabled') n.status='stale';});}); render(); } message(e.message + ' 已显示结果未能更新。', true); } }
     finally { busy = false; $('refresh').disabled = false; }
   }
   function credentials(config) { config.panel_url = location.origin; $('agent-config').value = JSON.stringify(config, null, 2); $('credentials').showModal(); }
@@ -51,7 +67,7 @@
   function closeHistory() {
     historyRequest++; document.body.classList.remove('showing-history'); $('history').hidden = true; $('history-content').replaceChildren();
     $('workspace').hidden = !data;
-    if (historyTrigger) [...document.querySelectorAll('[data-history]')].find(button => button.dataset.history === historyTrigger)?.focus({preventScroll:true});
+    if (historyTrigger) [...document.querySelectorAll('[data-history],[data-ingress-history]')].find(button => (button.dataset.history || 'ingress:' + button.dataset.ingressHistory) === historyTrigger)?.focus({preventScroll:true});
     notifyParent({type:'node-probes:history',open:false});
   }
   $('close-history').onclick = closeHistory;
@@ -66,6 +82,17 @@
     try {
       if (button.dataset.toggle) { await api('/' + button.dataset.toggle + '/enabled', {enabled:button.dataset.enabled === 'true'}); await load(); }
       if (button.dataset.rotate) { if (!confirm('轮换后旧令牌立即失效，NAS 需要更新配置。继续？')) return; credentials((await api('/' + button.dataset.rotate + '/rotate', {})).agent_config); await load(); }
+      if (button.dataset.ingressHistory) {
+        const [probe, ingress] = button.dataset.ingressHistory.split(':');
+        const p = data.probes.find(p => String(p.id) === probe), entry = p.ingresses.find(e => String(e.id) === ingress);
+        const requestId = ++historyRequest; historyTrigger = 'ingress:' + button.dataset.ingressHistory;
+        document.body.classList.add('showing-history'); $('history-title').textContent = p.location + ' · 第一段入口 · ' + entry.name;
+        $('history-content').textContent = '正在读取…'; $('workspace').hidden = true; $('history').hidden = false; $('history-title').focus({preventScroll:true});
+        notifyParent({type:'node-probes:history',open:true});
+        const h = await api('/' + probe + '/ingress-history/' + ingress);
+        if (requestId !== historyRequest || $('history').hidden) return;
+        $('history-content').innerHTML = `<p>保留 24 小时，各表展示最近 200 条。DNS、TCP、TLS 是各阶段耗时，首字节和总耗时从请求开始计时。失败样本的总耗时不是成功延迟。</p><h3>${esc(p.location)} → 第一段入口</h3><div class="table-wrap"><table><thead><tr><th>时间</th><th>结果</th><th>DNS</th><th>TCP</th><th>TLS</th><th>首字节</th><th>总耗时</th></tr></thead><tbody>${h.samples.map(s=>`<tr><td>${date(s.checked_at)}</td><td>${s.ok?'成功':esc(errors[s.measurement.error] || '失败')}</td>${['dns_ms','tcp_ms','tls_ms','ttfb_ms','total_ms'].map(k=>`<td>${val(s.measurement[k],' ms')}</td>`).join('')}</tr>`).join('') || '<tr><td colspan="7">尚无检测记录</td></tr>'}</tbody></table></div><h3>第一段服务器资源</h3><div class="table-wrap"><table><thead><tr><th>时间</th><th>CPU</th><th>内存</th><th>网卡接收</th><th>网卡发送</th></tr></thead><tbody>${h.resources.map(r=>`<tr><td>${date(r.recorded_at)}</td><td>${val(r.cpu,'%')}</td><td>${percent(r.mem_used,r.mem_total)}</td><td>${traffic(r.net_in_speed)}</td><td>${traffic(r.net_out_speed)}</td></tr>`).join('') || '<tr><td colspan="5">尚无资源记录</td></tr>'}</tbody></table></div>`;
+      }
       if (button.dataset.history) {
         const [probe, node] = button.dataset.history.split(':'); const p = data.probes.find(p => String(p.id) === probe); const n = p.nodes.find(n => String(n.id) === node);
         const requestId = ++historyRequest; historyTrigger = button.dataset.history; document.body.classList.add('showing-history');

@@ -1,0 +1,27 @@
+[Unit]
+Description=Xboard read-only ingress resource and tunnel monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/xboard-ingress-monitor/monitor.py
+Restart=on-failure
+RestartSec=15
+User=root
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# WireGuard read access requires NET_ADMIN; no configuration commands are used.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+MemoryMax=96M
+CPUQuota=10%
+TasksMax=24
+
+[Install]
+WantedBy=multi-user.target

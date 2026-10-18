@@ -42,7 +42,7 @@ class MachineController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'cpu' => 'required|numeric|min:0|max:100',
             'mem.total' => 'required|integer|min:0',
             'mem.used' => 'required|integer|min:0',
@@ -52,6 +52,16 @@ class MachineController extends Controller
             'disk.used' => 'nullable|integer|min:0',
             'net.in_speed' => 'nullable|numeric|min:0',
             'net.out_speed' => 'nullable|numeric|min:0',
+            'ingress' => 'sometimes|array:interface,nginx,wireguard,peers',
+            'ingress.interface' => 'required_with:ingress|string|max:40',
+            'ingress.nginx' => 'required_with:ingress|boolean',
+            'ingress.wireguard' => 'required_with:ingress|boolean',
+            'ingress.peers' => 'required_with:ingress|array|max:50',
+            'ingress.peers.*' => 'array:ip,handshake_at,loss_percent,rtt_ms',
+            'ingress.peers.*.ip' => 'required|ip|distinct',
+            'ingress.peers.*.handshake_at' => 'nullable|integer|min:0|max:' . (time() + 60),
+            'ingress.peers.*.loss_percent' => 'nullable|numeric|between:0,100',
+            'ingress.peers.*.rtt_ms' => 'nullable|numeric|between:0,60000',
         ]);
 
         $machine = $this->authenticateMachine($request);
@@ -76,6 +86,8 @@ class MachineController extends Controller
 
         $netInSpeed = $request->input('net.in_speed');
         $netOutSpeed = $request->input('net.out_speed');
+
+        if (isset($validated['ingress'])) $loadStatus['ingress'] = $validated['ingress'];
 
         if ($netInSpeed !== null && $netOutSpeed !== null) {
             $loadStatus['net'] = [

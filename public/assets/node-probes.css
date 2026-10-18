@@ -21,3 +21,5 @@ body.showing-history .intro{display:none}
 #history h2{margin:0;overflow-wrap:anywhere}
 #history .toolbar{align-items:flex-start}
 @media(max-width:640px){body.embedded .card{padding:16px}body.embedded .intro{align-items:flex-start;flex-wrap:wrap}body.embedded .meta{gap:6px 12px}.actions{width:100%}}
+
+.ingress-card{border:1px solid var(--line);border-radius:8px;padding:20px;margin:20px 0;background:var(--bg)}.ingress-card h3,.ingress-card h4{margin:0}.ingress-card h3,.route-heading{font-size:16px}.ingress-card h4{font-size:14px;margin-bottom:12px}.ingress-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:20px}.ingress-grid p{font-size:13px}.ingress-grid small{color:var(--muted);overflow-wrap:anywhere}.ingress-grid>div{min-width:0}.route-heading{margin-top:24px}@media(max-width:1100px){.ingress-grid{grid-template-columns:1fr;gap:20px}.ingress-grid>div+div{border-top:1px solid var(--line);padding-top:20px}}

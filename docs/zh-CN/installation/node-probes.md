@@ -69,8 +69,35 @@ python3 .agents/workflow.py verify
 
 上传或下载失败后，后续仅有轻量 HTTPS 请求成功不能将节点恢复为正常；必须先取得成功的传输复测，再满足连续成功条件。
 
-后台首页使用本仓库维护的扩展脚本挂载到固定版本管理前端的现有看板容器；不改写编译子模块。升级管理端子模块需复验挂载、路由往返、权限失效、深浅主题、窄屏和同源明细对话框。
+侧栏「节点质量」通过本仓库维护的扩展脚本挂载到固定版本管理前端的主内容区，仪表盘不再重复展示；不改写编译子模块。升级管理端子模块需复验挂载、路由往返、权限失效、深浅主题、窄屏和页面内历史。
 
 探针 1.0.1 使用 `Xboard-Node-Probe/<版本>` 客户端标识访问面板。若容器仍在线但面板无上报，应区分 CDN 返回的 1010/403 和应用鉴权错误，检查请求是否到达应用；不能把这种接入错误算作节点断线。Compose 的 tmpfs 值包含逗号，必须保留引号；CI 现在使用实际 Compose 启动一次内核检查，配置解析通过不等于 Docker 挂载可用。
 
 探针 1.0.2 对面板网络错误、429、5xx 最多重试一次，保留相同采样 UUID；401/403 不重试，持续失败会记录错误类型和 HTTP 状态，等待下一轮，不回放历史。重试仅用于配置/上报，不额外重复节点上传下载。升级会保留 state 内的传输间隔预算。
+
+## 第一段入口、机器资源与出口隧道
+
+1.1.0 在每轮完整线路检测前，对每个已绑定入口只执行一次直连 HTTPS 健康检查；严格校验证书、HTTP 200 和固定响应，不跟随重定向，最多接收 4 KiB、8 秒超时。它不作为代理检测失败后的直连回退，也不计入节点 HTTP 成功率。DNS/TCP/TLS 为分阶段耗时；首字节和总耗时从请求开始计算。没有登记入口的 CF 等线路显示「未绑定入口」，不会冒用主入口数据。
+
+入口上的独立 Python 采集器读取 `/proc`、物理网卡计数、Nginx/WireGuard 状态和 peer 最近握手，每轮对各个指定隧道 IP 发 3 个 ICMP 包。最多 4 个并发，每轮后等待 60 秒。只读采集不配置代理、路由或防火墙。网卡计数差以 bytes/s 上报，页面换算 Mbps，表示物理网卡当前收发负载；不能把它当作剩余带宽或最大测速结果。CPU、内存和资源时间与 NAS 检测分别显示；资源超过 180 秒未更新时失效，机器轮询 nodes 接口不会刷新资源时效。
+
+先在面板服务器备份数据库、部署迁移，再根据真实 Nginx 到 WireGuard 的映射填写 [example.json](../../../tools/ingress-monitor/example.json)，不要从 `parent_id` 自动推断中转关系：
+
+```bash
+php artisan probes:ingress /安全目录/ingress.json
+```
+
+命令只允许绑定同一域名下的公开节点，创建独立机器身份、不把公开节点改绑到机器。输出文件 `storage/app/private/node-probes/ingress-<id>.json` 权限为 600，包含机器令牌，只通过已有安全通道传到入口的 `/etc/xboard-ingress-monitor.json`，权限 600。不要提交或输出令牌。重复登记同一域名更新映射并复用机器；如轮换机器令牌，需重新生成并替换配置。
+
+将 [采集器](../../../tools/ingress-monitor/monitor.py) 安装到 `/opt/xboard-ingress-monitor/monitor.py`，将 [systemd 单元](../../../tools/ingress-monitor/xboard-ingress-monitor.service) 安装到 `/etc/systemd/system/`。依赖 Python 3、iputils ping、现有 WireGuard 和 systemd；CPU 配额 10%、内存 96 MiB，仅保留读取 WireGuard 所需 NET_ADMIN 与 ICMP 所需 NET_RAW。先验证配置内物理网卡和隧道名称，再启用：
+
+```bash
+systemctl daemon-reload
+systemctl enable --now xboard-ingress-monitor
+systemctl status xboard-ingress-monitor
+journalctl -u xboard-ingress-monitor -n 20 --no-pager
+```
+
+NAS 保留原 `agent.json` 和 `state/`，升级到探针 1.1.0；拉取配置后自动检测已绑定入口。页面应同时出现 NAS 的新入口采样、机器资源与 13 条实际映射隧道。入口历史在完整页面内查看；详细检测和资源均保留 24 小时，各表最多显示最近 200 条。隧道状态目前仅保留最新一轮，不提供历史丢包统计。停用或删除采集器不会改变业务代理链路；回退只停止此监控服务、恢复旧 NAS 镜像，不删除业务 WireGuard/Nginx 配置。
+
+排查时按位置和时间对照：多节点同时慢且入口 HTTPS 也变慢，先查本地到入口网络与入口负载；只有一个 peer 丢包，重点查对应隧道和出口；所有小请求正常仍下载慢，仍需检查带宽、目标站、账号限速和客户端。3 包零丢包不是长期稳定证明，ICMP 失败也可能是限速或过滤；不自动给出唯一根因。
