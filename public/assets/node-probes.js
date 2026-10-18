@@ -1,11 +1,12 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const pageUrl = new URL(document.baseURI), panelOrigin = pageUrl.origin;
   const base = '/api/v2/' + document.body.dataset.adminPath + '/node-probes';
   const names = {healthy:'正常',degraded:'波动 / 确认中',down:'故障',config_error:'配置异常',unknown:'尚无数据',stale:'数据过期',disabled:'已停用'};
   const errors = {body:'健康响应内容不符',timeout:'超时',dns:'DNS 失败',connect:'连接失败',tls:'TLS 失败',http:'HTTP 异常',incomplete:'传输不完整',proxy:'代理失败',unknown:'检测失败',account_unavailable:'监控账号不可用或节点无权限',node_unavailable:'节点不可用',unsupported_protocol:'协议暂不支持',insecure_tls:'节点未启用证书校验',core_unavailable:'探针缺少内核',core_config:'内核配置不兼容'};
   let detailOpened = false, historyRequest = 0, historyTrigger;
-  const notifyParent = message => { if (document.body.classList.contains('embedded')) parent.postMessage(message, location.origin); };
+  const notifyParent = message => { if (document.body.classList.contains('embedded')) parent.postMessage(message, panelOrigin); };
   let data, token = '', busy = false, controller = new AbortController();
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = t => t ? new Date(t * 1000).toLocaleString('zh-CN', {hour12:false}) : '尚无数据';
@@ -56,11 +57,11 @@
       if (!$('location').value) $('location').value = '';
       const checked = new Set([...document.querySelectorAll('[name=server]:checked')].map(e => e.value));
       $('server-options').innerHTML = data.servers.map(s => `<label><input type="checkbox" name="server" value="${s.id}" ${checked.has(String(s.id))?'checked':''}>${esc(s.name)} (#${s.id})</label>`).join('');
-      render(); const query = new URLSearchParams(location.search); if (!detailOpened && /^\d+$/.test(query.get('probe') || '') && /^\d+$/.test(query.get('node') || '')) { detailOpened = true; document.querySelector(`[data-history="${query.get('probe')}:${query.get('node')}"]`)?.click(); } $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN'); message('自动刷新间隔 30 秒 · 数据按探测位置分别统计');
+      render(); const query = pageUrl.searchParams; if (!detailOpened && /^\d+$/.test(query.get('probe') || '') && /^\d+$/.test(query.get('node') || '')) { detailOpened = true; document.querySelector(`[data-history="${query.get('probe')}:${query.get('node')}"]`)?.click(); } $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN'); message('自动刷新间隔 30 秒 · 数据按探测位置分别统计');
     } catch(e) { if (e.name !== 'AbortError') { if (data) { data.probes.forEach(p => {p.online=false; p.unverified=true; (p.ingresses || []).forEach(e => {e.status='stale';e.machine.fresh=false;}); p.nodes.forEach(n => {n.transfers_stale=true; if(n.status!=='disabled') n.status='stale';});}); render(); } message(e.message + ' 已显示结果未能更新。', true); } }
     finally { busy = false; $('refresh').disabled = false; }
   }
-  function credentials(config) { config.panel_url = location.origin; $('agent-config').value = JSON.stringify(config, null, 2); $('credentials').showModal(); }
+  function credentials(config) { config.panel_url = panelOrigin; $('agent-config').value = JSON.stringify(config, null, 2); $('credentials').showModal(); }
   $('refresh').onclick = load; $('location').onchange = render;
   $('close-credentials').onclick = () => $('credentials').close();
   $('credentials').addEventListener('close', () => { $('agent-config').value = ''; });
@@ -111,8 +112,9 @@
     const notifyHeight = () => notifyParent({type:'node-probes:height',height:Math.ceil(document.querySelector('main').getBoundingClientRect().height)});
     new ResizeObserver(notifyHeight).observe(document.querySelector('main'));
     window.addEventListener('message', event => {
-      if (event.origin === location.origin && event.source === parent && event.data?.type === 'node-probes:theme' && ['light','dark'].includes(event.data.theme)) document.body.dataset.theme = event.data.theme;
+      if (event.origin === panelOrigin && event.source === parent && event.data?.type === 'node-probes:theme' && ['light','dark'].includes(event.data.theme)) document.body.dataset.theme = event.data.theme;
     });
+    notifyParent({type:'node-probes:ready'});
     notifyHeight();
   }
   load();

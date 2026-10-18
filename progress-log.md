@@ -10,9 +10,15 @@
 
 - 入口 HTTPS 验证固定健康响应、TLS 和 HTTP，提供 DNS/TCP/TLS/首字节/总耗时；每共享入口每轮一次，单独统计 24 小时成功率与明细，不影响节点原统计。
 - 只读入口采集器复用独立 machine 身份，上报 CPU、内存、物理网卡 bytes/s、Nginx/WireGuard 及每 peer 三包 ICMP / 握手。资源超过 180 秒失效；缺工具与 100% 丢包区分，不把 HTTP 健康或低负载当作带宽上限。
-- 本地 PHP 18 项测试 / 106 断言、真实 sing-box 容器 Python 12 项测试通过；页面验证卡片、逐节点对应、内联历史、资源过期及主题/窄屏布局。标准 Docker 本地构建受 Docker Hub metadata 连接超时影响；基于已有相同依赖的 NAS 1.0.2 镜像仅替换脚本构建 1.1.0，通过真实内核回归，完整 Dockerfile 构建另由 CI 核验。
+- 本地 PHP 18 项测试 / 106 断言、真实 sing-box 容器 Python 12 项测试通过；页面验证卡片、逐节点对应、内联历史、资源过期及主题/窄屏布局。标准 Docker 本地构建受 Docker Hub metadata 连接超时影响；基于已有相同依赖的 NAS 1.0.2 镜像仅替换脚本构建 1.1.0，通过真实内核回归，完整 Dockerfile 构建及实际 Compose 启动已由 CI 通过。
 - 第一段只读实测：Nginx 和 WireGuard 运行，13 条隧道各 3 包无丢包；12 个美国 peer RTT 约 1.1–2.8 ms，香港约 153 ms。仅当前样本，不能代替持续稳定性与容量验证。
-- 本提交为实施版本；GitHub 构建、镜像、生产迁移、入口/NAS 持续接入与浏览器验收尚待本次后续记录。仓库沿用 Docker 发布，无 GitHub Release/安装包流程。
+- 实施提交 `3f12a1ad071c3f1fa40840f9a440a32b6dce7833` 已推送 `master`；[双架构 Docker 发布](https://github.com/nanashiwang/Xboard/actions/runs/39153500598)、[探针回归](https://github.com/nanashiwang/Xboard/actions/runs/39153500610)、[笔记门禁](https://github.com/nanashiwang/Xboard/actions/runs/39153500591) 均 success。GHCR `3f12a1a` 含 amd64 / arm64，manifest digest 为 `sha256:0644c4dcceede2709df2866d79e05bb217e2ea12d8aa480a7a84bbac5fb0d2e8`。沿用 Docker 发布，无 GitHub Release/安装包流程。
+- [生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39154293635) success；Docker OCI revision 已与上述提交精确对齐，后台显示 `20261019-3f12a1a`。操作前在面板 `backups/ingress-monitor-20261019/` 留存受限 SQLite 备份并通过 integrity_check。入口配置创建独立 machine #17，不重绑原节点机器；13 条映射逐条对照真实 Nginx 代理路径与后端地址。
+- NAS 已升级 `xboard-node-probe:1.1.0` 并保留 agent/state 与原测速预算；安装脚本 SHA 与本地一致。NAS Compose 2.26.1 不支持 `run --pull never`，首次运行检查退出后改用已载入镜像执行 `docker run` 内核检查，再 `compose up -d --no-build` 成功。旧版本 Compose 的这次失败不影响最终持续上报。
+- 入口只读服务 `xboard-ingress-monitor` 已 active/enabled；配置 root:600，服务限制 96 MiB / 10% CPU，五次连续日志 `reported: true`，每轮 13 peer。入口脚本 SHA 与本地一致；未变更业务路由、防火墙、Nginx 或 WireGuard 配置。
+- 02:50 现场回读：NAS 1.1.0、17 条检测范围、入口累计 8 次 / 成功 6 次，近 10 分钟机器资源 10 条且新鲜。02:41:48 的入口 HTTPS 记录 8.003 秒超时，而同期 CPU 10.14%、内存 30.8%；成功样本约 585–610 ms。后续异常会继续保留；这些小样本不能证明带宽容量或单独确定慢速根因。
+- 正式完整后台已打开入口卡片、13 条隧道映射、4 条未绑定备用及页面内入口历史，历史同时展示真实超时与资源记录；本地补充验证 390px、暗色、数据过期和接口失败保留旧数据并标失效。用户随后确认正式页存在空白；独立文档和接口可用，嵌入文档停在 about:blank。只改 src 赋值与挂载顺序的对照未解决，已撤回。改为父页显式读取同源 HTML、srcdoc 就绪确认及 15 秒失败重试，并从受控 base URL 取 origin 保持主题、配置地址和鉴权兼容；正式候选页面两次刷新、切页及本地停服后重试恢复已通过。该加载修复的正式镜像与最终部署另行记录。
+- 实施提交的 README 与 progress-log 已从 GitHub 按精确 revision 回读一致；最终运维记录单独提交，不混入既有香港迁移文档改动。
 
 ## 2026-10-17：替换 VPN 第一阶段并加固 SSH
 

@@ -4,5 +4,7 @@
 .np-page-heading>h1:not(#node-quality-title){display:none}
 #node-quality-page{width:100%;min-width:0}
 #node-quality-frame{display:block;width:100%;min-height:400px;border:0;background:transparent}
+#node-quality-loading{padding:16px 0;color:hsl(var(--muted-foreground))}
+#node-quality-retry{padding:8px 14px;border:1px solid hsl(var(--border));border-radius:6px;background:hsl(var(--background));color:hsl(var(--foreground))}
 .np-page-active nav a[href="#/"]{background:transparent;box-shadow:none;color:inherit}
 #node-probe-nav[aria-current=page]{background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}

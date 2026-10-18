@@ -5,7 +5,7 @@
   const pageHash = '#/?page=node-quality';
   const activeClasses = ['bg-secondary', 'text-secondary-foreground', 'shadow-sm', 'hover:bg-secondary/80'];
   const initialTitle = document.title;
-  let page, frame, host, heading, title, auth = '', listScroll = 0, pendingScroll = null;
+  let page, frame, host, heading, title, pageRequest, pageTimer, auth = '', listScroll = 0, pendingScroll = null;
   const token = () => {
     try {
       const t = JSON.parse(localStorage.getItem('XBOARD_ACCESS_TOKEN'));
@@ -21,6 +21,7 @@
     frame?.contentWindow?.postMessage({type: 'node-probes:theme', theme: theme()}, location.origin);
   }
   function unmount() {
+    pageRequest?.abort(); clearTimeout(pageTimer); pageRequest = null;
     page?.remove(); title?.remove();
     host?.classList.remove('np-page-host');
     heading?.parentElement?.classList.remove('np-page-heading');
@@ -28,6 +29,27 @@
     pendingScroll = null;
     document.body.classList.remove('np-page-active');
     if (document.title === '节点质量 · ' + initialTitle) document.title = initialTitle;
+  }
+  async function loadPage(target, status, retry) {
+    pageRequest?.abort(); clearTimeout(pageTimer);
+    const request = new AbortController(); pageRequest = request;
+    status.textContent = '正在加载节点质量…'; status.hidden = false; retry.hidden = true;
+    const fail = () => {
+      if (request !== pageRequest || target !== frame) return;
+      status.textContent = '节点质量暂时未能加载，请重试。'; retry.hidden = false;
+    };
+    pageTimer = setTimeout(() => { request.abort(); fail(); }, 15000);
+    try {
+      const url = new URL('/' + path + '/node-probes?' + new URLSearchParams({embedded: '1', theme: theme()}), location.origin);
+      const response = await fetch(url, {credentials:'same-origin', cache:'no-store', redirect:'error', signal:request.signal});
+      if (!response.ok || !(response.headers.get('content-type') || '').includes('text/html')) throw new Error('Page unavailable');
+      const html = await response.text();
+      if (request !== pageRequest || target !== frame || !target.isConnected) return;
+      // Keep the existing same-origin isolation while making document loading observable and retryable.
+      const document = new DOMParser().parseFromString(html, 'text/html');
+      const base = document.createElement('base'); base.href = url.href; document.head.prepend(base);
+      target.srcdoc = '<!doctype html>' + document.documentElement.outerHTML;
+    } catch { fail(); }
   }
   function mount() {
     if (location.hash === '#node-quality') {
@@ -67,13 +89,23 @@
     heading.parentElement.append(title); heading.parentElement.classList.add('np-page-heading');
     page = document.createElement('section'); page.id = 'node-quality-page'; page.setAttribute('aria-label', '节点质量');
     frame = document.createElement('iframe'); frame.id = 'node-quality-frame'; frame.title = '节点质量与探针管理';
-    frame.src = '/' + path + '/node-probes?' + new URLSearchParams({embedded: '1', theme: theme()});
-    frame.addEventListener('load', syncTheme); page.append(frame); host.append(page);
+    const status = document.createElement('p'); status.id = 'node-quality-loading'; status.setAttribute('role', 'status');
+    const retry = document.createElement('button'); retry.type = 'button'; retry.id = 'node-quality-retry'; retry.textContent = '重新加载'; retry.hidden = true;
+    const target = frame;
+    retry.addEventListener('click', () => loadPage(target, status, retry));
+    frame.addEventListener('load', syncTheme); page.append(status, retry, frame); host.append(page);
     host.classList.add('np-page-host'); document.body.classList.add('np-page-active'); host.scrollTop = 0;
     document.title = '节点质量 · ' + initialTitle;
+    loadPage(target, status, retry);
   }
   window.addEventListener('message', event => {
     if (!frame || event.origin !== location.origin || event.source !== frame.contentWindow) return;
+    if (event.data?.type === 'node-probes:ready') {
+      clearTimeout(pageTimer);
+      document.getElementById('node-quality-loading')?.setAttribute('hidden', '');
+      document.getElementById('node-quality-retry')?.setAttribute('hidden', '');
+      syncTheme();
+    }
     if (event.data?.type === 'node-probes:height' && Number.isFinite(event.data.height)) {
       frame.style.height = Math.max(400, Math.min(200000, event.data.height)) + 'px';
       if (pendingScroll !== null) { host.scrollTop = pendingScroll; pendingScroll = null; }

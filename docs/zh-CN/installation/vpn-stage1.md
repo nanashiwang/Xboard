@@ -30,6 +30,14 @@ Nginx 依赖防火墙和 WireGuard 启动成功，关闭版本信息，保留 We
 
 ## 检查与维护
 
+### 分段监控
+
+后台「节点质量」现已接入本入口：NAS 直连 HTTPS 健康请求、入口机器资源、13 条出口隧道与原完整线路结果分层展示。4 条 CF 备用不绑定此入口。入口与资源历史在页面内查看；指标口径、映射调整及采集器配置见[节点质量运维](./node-probes.md#第一段入口机器资源与出口隧道)。
+
+入口采集程序为 `/opt/xboard-ingress-monitor/monitor.py`，systemd 服务为 `xboard-ingress-monitor.service`，私有配置为 `/etc/xboard-ingress-monitor.json`（root:600）。日常可用 `systemctl status xboard-ingress-monitor` 和 `journalctl -u xboard-ingress-monitor -n 20` 检查上报；不要将配置内容写入日志。仅停止此采集服务不会停止业务 Nginx 或 WireGuard。
+
+### 入口服务检查
+
 在新入口执行：
 
 ```bash

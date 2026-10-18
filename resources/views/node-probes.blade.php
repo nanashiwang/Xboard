@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer"><title>节点质量 · {{ $title }}</title>
-  <link rel="stylesheet" href="/assets/node-probes.css?v=3">
-  <script src="/assets/node-probes.js?v=3" defer></script>
+  <link rel="stylesheet" href="/assets/node-probes.css?v=5">
+  <script src="/assets/node-probes.js?v=5" defer></script>
 </head>
 <body data-admin-path="{{ $secure_path }}" @if(request()->boolean('embedded')) class="embedded" data-theme="{{ request('theme') === 'dark' ? 'dark' : 'light' }}" @endif>
 <header><a href="/{{ $secure_path }}">← 返回管理后台</a><span>Xboard · 网络观测</span></header>
