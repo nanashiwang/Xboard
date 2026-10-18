@@ -17,8 +17,11 @@
 - NAS 已升级 `xboard-node-probe:1.1.0` 并保留 agent/state 与原测速预算；安装脚本 SHA 与本地一致。NAS Compose 2.26.1 不支持 `run --pull never`，首次运行检查退出后改用已载入镜像执行 `docker run` 内核检查，再 `compose up -d --no-build` 成功。旧版本 Compose 的这次失败不影响最终持续上报。
 - 入口只读服务 `xboard-ingress-monitor` 已 active/enabled；配置 root:600，服务限制 96 MiB / 10% CPU，五次连续日志 `reported: true`，每轮 13 peer。入口脚本 SHA 与本地一致；未变更业务路由、防火墙、Nginx 或 WireGuard 配置。
 - 02:50 现场回读：NAS 1.1.0、17 条检测范围、入口累计 8 次 / 成功 6 次，近 10 分钟机器资源 10 条且新鲜。02:41:48 的入口 HTTPS 记录 8.003 秒超时，而同期 CPU 10.14%、内存 30.8%；成功样本约 585–610 ms。后续异常会继续保留；这些小样本不能证明带宽容量或单独确定慢速根因。
-- 正式完整后台已打开入口卡片、13 条隧道映射、4 条未绑定备用及页面内入口历史，历史同时展示真实超时与资源记录；本地补充验证 390px、暗色、数据过期和接口失败保留旧数据并标失效。用户随后确认正式页存在空白；独立文档和接口可用，嵌入文档停在 about:blank。只改 src 赋值与挂载顺序的对照未解决，已撤回。改为父页显式读取同源 HTML、srcdoc 就绪确认及 15 秒失败重试，并从受控 base URL 取 origin 保持主题、配置地址和鉴权兼容；正式候选页面两次刷新、切页及本地停服后重试恢复已通过。该加载修复的正式镜像与最终部署另行记录。
-- 实施提交的 README 与 progress-log 已从 GitHub 按精确 revision 回读一致；最终运维记录单独提交，不混入既有香港迁移文档改动。
+- 正式完整后台已打开入口卡片、13 条隧道映射、4 条未绑定备用及页面内入口历史，历史同时展示真实超时与资源记录；本地补充验证 390px、暗色、数据过期和接口失败保留旧数据并标失效。用户随后确认正式页存在空白；独立文档和接口可用，嵌入文档停在 about:blank。只改 src 赋值与挂载顺序的对照未解决，已撤回。改为父页显式读取同源 HTML、srcdoc 就绪确认及 15 秒失败重试，并从受控 base URL 取 origin 保持主题、配置地址和鉴权兼容；正式候选页面两次刷新、切页及本地停服后重试恢复已通过。最终加载修复提交 `2b8c615c49b81b7d244ae4cf722c3f8650a7176a` 已推送 master。
+- 加载修复的[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39157522746)、[探针测试](https://github.com/nanashiwang/Xboard/actions/runs/39157522778)、[笔记门禁](https://github.com/nanashiwang/Xboard/actions/runs/39157522782) 均 success；GHCR `2b8c615` 已回读 amd64 / arm64，manifest digest `sha256:a4849f4aa7d45631fda025b98604ec0730b4939bf031266d9582c93432653097`。[最终生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39157985712) success，容器实际 revision 为 `2b8c615c49b81b7d244ae4cf722c3f8650a7176a` 且 running；浏览器显示 `20261019-2b8c615`，刷新后完整页面与真实监控恢复。
+- 部署后回读 NAS 1.1.0、17 条完整线路、13 条映射隧道；入口累计 17 次 / 成功 11 次，近 10 分钟资源 9 条且新鲜。正式入口历史可打开并返回，用户原标签页已恢复完整监控概览。短期入口样本确有间歇超时，未把当前低 CPU/内存或 ICMP 无丢包写成整条线路稳定。
+- 隔离验收容器与临时诊断页面已删除；本机临时 NAS/面板登录凭据、入口配置导出以及传输镜像包已删除。服务器实际采集配置按 root:600 保留，生产备份保留；未清理用户原有 PEM。
+- 实施及加载修复提交的 README 与 progress-log 已从 GitHub 按精确 revision 回读一致；最终运维记录以 [skip ci] 单独提交并再次回读，不混入既有香港迁移文档改动。
 
 ## 2026-10-17：替换 VPN 第一阶段并加固 SSH
 
