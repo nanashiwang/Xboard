@@ -65,6 +65,7 @@ jobs:
           case "$operation" in
             inspect) exit 0 ;;
             inspect-mail)
+              docker inspect --format 'Running image revision: {{index .Config.Labels "org.opencontainers.image.revision"}}' "$(docker compose ps -q xboard)"
               docker compose exec -T xboard php <<'PHP'
           <?php
           require '/www/vendor/autoload.php';
@@ -76,7 +77,8 @@ jobs:
           if (!Illuminate\Support\Facades\Schema::hasTable($table)) {
               throw new RuntimeException('Traffic exhausted reminder migration is missing.');
           }
-          $eligible = App\Models\User::where('remind_traffic', true)->where('banned', false)
+          $exhausted = App\Models\User::where('transfer_enable', '>', 0)->whereRaw('u + d >= transfer_enable');
+          $eligible = (clone $exhausted)->where('remind_traffic', true)->where('banned', false)
               ->whereNotNull('email')->where('email', '<>', '')->where('transfer_enable', '>', 0)
               ->whereRaw('u + d >= transfer_enable');
           $current = Illuminate\Support\Facades\DB::table($table . ' as reminders')
@@ -87,11 +89,15 @@ jobs:
               ->where('created_at', '>=', time() - 86400);
           $lastSchedule = Illuminate\Support\Facades\Cache::get(App\Utils\CacheKey::get('SCHEDULE_LAST_CHECK_AT', null));
           echo json_encode([
-              'version' => config('app.version'),
+              'configured_version' => config('app.version'),
               'remind_mail_enabled' => (bool) admin_setting('remind_mail_enable', false),
               'schedule_recent' => $lastSchedule && $lastSchedule > time() - 120,
               'schedule_last_runtime' => $lastSchedule,
               'eligible_users' => $eligible->count(),
+              'exhausted_users' => $exhausted->count(),
+              'exhausted_reminder_disabled' => (clone $exhausted)->where(fn ($q) => $q->whereNull('remind_traffic')->orWhere('remind_traffic', false))->count(),
+              'exhausted_banned' => (clone $exhausted)->where('banned', true)->count(),
+              'exhausted_missing_email' => (clone $exhausted)->where(fn ($q) => $q->whereNull('email')->orWhere('email', ''))->count(),
               'sent_current_cycle' => (clone $current)->whereNotNull('reminders.sent_at')->count(),
               'retrying_current_cycle' => (clone $current)->whereNull('reminders.sent_at')->count(),
               'last_success_at' => Illuminate\Support\Facades\DB::table($table)->max('sent_at'),
