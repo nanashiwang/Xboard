@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 本机节点可测延迟但无法联网（2026-10-19）
+
+本轮排查确认本机订阅账户的流量已耗尽：正式后台显示已用 **25.1 GB / 25 GB（100.4%）**，订阅即时状态为上传 12.81 GB、下载 12.29 GB、剩余 0；套餐有效至 2027-09-17。入口可建立连接不代表账号获准转发，服务端只下发 `u + d < transfer_enable` 的有效用户。固定本机同账号测美国 01、02、CN2 和香港线路，48 次海外 HTTPS 全部失败；当前第三方节点对照 12/12 成功，同账号在入口服务器内绕过本地公网段仍立即断开。详见[本轮诊断证据](./progress-log.md#2026-10-19本机订阅流量耗尽诊断)。
+
+本轮仅完成诊断，未重置流量、调整套餐、修改客户端或生产网络。恢复需按账户政策补充或重置额度，再用相同账号复验真实网站；本次未完成恢复验收，也不据此否定此前已记录的链路波动。独立监控账号的可用性不能代表这个已耗尽账户，边界见[探针决策](./.agents/notes/implemented/feature/2026-10-18-node-quality-probes.md)。
+
 ### 第一段入口分层监控（2026-10-19）
 
 节点质量页增加「探测位置到第一段」「入口机器资源」「入口到出口隧道」三组证据，与原完整代理线路对照。NAS 探针版本升级为 1.1.0；共享入口每轮只测一次，机器显示 CPU、内存、物理网卡实际收发，各节点显示对应 peer 的 RTT、3 包丢包和握手时间。入口历史在页面内展示；数据过期显式标记，未绑定入口不借用其他机器结果，不自动断言慢速根因。配置方式和指标边界见[入口监控文档](./docs/zh-CN/installation/node-probes.md#第一段入口机器资源与出口隧道)与[决策笔记](./.agents/notes/implemented/feature/2026-10-19-ingress-observability.md)。
