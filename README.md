@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 流量邮件提醒现状（2026-10-19）
+
+正式后台的 SMTP 已配置、SSL/TLS 已选择、邮件提醒总开关已开启。现有发送链路包含模板、`send_email` 队列、三次尝试及邮件日志；但流量提醒每天北京时间 11:30 才扫描，实际发送范围为已用 80% 至不足 100%，达到或超过 100% 会跳过。快速用完流量存在错过提醒窗口的可能。还未取得本账号的提醒偏好、线上调度执行记录及实际投递日志，不能确认本次是否发过邮件或已送达；详见[邮件核对记录](./progress-log.md#2026-10-19流量邮件提醒能力核对)。本轮只读核对，未发送测试邮件、修改配置或部署修复。
+
 ### 本机节点可测延迟但无法联网（2026-10-19）
 
 本轮排查确认本机订阅账户的流量已耗尽：正式后台显示已用 **25.1 GB / 25 GB（100.4%）**，订阅即时状态为上传 12.81 GB、下载 12.29 GB、剩余 0；套餐有效至 2027-09-17。入口可建立连接不代表账号获准转发，服务端只下发 `u + d < transfer_enable` 的有效用户。固定本机同账号测美国 01、02、CN2 和香港线路，48 次海外 HTTPS 全部失败；当前第三方节点对照 12/12 成功，同账号在入口服务器内绕过本地公网段仍立即断开。详见[本轮诊断证据](./progress-log.md#2026-10-19本机订阅流量耗尽诊断)。
