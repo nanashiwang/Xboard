@@ -14,6 +14,7 @@ class DedicatedExit extends Model
     protected $casts = [
         'plan_id' => 'integer', 'enabled' => 'boolean', 'standby' => 'boolean',
         'healthy' => 'boolean', 'checked_at' => 'integer',
+        'shared_server_id' => 'integer', 'probe_id' => 'integer', 'probe_server_id' => 'integer',
     ];
 
     public function isHealthy(): bool

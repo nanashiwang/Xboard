@@ -178,6 +178,18 @@ class DedicatedExitService
     public function authorizedUserIds(Server $server): ?array
     {
         $exitId = $this->nodeExitId($server);
+        // A pooled backend keeps its public authorization. Only accounts on this
+        // fixed-exit plan require an allocation; do not mark the shared node exclusive.
+        $shared = !$exitId ? DedicatedExit::where('shared_server_id', $server->id)->first() : null;
+        if ($shared) {
+            $assigned = $shared->isHealthy() ? DedicatedAssignment::where('exit_id', $shared->id)
+                ->where('plan_id', $shared->plan_id)->pluck('user_id')->all() : [];
+            return User::whereIn('group_id', $server->group_ids ?? [])
+                ->where(function ($q) use ($shared, $assigned) {
+                    $q->whereNull('plan_id')->orWhere('plan_id', '<>', $shared->plan_id)
+                        ->orWhereIn('id', $assigned);
+                })->pluck('id')->all();
+        }
         if (!$exitId) {
             return null; // Public node: keep the existing group authorization.
         }

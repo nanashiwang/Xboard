@@ -12,6 +12,10 @@ on:
           - inspect
           - inspect-mail
           - inspect-dedicated
+          - preview-owned-dedicated
+          - attach-owned-dedicated
+          - verify-owned-dedicated
+          - baseline-owned-dedicated
           - deploy
           - install-cli
       image_revision:
@@ -55,6 +59,24 @@ jobs:
           if [ "$OPERATION" = inspect-dedicated ]; then
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker compose exec -T xboard php' < .docker/dedicated/inspect.php
+            exit 0
+          fi
+          if [ "$OPERATION" = baseline-owned-dedicated ] || [ "$OPERATION" = verify-owned-dedicated ]; then
+            verify_args=
+            if [ "$OPERATION" = baseline-owned-dedicated ]; then verify_args=--baseline; fi
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              "cd /root/Xboard && python3 - $verify_args" < .docker/dedicated/verify-owned.py
+            exit 0
+          fi
+          if [ "$OPERATION" = preview-owned-dedicated ] || [ "$OPERATION" = attach-owned-dedicated ]; then
+            actual=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker inspect --format '\''{{index .Config.Labels "org.opencontainers.image.revision"}}'\'' "$(docker compose ps -q xboard)"')
+            test "$actual" = "$EXPECTED_REVISION"
+            apply_args=
+            if [ "$OPERATION" = attach-owned-dedicated ]; then apply_args=--apply; fi
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              "cd /root/Xboard && docker compose exec -T xboard php artisan dedicated:attach-owned 5 /dev/stdin $apply_args" \
+              < .docker/dedicated/owned-production.json
             exit 0
           fi
           if [ "$OPERATION" = install-cli ] || [ "$OPERATION" = deploy ]; then
