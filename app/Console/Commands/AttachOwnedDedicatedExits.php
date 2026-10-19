@@ -83,6 +83,9 @@ class AttachOwnedDedicatedExits extends Command
         ];
         $oldMask = umask(0077);
         try {
+            if (!is_dir(dirname($backup)) && !mkdir(dirname($backup), 0700, true) && !is_dir(dirname($backup))) {
+                throw new \RuntimeException('备份目录创建失败');
+            }
             if (file_put_contents($backup, json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT)) === false) {
                 throw new \RuntimeException('备份写入失败');
             }

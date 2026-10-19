@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 用户确认保留固定出口分配，将现有自建线路接入出口池。实现复用 13 个去重后的美国出口，每出口五个固定套餐账号；香港作为公共备用，普通套餐继续使用原节点。200 GB、10 Mbps、价格、套餐总销售上限 15 和上架状态保持不变。
 
-新增接入命令先预览再应用，保存权限快照；健康依据为指定探针的两次独立 HTTPS / 出口 IP 观测，旧 SOCKS 路径保持兼容。相关 83 项测试 / 455 断言通过；镜像发布与线上应用尚未完成，不能将本地通过视为订单已开通。见[接入决策](./.agents/notes/implemented/feature/2026-10-19-owned-fixed-exit-pool.md)和[进展记录](./progress-log.md#2026-10-19自建线路接入固定出口池)。
+新增接入命令先预览再应用，保存权限快照；健康依据为指定探针的两次独立 HTTPS / 出口 IP 观测，旧 SOCKS 路径保持兼容。相关 84 项测试 / 460 断言通过；镜像发布与线上应用尚未完成，不能将本地通过视为订单已开通。见[接入决策](./.agents/notes/implemented/feature/2026-10-19-owned-fixed-exit-pool.md)和[进展记录](./progress-log.md#2026-10-19自建线路接入固定出口池)。
 
 ### 线上作业报错排查（2026-10-19）
 

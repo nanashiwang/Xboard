@@ -246,4 +246,24 @@ class OwnedDedicatedExitTest extends TestCase
         $this->assertDatabaseCount('v2_dedicated_exit', 0);
         $this->assertDatabaseCount('v2_server', 4);
     }
+
+    public function test_clean_install_creates_private_backup_directory_before_applying(): void
+    {
+        $original = storage_path();
+        $temporary = sys_get_temp_dir() . '/owned-storage-' . bin2hex(random_bytes(6));
+        $this->app->useStoragePath($temporary);
+        try {
+            $this->attach();
+            $files = glob($temporary . '/app/owned-fixed-*.json');
+            $this->assertCount(1, $files);
+            $this->assertSame(0600, fileperms($files[0]) & 0777);
+            $this->assertSame(0700, fileperms($temporary . '/app') & 0777);
+            $this->assertSame($this->plan->id, json_decode(file_get_contents($files[0]), true)['plan_id']);
+        } finally {
+            foreach (glob($temporary . '/app/owned-fixed-*.json') as $file) unlink($file);
+            if (is_dir($temporary . '/app')) rmdir($temporary . '/app');
+            if (is_dir($temporary)) rmdir($temporary);
+            $this->app->useStoragePath($original);
+        }
+    }
 }
