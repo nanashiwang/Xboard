@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - inspect
+          - inspect-mail
           - deploy
           - install-cli
 
@@ -63,6 +64,42 @@ jobs:
           docker compose ps xboard
           case "$operation" in
             inspect) exit 0 ;;
+            inspect-mail)
+              docker compose exec -T xboard php <<'PHP'
+          <?php
+          require '/www/vendor/autoload.php';
+          $app = require '/www/bootstrap/app.php';
+          $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+          // Read-only aggregates: never emit addresses, credentials, mail config or raw errors.
+          $table = 'v2_traffic_exhausted_reminders';
+          if (!Illuminate\Support\Facades\Schema::hasTable($table)) {
+              throw new RuntimeException('Traffic exhausted reminder migration is missing.');
+          }
+          $eligible = App\Models\User::where('remind_traffic', true)->where('banned', false)
+              ->whereNotNull('email')->where('email', '<>', '')->where('transfer_enable', '>', 0)
+              ->whereRaw('u + d >= transfer_enable');
+          $current = Illuminate\Support\Facades\DB::table($table . ' as reminders')
+              ->join('v2_user as users', function ($join) {
+                  $join->on('users.id', '=', 'reminders.user_id')->on('users.reset_count', '=', 'reminders.reset_count');
+              });
+          $logs = App\Models\MailLog::whereIn('template_name', ['mail.default.remindTrafficExhausted', 'db:remindTrafficExhausted'])
+              ->where('created_at', '>=', time() - 86400);
+          $lastSchedule = Illuminate\Support\Facades\Cache::get(App\Utils\CacheKey::get('SCHEDULE_LAST_CHECK_AT', null));
+          echo json_encode([
+              'version' => config('app.version'),
+              'remind_mail_enabled' => (bool) admin_setting('remind_mail_enable', false),
+              'schedule_recent' => $lastSchedule && $lastSchedule > time() - 120,
+              'schedule_last_runtime' => $lastSchedule,
+              'eligible_users' => $eligible->count(),
+              'sent_current_cycle' => (clone $current)->whereNotNull('reminders.sent_at')->count(),
+              'retrying_current_cycle' => (clone $current)->whereNull('reminders.sent_at')->count(),
+              'last_success_at' => Illuminate\Support\Facades\DB::table($table)->max('sent_at'),
+              'smtp_success_logs_last_24h' => (clone $logs)->whereNull('error')->count(),
+              'smtp_error_logs_last_24h' => (clone $logs)->whereNotNull('error')->count(),
+          ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+          PHP
+              ;;
             install-cli)
               bash -lc 'command -v xboard && xboard version'
               /usr/local/bin/xboard status
