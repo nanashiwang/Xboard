@@ -42,7 +42,8 @@ if (OWNED_POST_CHECK) {
     $order=App\Models\Order::where('user_id',8)->where('plan_id',5)->where('trade_no','like','%e920')->sole();
     $assignment=App\Models\DedicatedAssignment::where('user_id',8)->first();
     $result['order']=['status'=>$order->status,'plan_id'=>$order->plan_id,'total_amount'=>$order->total_amount,
-        'expired_at'=>$user->expired_at,'transfer_enable'=>$user->transfer_enable,'assignment_exit_id'=>$assignment?->exit_id];
+        'expired_at'=>$user->expired_at,'transfer_enable'=>$user->transfer_enable,'assignment_exit_id'=>$assignment?->exit_id,
+        'updated_at'=>$order->updated_at];
     $ready=$order->status===App\Models\Order::STATUS_COMPLETED && $assignment && $user->plan_id===5;
     $result['ready']=(bool)$ready;
     $result['pool']=App\Models\DedicatedExit::whereNotNull('shared_server_id')->get()->map(fn($e)=>[
@@ -51,6 +52,10 @@ if (OWNED_POST_CHECK) {
         $available=App\Services\ServerService::getAvailableServers($user);
         $result['subscription_ids']=array_column($available,'id');
         $result['fixed_subscription_count']=count(array_filter($available,fn($s)=>!empty($s['dedicated_exit_id'])));
+        $fallback=App\Models\Server::findOrFail(325);
+        $result['fallback_authorized']=in_array(325,$result['subscription_ids'],true)
+            && App\Services\ServerService::getAvailableUsers($fallback->parent)->contains('id',$user->id);
+        $result['targets'][]=['kind'=>'fallback','id'=>325,'expected'=>$fallback->parent->host,'outbound'=>outbound($fallback,$user)];
         foreach (App\Models\DedicatedExit::whereNotNull('shared_server_id')->get() as $exit) {
             $node=App\Models\Server::findOrFail($exit->probe_server_id);
             $allowed=App\Services\ServerService::getAvailableUsers($node->parent)->contains('id',$user->id);
@@ -105,6 +110,7 @@ assert all(data['ordinary_authorized'].values()), 'Ordinary authorization regres
 if not args.baseline:
     assert data['ready'], 'Retained order is still waiting; do not claim it has opened'
     assert data['fixed_subscription_count']==1, 'Fixed subscription must contain one assigned exit'
+    assert data['fallback_authorized'], 'Hong Kong fallback authorization missing'
     assert all(v['assigned']==v['allowed'] for v in data['fixed_authorization'].values()), 'Fixed authorization mismatch'
-    assert all(x['ok'] for x in results if x['kind'] in ('fixed','unassigned')), 'Fixed proxy or unauthorized-route check failed'
+    assert all(x['ok'] for x in results if x['kind'] in ('fixed','unassigned','fallback')), 'Fixed proxy, fallback or unauthorized-route check failed'
     assert all(p['occupied']<=5 for p in data['pool']), 'Exit capacity exceeded'
