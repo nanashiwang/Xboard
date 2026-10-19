@@ -18,6 +18,8 @@ Status: implemented
 
 生产工作流允许显式传入完整 image_revision，默认仍为工作流提交。GitHub workflow_dispatch 只接受分支/标签引用，代码镜像发布后的文档提交会使 master 与镜像提交不同；目标参数在 SSH 前验证为 40 位小写十六进制，现有管理脚本仍在迁移/重启前核对镜像实际 revision，绝不绕过该检查。无需为一次部署新建分支、标签或重建仅有文档差异的应用镜像。
 
+镜像构建通过 SOURCE_COMMIT 固定到触发 CI 的提交，并在拉取后核验实际 HEAD，再初始化子模块和安装依赖。首次生产验收发现 Dockerfile 另行 clone 移动的 master，镜像标签为 5d65688 而页面 Git 版本为后续文档提交 058fd4c；只核验 OCI 标签不足以保证源码一致。保留现有 clone 构建方式和本地未指定提交时的分支默认值，CI 始终提供完整提交号，避免扩大为整套 Docker 构建重写。
+
 ## Alternatives considered
 
 - 仅取消本次零元订单能停止当前重复失败，但后台仍能再次创建无容量订单，因此还需入口预留检查。

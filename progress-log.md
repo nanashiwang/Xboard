@@ -419,3 +419,7 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 代码提交 `5d656886f6a95d8e3b3638b7c0716e231e006ec9` 已推送 `origin/master`。[订单检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263271)再次确认 55 项 / 276 断言通过，[邮件检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263247)、[节点探针检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263257)与[笔记门禁](https://github.com/nanashiwang/Xboard/actions/runs/39196263303)均 success；[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39196263267) success。GHCR `5d65688` 的 amd64 / arm64 manifest 已回读，digest 为 `sha256:596d18b6a55802a1a34f966ca1107842fd57a76069ebfce821c29c8ae724ebea`。README 与 progress-log 已从 GitHub 按该代码提交回读并逐字节一致；交付记录使用独立 `[skip ci]` 文档提交，生产部署和出口恢复后的真实开通验收仍待执行。
 
 用户随后明确授权“现在部署并核验”。首次用完整代码 SHA 触发工作流被 GitHub 以 HTTP 422 拒绝，未执行远端操作。部署流程补充可选完整 image_revision，以便从 master 启动并核验已发布的指定镜像；SSH 前校验格式，原有迁移前镜像一致性检查继续保留。无需创建部署分支/标签，也不为文档提交重建应用镜像。actionlint、18 项运维测试、6 个目标提交号格式用例、笔记与差异检查通过；该流程改动使用 `[skip ci]` 提交，不改变已验收应用镜像。
+
+部署流程提交 `4bd3fa1` 后，[首次部署](https://github.com/nanashiwang/Xboard/actions/runs/39207057769)成功，运行 OCI revision 为 `5d65688`。启动阶段短暂 502，随后后台恢复；部署前失败计数为 943。页面却显示 `20261019-058fd4c`，追踪到原 Dockerfile 构建时另行 clone master，058fd4c 相较 5d65688 仅增加文档。为避免未来混入未验收业务代码，构建新增 SOURCE_COMMIT，由 CI 传入完整 SHA，checkout 后强制核对 HEAD，再处理子模块。最终镜像、页面版本及跨重试间隔的订单验证待补记。
+
+构建修复通过 actionlint（同时将原先在使用后才生成的版本元数据提前）、真实临时 Git 仓库的分支前进/提交锁定测试及非法 SHA 拒绝测试、笔记与差异检查。订单业务代码保持已通过的 55 项测试版本；新版应用镜像由主线 CI 重新构建发布。

@@ -20,12 +20,20 @@ COPY .docker /
 ARG CACHEBUST=1
 ARG REPO_URL=https://github.com/cedar2025/Xboard
 ARG BRANCH_NAME=master
+ARG SOURCE_COMMIT=
 
 RUN echo "Attempting to clone branch: ${BRANCH_NAME} from ${REPO_URL} with CACHEBUST: ${CACHEBUST}" && \
     rm -rf ./* && \
     rm -rf .git && \
     git config --global --add safe.directory /www && \
     git clone --depth 1 --branch ${BRANCH_NAME} ${REPO_URL} . && \
+    if [ -n "$SOURCE_COMMIT" ]; then \
+        test "${#SOURCE_COMMIT}" -eq 40 && \
+        case "$SOURCE_COMMIT" in *[!0-9a-f]*) exit 1 ;; esac && \
+        git fetch --depth 1 origin "$SOURCE_COMMIT" && \
+        git checkout --detach FETCH_HEAD && \
+        test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"; \
+    fi && \
     git submodule update --init --recursive --force && \
     mkdir -p /opt/default-plugins && \
     cp -a /www/plugins/. /opt/default-plugins/
