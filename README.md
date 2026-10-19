@@ -34,7 +34,9 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 正式仪表盘的七日报错持续增长，抽查的最新失败任务来自同一笔零元人工分配的专属套餐订单：出口不可用使开通事务回滚，订单仍为开通中，每分钟检查再次投递并触发任务重试。后台分配现已补上与用户购单相同的出口容量预留；失败明细也修复了只读取前 50 条导致后续页面为空的问题。相关 55 项测试 / 276 个断言通过。
 
-用户选择保留订单等待专属出口恢复。代码将这类已识别的等待按 5 分钟间隔重试，保留开通中状态与告警日志，恢复后自动开通；其他异常仍进入失败队列。历史失败不清空，订单不取消、不换套餐。代码 `5d65688` 已推送 `master`，CI 通过，GHCR 同名 amd64/arm64 镜像[发布成功](https://github.com/nanashiwang/Xboard/actions/runs/39196263267)并已按授权部署；验收发现原 Docker 构建拉取移动分支，使页面版本混入后续文档提交。现将 CI 源码固定到触发构建的完整提交，待新镜像部署后继续核验。根因、取舍及生产边界见[决策笔记](./.agents/notes/implemented/bug-fix/2026-10-19-dedicated-admin-order-failures.md)与[排查记录](./progress-log.md#2026-10-19线上作业失败与专属订单排查)。
+用户选择保留订单等待专属出口恢复。代码将这类已识别的等待按 5 分钟间隔重试，保留开通中状态与告警日志，恢复后自动开通；其他异常仍进入失败队列。历史失败不清空，订单不取消、不换套餐。最终版本 `20261019-9d6cf40` 已完成[双架构镜像发布](https://github.com/nanashiwang/Xboard/actions/runs/39207429478)和[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39207867717)，页面与运行镜像版本一致；首次修复上线后观察超过 10 分钟，失败计数保持 944，订单仍为开通中，队列正常。出口恢复后的真实开通尚未发生，不能将停止重复报错等同于权益交付。
+
+部署验收同时修复构建源码随 master 前进的问题：CI 按完整提交号取源码并核验 HEAD，生产部署也核对目标镜像提交。根因、取舍及生产边界见[决策笔记](./.agents/notes/implemented/bug-fix/2026-10-19-dedicated-admin-order-failures.md)与[排查记录](./progress-log.md#2026-10-19线上作业失败与专属订单排查)。
 
 ### 流量邮件提醒（2026-10-19）
 

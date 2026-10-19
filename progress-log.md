@@ -423,3 +423,11 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 部署流程提交 `4bd3fa1` 后，[首次部署](https://github.com/nanashiwang/Xboard/actions/runs/39207057769)成功，运行 OCI revision 为 `5d65688`。启动阶段短暂 502，随后后台恢复；部署前失败计数为 943。页面却显示 `20261019-058fd4c`，追踪到原 Dockerfile 构建时另行 clone master，058fd4c 相较 5d65688 仅增加文档。为避免未来混入未验收业务代码，构建新增 SOURCE_COMMIT，由 CI 传入完整 SHA，checkout 后强制核对 HEAD，再处理子模块。最终镜像、页面版本及跨重试间隔的订单验证待补记。
 
 构建修复通过 actionlint（同时将原先在使用后才生成的版本元数据提前）、真实临时 Git 仓库的分支前进/提交锁定测试及非法 SHA 拒绝测试、笔记与差异检查。订单业务代码保持已通过的 55 项测试版本；新版应用镜像由主线 CI 重新构建发布。
+
+### 最终生产验收（北京时间 2026-10-19 14:06 起）
+
+- 部署参数提交 `4bd3fa1` 的[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/39207123893) success；构建修复提交 `9d6cf40331793bf1eaef3a5f53df4c4deef5aefb` 已推送 master，[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39207429478)及[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39207429644)均 success。amd64/arm64 构建日志都确认 HEAD 为 9d6cf40；manifest digest `sha256:60449496b7da710c3a32b74cfe2cc3fc29cba9da04557793f8b92e15e663cb97` 已回读。
+- [最终部署](https://github.com/nanashiwang/Xboard/actions/runs/39207867717) success。14:05:53 容器 Healthy，运行镜像 revision 为 9d6cf40，14:06 正式后台显示 `20261019-9d6cf40`，与镜像一致。
+- 首次修复部署于 13:56:36 完成；14:03、14:06 的刷新均显示失败计数 944，超过 10 分钟未新增，跨过 5 分钟等待间隔。最新失败仍是更新前的 13:56:20；队列正常、等待 0 秒、活跃进程 11/11。部署前 943 到最终 944 的一条发生在旧容器退出前，历史记录未清理。
+- 保留的零元人工半年订单仍为开通中，套餐、金额和更新时间保持原值；失败明细第 7 页读取到 12:56 至 12:47 的 10 条记录，翻页问题已在生产验证。未伪造出口恢复、修改用户权益或主动完成订单；出口真正恢复后的开通需由正常调度处理，当前只确认等待期间不再制造重复失败。
+- README/progress-log 已按代码与部署流程提交从 GitHub 回读一致。最终验收记录用独立 `[skip ci]` 提交，不再重建镜像；推送后再次回读。应用无 GitHub Release/安装包流程，最终交付为已部署的 GHCR 双架构镜像。
