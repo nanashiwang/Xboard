@@ -414,4 +414,6 @@ NAS 当前使用 `/home/nanashiwang/xboard-node-probe`，镜像 1.0.1、重启�
 
 PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、276 个断言通过**，含等待期间不发权益、恢复自动开通及重复执行幂等、调度冷却、其他异常保留和待支付取消；新增 Order Queue Checks 自动执行这些检查，笔记结构和差异空白检查通过。生产后台读取验证了真实失败明细、订单来源/金额及当前用户状态；初始服务器直连 SSH 超时，未据终端提交命令声称原始文件日志已取得。
 
-本地 testing 日志另有 Redis/临时 SQLite 环境报错，与本次线上订单异常分开处理；未把最初的本地统计服务修改混入本次提交。排查时生产版本为 `20261019-2b8c615`；本轮未部署、重启、删除失败记录或改变用户权益。提交推送与镜像终态在完成后补记。仓库沿用 GHCR 双架构镜像，无 GitHub Release / 安装包发布流程。
+本地 testing 日志另有 Redis/临时 SQLite 环境报错，与本次线上订单异常分开处理；未把最初的本地统计服务修改混入本次提交。最初排查时生产版本为 `20261019-2b8c615`；构建期间刷新已显示其他任务部署的 `20261019-c00e753`，失败计数 814，仍未包含本次订单修复。本轮未部署、重启、删除失败记录或改变用户权益。仓库沿用 GHCR 双架构镜像，无 GitHub Release / 安装包发布流程。
+
+代码提交 `5d656886f6a95d8e3b3638b7c0716e231e006ec9` 已推送 `origin/master`。[订单检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263271)再次确认 55 项 / 276 断言通过，[邮件检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263247)、[节点探针检查](https://github.com/nanashiwang/Xboard/actions/runs/39196263257)与[笔记门禁](https://github.com/nanashiwang/Xboard/actions/runs/39196263303)均 success；[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39196263267) success。GHCR `5d65688` 的 amd64 / arm64 manifest 已回读，digest 为 `sha256:596d18b6a55802a1a34f966ca1107842fd57a76069ebfce821c29c8ae724ebea`。README 与 progress-log 已从 GitHub 按该代码提交回读并逐字节一致；交付记录使用独立 `[skip ci]` 文档提交，生产部署和出口恢复后的真实开通验收仍待执行。
