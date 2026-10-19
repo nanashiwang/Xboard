@@ -30,9 +30,11 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
-### 流量邮件提醒现状（2026-10-19）
+### 流量邮件提醒（2026-10-19）
 
-正式后台的 SMTP 已配置、SSL/TLS 已选择、邮件提醒总开关已开启。现有发送链路包含模板、`send_email` 队列、三次尝试及邮件日志；但流量提醒每天北京时间 11:30 才扫描，实际发送范围为已用 80% 至不足 100%，达到或超过 100% 会跳过。快速用完流量存在错过提醒窗口的可能。还未取得本账号的提醒偏好、线上调度执行记录及实际投递日志，不能确认本次是否发过邮件或已送达；详见[邮件核对记录](./progress-log.md#2026-10-19流量邮件提醒能力核对)。本轮只读核对，未发送测试邮件、修改配置或部署修复。
+新增独立的“套餐流量已用完”通知：用量达到或超过 100% 后每 5 分钟检查，站点邮件提醒及用户流量提醒均开启时，每个流量周期成功发送一次。失败保留重试资格，重置流量后的新周期可以再次提醒；后台邮件模板可独立编辑。原 80% 预警和到期邮件仍每天北京时间 11:30 执行，快速用完流量仍可能错过 80% 预警。
+
+本地 108 项测试 / 652 断言通过，其中耗尽提醒 13 项 / 69 断言，均使用内存邮件传输。实现和上线边界见[决策笔记](./.agents/notes/implemented/bug-fix/2026-10-19-traffic-exhausted-reminder.md)与[本次记录](./progress-log.md#2026-10-19流量耗尽邮件提醒)。此前只读确认正式后台 SMTP 和总开关已配置，不能据此确认调度运行或邮件送达；本次新增功能尚未部署，也未向真实用户发送测试邮件。镜像沿用主线 CI，生产更新必须执行数据库迁移。
 
 ### 本机节点可测延迟但无法联网（2026-10-19）
 

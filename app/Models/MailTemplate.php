@@ -34,6 +34,11 @@ class MailTemplate extends Model
             'required_vars' => [],
             'optional_vars' => ['name', 'url'],
         ],
+        'remindTrafficExhausted' => [
+            'label' => '流量耗尽提醒',
+            'required_vars' => [],
+            'optional_vars' => ['name', 'url'],
+        ],
         'mailLogin' => [
             'label' => '邮件登录',
             'required_vars' => ['link'],

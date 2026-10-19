@@ -128,6 +128,7 @@ class MailTemplateController extends Controller
             'notify' => "{$appName} - 通知测试",
             'remindExpire' => "{$appName} - 到期提醒测试",
             'remindTraffic' => "{$appName} - 流量提醒测试",
+            'remindTrafficExhausted' => "{$appName} - 流量耗尽提醒测试",
             'mailLogin' => "{$appName} - 登录链接测试",
             default => "{$appName} - 邮件测试",
         };
@@ -174,6 +175,7 @@ class MailTemplateController extends Controller
             'notify' => "{$appName} - 站点通知",
             'remindExpire' => "{$appName} - 服务即将到期",
             'remindTraffic' => "{$appName} - 流量使用提醒",
+            'remindTrafficExhausted' => "{$appName} - 套餐流量已用完",
             'mailLogin' => "{$appName} - 邮件登录",
             default => "{$appName}",
         };
@@ -259,6 +261,7 @@ HTML;
             'notify' => $layout('网站通知', '{{content}}'),
             'remindExpire' => $layout('服务到期提醒', '您的服务即将在24小时内到期，如需继续使用请及时续费。'),
             'remindTraffic' => $layout('流量使用提醒', '您的流量使用已达到80%，请注意流量使用情况。'),
+            'remindTrafficExhausted' => $layout('套餐流量已用完', '您当前周期的套餐流量已用完，节点连接将受到限制。请前往面板查看用量、流量重置时间及可用的续购选项。'),
             'mailLogin' => $layout('登入到{{name}}', '您正在登入到{{name}}, 请在 5 分钟内点击下方链接进行登入。如果您未授权该登入请求，请无视。<a href="{{link}}">{{link}}</a>'),
             default => $layout('通知', '{{content}}'),
         };
