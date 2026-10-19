@@ -75,7 +75,7 @@ jobs:
             apply_args=
             if [ "$OPERATION" = attach-owned-dedicated ]; then apply_args=--apply; fi
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
-              "cd /root/Xboard && docker compose exec -T xboard php artisan dedicated:attach-owned 5 /dev/stdin $apply_args" \
+              "cd /root/Xboard && docker compose exec -T xboard php artisan dedicated:attach-owned 5 php://stdin $apply_args" \
               < .docker/dedicated/owned-production.json
             exit 0
           fi

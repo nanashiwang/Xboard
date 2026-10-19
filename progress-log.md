@@ -408,6 +408,8 @@ PHP 8.2.33 下专属、订单支付、队列分页及探针共 84 项测试、46
 
 首次专项 CI 在干净 checkout 中发现 storage/app 不存在，已修正为创建 0700 备份目录后再写 0600 快照，并新增干净安装回归；首个失败构建对应代码不部署。代码初版 e40909d 已推送，README / progress-log 已从 GitHub 按该提交回读一致；修正版 CI 与镜像仍待验证。
 
+修正版 `f4f3849` 的专项 CI 和[双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39220235334)成功，[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39220827392)成功。镜像 manifest 为 `sha256:ae7d006c5abd864beb7f07ac18f5423e3482974ed2357396483635603f787eb2`，README / progress-log 已按该提交从 GitHub 回读一致。[接入前基线](https://github.com/nanashiwang/Xboard/actions/runs/39219450300)确认普通账号对 13 个后端均获授权，13 次实际 HTTPS 请求均返回预期 IP。首次配置预览因容器缺少 /dev/stdin 失败，未写入配置；部署流程改用 PHP 原生 php://stdin，仍需重新预览后应用。
+
 ## 2026-10-19：线上作业失败与专属订单排查
 
 用户明确指出正式仪表盘的「作业详情 → 7日报错数量」。页面异步加载前短暂显示 0，不是最终结果；等待数据返回后，本轮观察到计数 798，且持续增加。最近可见任务为 `order_handle / OrderHandleJob`，每分钟重复报 `DedicatedExitService::activate` 的“专属出口暂不可用，订单已保留，恢复后自动开通”。
