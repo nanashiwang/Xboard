@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 自建固定出口池接入（2026-10-19）
+
+用户确认将自建线路接入固定出口池，保留每出口五账号和普通套餐访问。当前正在核对生产节点、出口及探针；尚未修改线上套餐或出口绑定。只读运维入口为 Production Deploy 的 inspect-dedicated，方案与验证边界见[接入提案](./.agents/notes/proposed/feature/2026-10-19-owned-fixed-exit-pool.md)。
+
 ### 线上作业报错排查（2026-10-19）
 
 正式仪表盘的七日报错持续增长，抽查的最新失败任务来自同一笔零元人工分配的专属套餐订单：出口不可用使开通事务回滚，订单仍为开通中，每分钟检查再次投递并触发任务重试。后台分配现已补上与用户购单相同的出口容量预留；失败明细也修复了只读取前 50 条导致后续页面为空的问题。相关 55 项测试 / 276 个断言通过。

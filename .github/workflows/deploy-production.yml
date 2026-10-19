@@ -11,6 +11,7 @@ on:
         options:
           - inspect
           - inspect-mail
+          - inspect-dedicated
           - deploy
           - install-cli
       image_revision:
@@ -51,6 +52,11 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [ "$OPERATION" = inspect-dedicated ]; then
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker compose exec -T xboard php' < .docker/dedicated/inspect.php
+            exit 0
+          fi
           if [ "$OPERATION" = install-cli ] || [ "$OPERATION" = deploy ]; then
             bash -n .docker/production/xboard.sh
             remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'mktemp -d /tmp/xboard-cli.XXXXXX')
