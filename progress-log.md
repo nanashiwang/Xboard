@@ -6,15 +6,18 @@
 
 ## 2026-10-19：流量耗尽邮件提醒
 
-用户要求流量用完后也发送一次邮件。复用现有 SMTP、用户提醒偏好、邮件日志和 `send_email` 队列，新增独立 `send:traffic-exhausted` 每 5 分钟扫描，保留原每日 11:30 的 80%/到期提醒。默认文案明确“套餐流量已用完”，后台模板接口支持独立读取和定制；不复用已定制的 80% 模板。
+用户要求流量用完后也发送一次邮件，并在代码、CI 和镜像完成后明确同意“现在部署并验证”。复用现有 SMTP、用户提醒偏好、邮件日志和 `send_email` 队列，新增独立 `send:traffic-exhausted` 每 5 分钟扫描，保留原每日 11:30 的 80%/到期提醒。默认文案明确“套餐流量已用完”，后台模板接口支持独立读取和定制；不复用已定制的 80% 模板。
 
-- 用量 `u+d >= transfer_enable` 且额度大于 0，站点和个人流量提醒开启、未封禁且有邮箱时纳入；不修改用户用量、套餐、节点资格或提醒偏好。
+- 用量 `u+d >= transfer_enable` 且额度大于 0，站点和个人流量提醒开启、未封禁且有邮箱时纳入；提醒逻辑不修改用户用量、套餐、节点资格或提醒偏好。
 - `v2_traffic_exhausted_reminders` 按 `(user_id, reset_count)` 唯一记录；发送成功后标记，缓存清空和次日扫描不会重复发信。数据库原子领取避免重复 worker 同时发送；失败后 15 分钟重试，队列三次失败后扫描仍可补偿。
 - Worker 重新检查用量、开关和周期，旧周期任务在重置后作废。现有手动/周期/订单/礼品卡重置递增 `reset_count`，下一周期耗尽可再次提醒。SMTP 与数据库之间崩溃窗口仍可能造成重复，不承诺严格 exactly-once。
-- 本地 PHP 8.2.33 容器禁网、SQLite 内存数据库、ArrayTransport：邮件专项 **13 项 / 69 断言**、全套 **108 项 / 652 断言**通过；验证 100% 边界、独立预警、失败重试、重复领取、缓存清空、真实重置、旧任务、偏好和模板权限/定制。`actionlint` 通过新增 Mail Reminder Checks 工作流。项目笔记和链接校验随提交执行。
-- 当前代码与文档交付，主线推送后另核验 GitHub Actions 和 amd64/arm64 镜像；生产尚未部署，未发真实测试邮件，未验证生产调度/队列/收件箱。部署需先迁移；上线后会补发当前周期已耗尽且开启提醒的用户。当前项目无 GitHub Release/安装包流程，应用版本仍由镜像构建按日期与提交自动生成。
+- 本地 PHP 8.2.33 容器禁网、SQLite 内存数据库、ArrayTransport：邮件专项 **13 项 / 69 断言**、全套 **108 项 / 652 断言**通过；验证 100% 边界、独立预警、失败重试、重复领取、缓存清空、真实重置、旧任务、偏好和模板权限/定制。`actionlint`、新增只读脚本 PHP 语法、18 项运维测试及项目笔记门禁通过。没有向真实用户发送测试邮件。
+- 功能提交 `c00e75355a32a207fbbcfae24002172be08a910f` 已推送 master。[邮件 CI](https://github.com/nanashiwang/Xboard/actions/runs/39194627822)（PHP 8.2.34，13 项 / 69 断言）、[节点探针 CI](https://github.com/nanashiwang/Xboard/actions/runs/39194627823)、[笔记 CI](https://github.com/nanashiwang/Xboard/actions/runs/39194627797)和[双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39194627796)全部成功。镜像 `ghcr.io/nanashiwang/xboard:c00e753`，应用显示版本 `20261019-c00e753`；注册表的 linux/amd64 与 linux/arm64 镜像 revision 均为该功能提交，索引 digest `sha256:db737d4257b23b4d8f61e1c4e53c4fb05aa5e965e02efa36e0824f66dd17f55e`。
+- [生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39195201349)于北京时间 11:34 完成：新表迁移显示 DONE、容器 Healthy、运行 revision 与功能提交一致。正式后台重新加载显示新版本，邮件模板管理中出现“流量耗尽提醒”，主题和实际预览正确，查看用量链接指向本站。部署沿用原 `xboard:update`，其中 `reset:traffic --force` 只重新计算重置时间，不是清空用户用量。
+- 增加 `inspect-mail` 只读运维选项，提交 `b5db215`、`cc48fc1`，均使用 `[skip ci]`，没有重复构建或替换生产镜像。输出只含数量、时间、布尔开关及运行 revision，不包含邮箱、SMTP 配置或原始错误，不调用发送。11:43 的[实际核验](https://github.com/nanashiwang/Xboard/actions/runs/39195993433)成功：运行镜像仍为 `c00e753`，总开关为 true，调度时间新鲜；耗尽账号、符合条件人数、当前周期已发送/待重试及最近 24 小时耗尽邮件成功/失败记录均为 0。配置中的静态 `app.version=1.0.0` 不作为部署版本证据，版本以运行镜像标签和正式后台为准。
+- 正式用户管理再次查询原诊断账号，已用 **513.5 MB / 25 GB（约 2%）**，所以当前不触发耗尽提醒；本轮没有为测试而修改额度或个人偏好，未核对这次用量恢复的操作来源。调度和无符合条件用户的结果已验证，真实耗尽邮件的 SMTP 接收/收件箱投递尚未触发，不写作已送达。后台队列运行正常，最近失败明细是部署前已有的专属订单任务，不据此归因为新邮件任务。
 
-取舍与限制见[耗尽提醒决策](./.agents/notes/implemented/bug-fix/2026-10-19-traffic-exhausted-reminder.md)。原香港入口未提交改动继续保留。按项目约定提交推送 master，并从 GitHub 按提交回读 README/progress-log；构建和提交终态在本轮交付报告记录。
+取舍与限制见[耗尽提醒决策](./.agents/notes/implemented/bug-fix/2026-10-19-traffic-exhausted-reminder.md)。功能及运维变更只提交本轮文件，其他任务的订单修复与原香港入口改动保留。已按功能提交从 GitHub 回读 README/progress-log 并逐字核对；最终证据以文档提交回填，再按该提交回读。项目没有 GitHub Release/安装包发布流程，本次发布双架构镜像，无 GitHub Release。
 
 ## 2026-10-19：流量邮件提醒能力核对
 

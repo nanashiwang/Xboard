@@ -30,7 +30,7 @@ Status: implemented
 
 本地使用 PHP 8.2.33 容器、SQLite 内存数据库和 ArrayTransport，容器禁网，不向真实用户发信。`vendor/bin/phpunit tests/Feature/Mail` 通过 13 项 / 69 断言；完整 `vendor/bin/phpunit` 通过 108 项 / 652 断言。覆盖刚好/超过 100%、80% 缓存独立、重复任务/缓存清空、真实 TrafficResetService 重置、旧任务失效、开关/偏好/封禁/无额度、SMTP 失败与过期领取恢复、发送期间重复领取，以及后台模板权限/定制。`actionlint` 通过新增邮件 CI 工作流。
 
-新增 [邮件提醒 CI](../../../../.github/workflows/mail-reminders.yml)，独立回归该能力；生产调度、SMTP 接收和收件箱投递仍须上线后验证，当前不声称已部署。
+新增 [邮件提醒 CI](../../../../.github/workflows/mail-reminders.yml)，独立回归该能力。功能提交 c00e753 的邮件、探针、笔记 CI 及双架构镜像构建均通过；用户确认后生产部署成功，新表迁移、运行 revision、正式后台独立模板与队列已核验。生产只读核验确认调度新鲜、当前耗尽用户为 0，所以真实发送和成功记录为 0；原诊断账号在验收时已为约 2% 用量。没有为验证而改变用户额度/偏好，SMTP 接收与收件箱投递尚未实际触发。具体时间、工作流链接和边界见 [progress-log](../../../../progress-log.md#2026-10-19流量耗尽邮件提醒)。只读核验脚本 PHP 语法、工作流 actionlint 和 18 项运维测试通过。
 
 ## Consequences
 
