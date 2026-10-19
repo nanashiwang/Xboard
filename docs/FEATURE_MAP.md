@@ -25,6 +25,8 @@
 
 | 第一段入口分层监控 | 节点质量页入口卡片、逐节点隧道列、页面内入口历史；`probes:ingress` | [IngressProbeService](../app/Services/Probes/IngressProbeService.php)、独立入口表与采样表；NAS HTTPS 直连健康任务；[只读采集器](../tools/ingress-monitor/monitor.py)复用机器资源上报 | 显式节点/隧道映射，入口检测与完整代理统计隔离；资源 180 秒过期，入口明细 24h，隧道只存最新轮；生产覆盖 13 条入口线路，4 条 CF 备用不误绑定；[文档](./zh-CN/installation/node-probes.md#第一段入口机器资源与出口隧道)、[决策](../.agents/notes/implemented/feature/2026-10-19-ingress-observability.md)，生产状态见进展记录 |
 
+| 订单作业失败与后台专属分配 | 仪表盘「作业详情」、后台 `order/assign`、`system/getHorizonFailedJobs` | [OrderController](../app/Http/Controllers/V2/Admin/OrderController.php)在事务内复用专属容量预留；[SystemController](../app/Http/Controllers/V2/Admin/SystemController.php)按 Horizon 索引分页；管理员鉴权 | [OrderHandleJob](../app/Jobs/OrderHandleJob.php)识别出口等待并保留订单，5 分钟后由调度重试，其他异常仍报错。零元分配也需预留；测试见 `tests/Feature/Dedicated`、`tests/Feature/Operations`；[排查决策](../.agents/notes/implemented/bug-fix/2026-10-19-dedicated-admin-order-failures.md) |
+
 ## 验证入口
 
 仅运行改动相关的检查，记录实际结果；以下是入口，不代表本次已全部执行。

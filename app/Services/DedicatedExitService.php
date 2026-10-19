@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\ApiException;
+use App\Exceptions\DedicatedExitUnavailableException;
 use App\Models\DedicatedAssignment;
 use App\Models\DedicatedExit;
 use App\Models\Order;
@@ -120,7 +121,7 @@ class DedicatedExitService
         }
         $exit = $this->assignedExit($user);
         if (!$exit) {
-            throw new ApiException('专属出口暂不可用，订单已保留，恢复后自动开通');
+            throw new DedicatedExitUnavailableException();
         }
         DedicatedAssignment::where('user_id', $user->id)->update(['order_id' => null, 'reserved_until' => null]);
     }

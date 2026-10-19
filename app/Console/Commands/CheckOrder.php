@@ -47,6 +47,10 @@ class CheckOrder extends Command
             ->orderBy('created_at', 'ASC')
             ->lazyById(200)
             ->each(function ($order) {
+                if ($order->status === Order::STATUS_PROCESSING
+                    && OrderHandleJob::isWaitingForDedicatedExit($order->id)) {
+                    return;
+                }
                 OrderHandleJob::dispatch($order->trade_no);
             });
     }

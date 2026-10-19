@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\OrderService;
+use App\Services\DedicatedExitService;
 use App\Services\PlanService;
 use App\Services\UserService;
 use App\Utils\Helper;
@@ -240,6 +241,9 @@ class OrderController extends Controller
             if (!$order->save()) {
                 DB::rollBack();
                 return $this->fail([500, '订单创建失败']);
+            }
+            if ($plan->dedicated && $order->period !== Plan::PERIOD_RESET_TRAFFIC) {
+                app(DedicatedExitService::class)->reserve($order, $user, $plan);
             }
             DB::commit();
         } catch (\Exception $e) {

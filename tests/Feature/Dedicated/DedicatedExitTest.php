@@ -21,6 +21,7 @@ use App\Utils\Helper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Laravel\Sanctum\Sanctum;
@@ -87,6 +88,73 @@ class DedicatedExitTest extends TestCase
     {
         $order->update(['status' => Order::STATUS_PROCESSING]);
         (new OrderService($order))->open();
+    }
+
+    private function assignAsAdmin(User $user, Plan $plan, string $period = 'half_year_price')
+    {
+        $admin = $this->user();
+        $admin->update(['is_admin' => true]);
+        Sanctum::actingAs($admin);
+        $path = admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key'))));
+        return $this->postJson('/api/v2/' . $path . '/order/assign', [
+            'email' => $user->email, 'plan_id' => $plan->id,
+            'period' => $period, 'total_amount' => 0,
+        ]);
+    }
+
+    public function test_admin_zero_amount_assignment_rejects_unavailable_exit_without_leaving_an_order(): void
+    {
+        $user = $this->user();
+        $this->exit->update(['healthy' => false]);
+        $this->assignAsAdmin($user, $this->plan)->assertStatus(400);
+        $this->assertSame(0, Order::count());
+        $this->assertSame(0, DedicatedAssignment::count());
+        $this->assertNull($user->fresh()->plan_id);
+    }
+
+    public function test_admin_assignment_cannot_overbook_a_full_dedicated_exit(): void
+    {
+        for ($i = 0; $i < DedicatedExit::CAPACITY; $i++) {
+            $this->order($this->user());
+        }
+        $this->assignAsAdmin($this->user(), $this->plan)->assertStatus(400);
+        $this->assertSame(5, Order::count());
+        $this->assertSame(5, DedicatedAssignment::count());
+    }
+
+    public function test_admin_assignment_reserves_a_seat_and_can_complete(): void
+    {
+        $user = $this->user();
+        $tradeNo = $this->assignAsAdmin($user, $this->plan)->assertOk()->json('data');
+        $order = Order::where('trade_no', $tradeNo)->firstOrFail();
+        $this->assertSame(Plan::PERIOD_HALF_YEARLY, $order->period);
+        $this->assertSame($order->id, DedicatedAssignment::sole()->order_id);
+        $this->assertSame(0, $order->total_amount);
+        $this->complete($order);
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertSame($this->plan->id, $user->fresh()->plan_id);
+        $this->assertNull(DedicatedAssignment::sole()->reserved_until);
+    }
+
+    public function test_admin_renewal_retains_existing_seat_when_exit_is_temporarily_unhealthy(): void
+    {
+        $user = $this->user();
+        $this->complete($this->order($user));
+        $assignment = DedicatedAssignment::sole();
+        $this->exit->update(['healthy' => false]);
+        $this->assignAsAdmin($user->fresh(), $this->plan)->assertOk();
+        $this->assertSame(1, DedicatedAssignment::count());
+        $this->assertSame($assignment->id, DedicatedAssignment::sole()->id);
+    }
+
+    public function test_admin_ordinary_plan_and_traffic_reset_do_not_require_new_exit_capacity(): void
+    {
+        $this->exit->update(['healthy' => false]);
+        $ordinary = Plan::create(['name' => '普通套餐', 'group_id' => 1, 'transfer_enable' => 25, 'prices' => ['monthly' => 10]]);
+        $this->assignAsAdmin($this->user(), $ordinary)->assertOk();
+        $this->assignAsAdmin($this->user(true), $this->plan, 'reset_price')->assertOk();
+        $this->assertSame(2, Order::count());
+        $this->assertSame(0, DedicatedAssignment::count());
     }
 
     private function ordinarySubscriber(int $paidAmount = 12000, int $creditedAmount = 2000): array
@@ -372,6 +440,91 @@ class DedicatedExitTest extends TestCase
             $this->assertNull($user->fresh()->plan_id);
             $this->assertSame(1, DedicatedAssignment::count());
         }
+    }
+
+    public function test_unavailable_legacy_order_waits_then_recovers_without_duplicate_entitlement(): void
+    {
+        Queue::fake()->except([OrderHandleJob::class]);
+        Log::spy();
+        $user = $this->user();
+        $order = $this->order($user);
+        // Legacy administrator orders did not reserve an exit before payment.
+        DedicatedAssignment::query()->delete();
+        $user->update(['balance' => 989]);
+        $order->update(['total_amount' => 0, 'surplus_credit' => 100]);
+        $this->exit->update(['healthy' => false]);
+
+        $this->assertTrue((new OrderService($order->fresh()))->paid('manual_operation'));
+        $this->assertSame(Order::STATUS_PROCESSING, $order->fresh()->status);
+        $this->assertSame('manual_operation', $order->fresh()->callback_no);
+        $this->assertNull($user->fresh()->plan_id);
+        $this->assertEquals(989, $user->fresh()->balance);
+        $this->assertSame(0, DedicatedAssignment::count());
+        $this->assertTrue(OrderHandleJob::isWaitingForDedicatedExit($order->id));
+
+        $this->exit->update(['healthy' => true]);
+        (new OrderHandleJob($order->trade_no))->handle();
+        $this->assertSame(Order::STATUS_PROCESSING, $order->fresh()->status);
+        Log::shouldHaveReceived('warning')->once();
+
+        $this->travel(OrderHandleJob::DEDICATED_EXIT_RETRY_SECONDS + 1)->seconds();
+        $this->assertFalse(OrderHandleJob::isWaitingForDedicatedExit($order->id));
+        (new OrderHandleJob($order->trade_no))->handle();
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertSame($this->plan->id, $user->fresh()->plan_id);
+        $this->assertEquals(1089, $user->fresh()->balance);
+        $this->assertSame(1, DedicatedAssignment::count());
+        $expiry = $user->fresh()->expired_at;
+        (new OrderHandleJob($order->trade_no))->handle();
+        $this->assertEquals(1089, $user->fresh()->balance);
+        $this->assertSame($expiry, $user->fresh()->expired_at);
+    }
+
+    public function test_scheduler_skips_waiting_order_and_retries_when_cooldown_expires(): void
+    {
+        $order = $this->order($this->user());
+        $order->update(['status' => Order::STATUS_PROCESSING]);
+        $this->exit->update(['healthy' => false]);
+        (new OrderHandleJob($order->trade_no))->handle();
+        $this->artisan('check:order')->assertExitCode(0);
+        Queue::assertNotPushed(OrderHandleJob::class);
+
+        $this->travel(OrderHandleJob::DEDICATED_EXIT_RETRY_SECONDS + 1)->seconds();
+        $this->artisan('check:order')->assertExitCode(0);
+        Queue::assertPushed(OrderHandleJob::class, 1);
+    }
+
+    public function test_unrelated_activation_errors_still_fail_the_job(): void
+    {
+        $user = $this->user();
+        $order = $this->order($user);
+        $order->update(['status' => Order::STATUS_PROCESSING]);
+        $this->partialMock(DedicatedExitService::class, function ($mock) {
+            $mock->shouldReceive('activate')->once()->andThrow(new ApiException('other activation error'));
+        });
+
+        try {
+            (new OrderHandleJob($order->trade_no))->handle();
+            $this->fail('Unrelated errors must remain visible to the queue worker');
+        } catch (ApiException $e) {
+            $this->assertSame('other activation error', $e->getMessage());
+            $this->assertSame(Order::STATUS_PROCESSING, $order->fresh()->status);
+            $this->assertNull($user->fresh()->plan_id);
+            $this->assertFalse(OrderHandleJob::isWaitingForDedicatedExit($order->id));
+        }
+    }
+
+    public function test_dedicated_wait_does_not_block_expired_pending_order_cancellation(): void
+    {
+        $order = $this->order($this->user());
+        $order->update(['status' => Order::STATUS_PROCESSING]);
+        $this->exit->update(['healthy' => false]);
+        (new OrderHandleJob($order->trade_no))->handle();
+        $order->update(['status' => Order::STATUS_PENDING, 'created_at' => time() - 7201]);
+        $this->artisan('check:order')->assertExitCode(0);
+        Queue::assertPushed(OrderHandleJob::class, 1);
+        (new OrderHandleJob($order->trade_no))->handle();
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
     }
 
     public function test_switching_back_to_public_plan_releases_the_dedicated_seat(): void

@@ -1,0 +1,21 @@
+name: Order Queue Checks
+on:
+  push:
+    branches: [master]
+    paths: ['app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
+  pull_request:
+    paths: ['app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
+permissions:
+  contents: read
+jobs:
+  orders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sqlite3, pdo_sqlite, redis, gmp, bcmath
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: vendor/bin/phpunit tests/Feature/Dedicated tests/Feature/Operations tests/Feature/Payments
