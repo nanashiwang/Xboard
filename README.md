@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### Cloudflare 验证循环排查（2026-10-21）
+
+用户反馈浏览器持续停在人机验证并刷新。10 月 20 日深夜至 21 日凌晨的只读检查中，`taige.us` 首页、公开配置接口和浏览器注册页可访问，应用容器显示连续运行约 32 小时；脚本使用默认 User-Agent 时收到 Cloudflare `403 / 1010`，改用 `Mozilla/5.0` 后返回 200。该对照证明存在按客户端特征拦截的情况，不能直接认定为反馈用户的触发原因。
+
+正式应用当日另有 89 条 SQLite `database is locked` 错误，抽样涉及节点探针写入；尚未与验证循环建立关联。缺少反馈用户的完整网址、Ray ID 和 Cloudflare 安全事件，具体规则及恢复状态未确认。本轮仅诊断和记录，未改安全策略或部署；证据、验证码日志边界和后续步骤见[排查记录](./progress-log.md#2026-10-21cloudflare-人机验证循环排查)。
+
 ### 自建固定出口池接入（2026-10-19）
 
 用户确认保留固定出口分配，将现有自建线路接入出口池。实现复用 13 个去重后的美国出口，每出口五个固定套餐账号；香港作为公共备用，普通套餐继续使用原节点。200 GB、10 Mbps、价格、套餐总销售上限 15 和上架状态保持不变。

@@ -4,6 +4,21 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-21：Cloudflare 人机验证循环排查
+
+用户最初描述“网站闪退”，随后明确为“卡在 CF 人机认证不断刷新”，发生于刚才、使用浏览器。检查覆盖北京时间 2026-10-20 深夜至 21 日凌晨；对方未提供完整网址、Ray ID、浏览器版本或网络出口信息，因此本轮无法匹配其具体请求。
+
+- 公共请求：`https://taige.us/`、`https://board.taige.us/` 和主域名 `/api/v1/guest/comm/config` 在带 `Mozilla/5.0` User-Agent 的请求中返回 200；Chrome 能打开主域名登录、注册页面，检查到的站点控制台日志为空，未复现反馈中的循环。这仅是当前检查环境的成功样本。
+- 同一公开配置接口使用默认 `Python-urllib/3.9` 时返回 Cloudflare 403，正文 `error code: 1010`；对照 Ray ID 为 `a4d946c2aebd3ccc-LAX`，属于本次检查而非反馈用户。Cloudflare [1010 文档](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/)说明其含义为按浏览器特征拒绝；尚未读取站点安全事件，不能据此指定某条规则或认定对方同样命中 1010。
+- 生产主机通过已有 XTerminal 连接只读核验：`/root/Xboard` 的应用容器为 Up 32 hours，主页显示 `20261019-f4f3849`；本轮未独立核验镜像 OCI revision、OOM 或完整重启历史。当前 `/var/log/nginx/error.log` 为 0 字节，访问日志抽查时约 11.4 万行，按 HTTP 状态位置统计 5xx 为 3 条；未关联到反馈用户，不能将这些请求视为其失败证据。
+- 生产 `storage/logs/laravel-2026-10-20.log` 中 ERROR/CRITICAL 匹配 89 条，89 条均匹配 SQLite `database is locked`。唯一包含 `cloudflare` 的日志在 14:20:31，内容是向 `v2_node_probe_sample` 写入探针结果失败；这里的 Cloudflare 是探测目标，结果中记录 HTTP 200，不是验证码报错。该日志的时间字段未另行核验应用时区；数据库锁的影响范围与成因列为独立待办，不据此解释当前验证循环。
+- 公开配置确认 `is_captcha=1`、`captcha_type=turnstile`。现有 [CaptchaService](./app/Services/CaptchaService.php)调用 `siteverify`，失败时返回通用验证码错误，未专门记录失败的 `error-codes`；日志未匹配到 Turnstile/siteverify 不等于验证成功。完整站点挑战页与表单内 Turnstile 组件需依据用户截图区分。
+- Cloudflare 控制台本身停在验证页，未读取到站点安全事件；未完成或绕过验证码。源站日志无法代替边缘挑战日志，缺少用户 Ray ID/截图时具体根因仍未定。
+
+后续先取得卡住页面的截图（含地址栏及底部 Ray ID，如有）和浏览器版本，按发生时间匹配 Cloudflare 安全事件；若是表单组件，补看组件错误码与 Turnstile 分析。可让同一浏览器切换手机热点做一次对照，若使用 VPN/代理可临时关闭再试，依据[官方挑战排查说明](https://developers.cloudflare.com/cloudflare-challenges/troubleshooting/challenge-solve-issues/)缩小网络与浏览器范围。本轮未关闭任何站点防护、调整挑战规则、重启服务或修改数据库，未宣称用户已经恢复。
+
+本轮交付仅含 README、能力地图和本段记录，保留原有香港入口文档改动。执行工作流结构检查、Markdown 链接与差异检查后，以中文 `[skip ci]` 文档提交推送 master，并按提交版本回读 GitHub 的 README/progress-log；提交与回读终态随交付报告。本轮没有应用代码变更，不构建业务镜像、不创建新版本或 GitHub Release，也不部署生产。
+
 ## 2026-10-19：流量耗尽邮件提醒
 
 用户要求流量用完后也发送一次邮件，并在代码、CI 和镜像完成后明确同意“现在部署并验证”。复用现有 SMTP、用户提醒偏好、邮件日志和 `send_email` 队列，新增独立 `send:traffic-exhausted` 每 5 分钟扫描，保留原每日 11:30 的 80%/到期提醒。默认文案明确“套餐流量已用完”，后台模板接口支持独立读取和定制；不复用已定制的 80% 模板。
