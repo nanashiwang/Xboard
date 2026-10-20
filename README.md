@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 站内 Turnstile 已关闭（2026-10-21）
+
+用户明确确认先关闭站内 Cloudflare Turnstile。生产 `captcha_enable` 已由 1 改为 0，`taige.us` 与 `board.taige.us` 的公开配置均返回关闭；后端无 token 验证通过，注册页未显示 Turnstile 组件。邮箱验证码仍保留，Cloudflare 其他防护保持现状。该操作不证明原反馈用户已经恢复，仍需其刷新页面复试。执行方式、回退值及验证边界见[关闭记录](./progress-log.md#2026-10-21按确认关闭站内-turnstile)。
+
 ### Cloudflare 验证循环排查（2026-10-21）
 
 用户反馈浏览器持续停在人机验证并刷新。10 月 20 日深夜至 21 日凌晨的只读检查中，`taige.us` 首页、公开配置接口和浏览器注册页可访问，应用容器显示连续运行约 32 小时；脚本使用默认 User-Agent 时收到 Cloudflare `403 / 1010`，改用 `Mozilla/5.0` 后返回 200。该对照证明存在按客户端特征拦截的情况，不能直接认定为反馈用户的触发原因。

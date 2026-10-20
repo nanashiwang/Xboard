@@ -4,6 +4,18 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-21：按确认关闭站内 Turnstile
+
+用户要求先关 CF 认证，并进一步明确“确认，关闭站内 Turnstile”，授权范围为取消邮箱验证码发送前的人机校验，Cloudflare 其他防护保持现状。
+
+- 本轮 Cloudflare 控制台可访问，补足前一轮未取得的配置证据：Under Attack 和 Bot Fight 均关闭、自定义安全规则为 0/5、速率限制规则为 0/1；浏览器完整性检查开启。最近可见的三条事件为浏览器完整性检查的“阻止”，时间分别为 23:58:01、23:58:28、00:07:36（GMT+8），未据此认定为反馈用户，也未改这些边缘设置。
+- 站点管理后台会话已过期，改用已有 XTerminal 生产连接，在运行容器中复用 [admin_setting](./app/Helpers/Functions.php) 与 [Setting](./app/Support/Setting.php) 保存接口，仅执行 `admin_setting(["captcha_enable" => 0])`，同时按既有机制刷新设置缓存。修改前值为 1，类型为 `turnstile`；类型与密钥不变。恢复时将同一开关设回 1 即可，本次没有安排自动恢复。
+- 生产持久化回读 `v2_settings.captcha_enable` 为 `"0"`；在运行容器中用空 token 请求调用 [CaptchaService::verify](./app/Services/CaptchaService.php)，结果为 `[true, null]`。该检查未发送验证码邮件或创建账户。
+- 主域 `taige.us` 和旧域 `board.taige.us` 的 `/api/v1/guest/comm/config` 均 HTTP 200，`is_captcha=0`、兼容字段 `is_recaptcha=0`，类型仍为 `turnstile`。Chrome 打开主域注册页显示完整表单；DOM 中 Cloudflare 挑战 iframe 与 `.cf-turnstile` 组件数量均为 0，截图留存在本次任务附件。邮箱验证码“发送”入口仍保留。
+- 这次关闭的是站内人机验证，未关闭 Cloudflare 浏览器完整性检查、托管防护或 DNS 代理，也未重启服务或发布应用镜像。对方设备上的原循环是否消失尚待其刷新重试；如仍见整页挑战，应继续按该请求的 Ray ID 定位，不能据本次设置生效宣称所有验证问题已解决。
+
+本轮仅提交 README、能力地图与本段运维记录，已有香港入口改动保留。工作流结构、文档链接和差异检查通过后以中文 `[skip ci]` 提交推送 master，并按提交版本从 GitHub 回读 README/progress-log；具体提交和回读终态随交付报告。未变更应用源码或版本号，没有 GitHub Release 或新的镜像部署；生产配置变更已按上述步骤完成验证。
+
 ## 2026-10-21：Cloudflare 人机验证循环排查
 
 用户最初描述“网站闪退”，随后明确为“卡在 CF 人机认证不断刷新”，发生于刚才、使用浏览器。检查覆盖北京时间 2026-10-20 深夜至 21 日凌晨；对方未提供完整网址、Ray ID、浏览器版本或网络出口信息，因此本轮无法匹配其具体请求。
