@@ -147,6 +147,56 @@ class OwnedDedicatedExitTest extends TestCase
         $this->assertFalse($exit->fresh()->isHealthy());
     }
 
+    public function test_private_monitor_group_preserves_health_while_separating_public_and_fixed_exits(): void
+    {
+        $this->attach(); $this->healthy();
+        $fixed = $this->user();
+        $fixedSubscription = ServerService::getAvailableServers($fixed);
+        $ordinary = $this->user(false);
+        $this->monitor->update(['group_id' => 6, 'plan_id' => null]);
+        [$private, $public] = $this->sources;
+        $private->update(['group_ids' => ['6']]);
+        $private->parent->update(['group_ids' => ['5', '6']]);
+        $public->update(['group_ids' => ['1', '2', '3', '4', '6']]);
+        $public->parent->update(['group_ids' => ['1', '2', '3', '4', '6']]);
+        $removed = DedicatedExit::where('shared_server_id', $public->parent_id)->sole();
+        $removed->update(['enabled' => false]);
+        Server::where('dedicated_exit_id', $removed->id)->update(['show' => false]);
+
+        foreach ([1, 2, 3, 4] as $group) {
+            $viewer = clone $ordinary; $viewer->group_id = $group;
+            $this->assertSame([$public->id], array_column(ServerService::getAvailableServers($viewer), 'id'));
+        }
+        $this->assertSame(array_column($fixedSubscription, 'id'), array_column(ServerService::getAvailableServers($fixed), 'id'));
+        $this->assertCount(2, app(NodeProbeService::class)->eligible($this->monitor->fresh()));
+        $configuration = app(NodeProbeService::class)->configuration($this->probe->fresh());
+        $this->assertCount(2, array_filter($configuration['nodes'], fn ($n) => isset($n['outbound']) && !isset($n['error'])));
+        $privateUsers = ServerService::getAvailableUsers($private->parent->fresh())->pluck('id')->all();
+        $publicUsers = ServerService::getAvailableUsers($public->parent->fresh())->pluck('id')->all();
+        $this->assertContains($this->monitor->id, $privateUsers);
+        $this->assertContains($fixed->id, $privateUsers);
+        $this->assertNotContains($ordinary->id, $privateUsers);
+        $this->assertContains($ordinary->id, $publicUsers);
+        $this->assertContains($this->monitor->id, $publicUsers);
+        $this->assertNotContains($fixed->id, $publicUsers);
+        $this->observation($private, time() + 1);
+        $exit = DedicatedExit::where('shared_server_id', $private->parent_id)->sole();
+        app(DedicatedExitHealthService::class)->check($exit);
+        $this->assertTrue($exit->fresh()->isHealthy());
+        $this->assertFalse($removed->fresh()->isHealthy());
+
+        Cache::put('node_ws_alive:' . $private->parent_id, true);
+        $messages = [];
+        Redis::shouldReceive('publish')->andReturnUsing(function ($channel, $payload) use (&$messages) {
+            $messages[] = json_decode($payload, true); return 1;
+        });
+        NodeSyncService::notifyFullSync($private->parent_id);
+        $users = collect($messages)->firstWhere('event', 'sync.users')['data']['users'];
+        $this->assertNotContains($ordinary->id, array_column($users, 'id'));
+        $this->assertContains($fixed->id, array_column($users, 'id'));
+        $this->assertContains($this->monitor->id, array_column($users, 'id'));
+    }
+
     public function test_probe_disabled_exhausted_account_or_alias_drift_invalidates_health(): void
     {
         $this->attach(); $this->healthy();

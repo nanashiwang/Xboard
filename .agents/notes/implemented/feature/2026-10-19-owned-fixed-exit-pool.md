@@ -18,6 +18,8 @@ Status: implemented
 
 关联提案：[四档套餐第三方拓展线路](../../proposed/architecture/2026-10-21-tiered-upstream-route-family.md)规划新增另一组出口；本文已实施的自建与独享边界继续保留，第三方尚未上线。
 
+后续[美国出口按套餐拆分](../../implemented/architecture/2026-10-21-owned-us-package-split.md)将普通美国出口收敛为两个，其余 11 个归固定池，并将原监控身份迁至内部组；本文其他已实施契约继续保留。
+
 ## Alternatives considered
 
 - 把套餐改成共享全部线路最省配置，但用户明确选择保留固定分配。
