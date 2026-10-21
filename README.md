@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 节点管理显隐与清理核对（2026-10-21）
+
+生产 53 条节点记录由 20 条普通订阅入口、13 条固定出口订阅别名、20 条隐藏后端组成。本次逐条核对未发现无引用闲置节点，因此未删除。列表「显隐」开关控制是否进入订阅；「服务器在线」是服务器心跳状态，两者独立。隐藏后端仍须启用，供公开入口转发。用户指出的 `10.77.0.2:31006` 是「美国自建｜旗舰｜CF备用」依赖的后端，不能按显隐关闭误删；证据见[进展记录](./progress-log.md#2026-10-21节点显隐与闲置记录核对)。
+
 ### 荷兰与罗马尼亚节点已接入（2026-10-21）
 
 `friendhosting-荷兰` 和 `friendhosting-罗马` 已加入轻量、标准、进阶、旗舰四个套餐，刷新订阅可见「荷兰｜friendhosting｜第一阶段入口」与「罗马尼亚｜friendhosting｜第一阶段入口」。第二台实际出口识别为罗马尼亚（RO），机器名保留用户原命名；四档节点数现为 **17 / 18 / 19 / 20**，独享仍仅原固定出口及香港备用。
