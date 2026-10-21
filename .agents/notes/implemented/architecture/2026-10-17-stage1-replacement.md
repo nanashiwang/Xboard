@@ -18,6 +18,8 @@ Status: implemented
 
 已审核本地此前未提交的自有香港入口架构笔记及[香港入口文档](../../../../docs/zh-CN/installation/hong-kong-ingress.md)：鉴权、出口隔离和套餐约束继续复用，入口位置与加密路径由本篇说明。此前笔记和文档的未提交改动保留原归属，不纳入本次提交。本篇与[项目工作流](../process/2026-10-17-project-decision-kit.md)在协作流程上关联，后者不需要变更。
 
+关联提案：[四档套餐第三方拓展线路](../../proposed/architecture/2026-10-21-tiered-upstream-route-family.md)规划新增另一组出口；本文已实施的自建与独享边界继续保留，第三方尚未上线。
+
 ## Alternatives considered
 
 - 仅改 SSH 端口可以减少扫描噪声，但不能消除密码猜测，还增加管理客户端维护负担，因此保留 22 并收紧认证方式。

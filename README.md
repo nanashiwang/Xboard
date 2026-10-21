@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 四档套餐双线路规划（2026-10-21，尚未实施）
+
+按用户后续要求，将全部 41 条第三方线路分为累计 **8 / 16 / 28 / 41** 条，分别加入轻量、标准、进阶、旗舰；叠加现有自建后目标共 **25 / 34 / 47 / 61** 条，独享保持原分配。两组区分为自建与拓展，现有售价和总额度不变；上游身份只在服务端使用，两组均由 Xboard 鉴权并按实际节点倍率计量。
+
+已只读核对生产套餐价格和限制，并完成逐条分配清单；这是方案，尚未创建生产拓展节点。共享额度/到期、证书校验、IPv6、服务器转发和多用户计量需逐项验收；节点数量不等于独立出口或容量。见[完整规划](./.agents/notes/proposed/architecture/2026-10-21-tiered-upstream-route-family.md)和[本轮记录](./progress-log.md#2026-10-21四档套餐双线路分配规划)。
+
 ### 第三方订阅转发评估（2026-10-21）
 
 本轮只评估外部订阅作为地区补充或备用的可行性，没有接入生产套餐。配置解析和少量 HTTPS 成功不能代表服务器中转性能或多用户承载能力；实际接入需保留 Xboard 用户鉴权与计量，并核对共享额度、倍率、到期、证书校验及上游共享限制。订阅地址、令牌、节点凭据和账户额度不写入仓库；[评估边界与验证记录](./progress-log.md#2026-10-21第三方订阅转发可行性评估)。

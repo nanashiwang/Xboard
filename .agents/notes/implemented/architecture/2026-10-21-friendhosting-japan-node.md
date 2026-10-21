@@ -22,6 +22,8 @@ Status: implemented
 
 [第一阶段架构](../../implemented/architecture/2026-10-17-stage1-replacement.md)部分重叠，继续复用入口与防火墙约束；[固定出口池](../../implemented/feature/2026-10-19-owned-fixed-exit-pool.md)说明独享分配边界，本次不扩池。荷兰、罗马尼亚完全复用本文原日本接入决定，原地扩充对象和验证，不创建同义笔记。本地未提交香港迁移记录属于此前工作，保留其原归属。
 
+关联提案：[四档套餐第三方拓展线路](../../proposed/architecture/2026-10-21-tiered-upstream-route-family.md)规划新增另一组出口；本文已实施的自建与独享边界继续保留，第三方尚未上线。
+
 ## Alternatives considered
 
 - 出口公网直接提供代理可以绕开共享入口，但会新增独立客户端协议、证书及暴露面；本次复用现有订阅与加密中转契约。
