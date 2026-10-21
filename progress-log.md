@@ -4,6 +4,23 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-21：FriendHosting 日本节点接入
+
+用户提供一台日本服务器，要求加入各套餐并排除独享套餐。先核对生产套餐与节点授权：轻量、标准、进阶、旗舰分别为组 1–4，独享为组 5；已有美国共享后端包含组 5，不能直接复制其授权。复用现有第一阶段入口与独立 WireGuard peer，原因和备选见[接入决策](./.agents/notes/implemented/architecture/2026-10-21-friendhosting-japan-node.md)。
+
+- 新机为 Ubuntu 24.04、x86_64、1 核、约 458 MB 内存，初始只有 SSH 3333 和本地 DNS，无既有代理服务。直连 Cloudflare trace 返回 `ip=185.39.31.75`、`loc=JP`。
+- 生产新增机器 #18 `friendhosting-日本`、隐藏后端 #353、公开节点 #354「日本｜friendhosting｜第一阶段入口」。两条节点记录均只授权组 1–4，倍率 1；不创建 DedicatedExit、不改套餐价格、额度、带宽限制、上架状态或旧节点配置。
+- 节点复用已验证原生二进制，SHA256 `28662b4803bf5cbf3db9079b6fe24921f43b1ebb06e64ec187de6a85e548a4f0`。非 root systemd 运行，Go 软内存目标 128 MiB，服务 MemoryMax 256 MiB；配置 root:xboard-node 0640。
+- 入口 `hk.taige.us:443` 严格 TLS / WebSocket → `wg-vpn-stage1` → 日本 `10.79.0.18:31443`。新 peer 仅配置 /32，不改默认路由；后端仅接受入口隧道或回环，UDP 51872 仅放行入口 IP。先检查 nft / Nginx 语法，再原子加载专属防火墙表和 reload Nginx；保留 SSH 3333 原认证方式。
+- 发布前使用三名现有有效普通账号检查 ipify、日本 Cloudflare trace、gstatic HTTPS，各三项均成功，三项 SOCKS5 UDP ASSOCIATE / XUDP DNS 成功；独享账号与随机无效 UUID 均不能建立代理请求。原美国主线路、香港备用、CF 基础备用各一项出口 IP 检查通过。客户端配置在测试后自动删除，未关闭证书校验或添加直连回退。
+- 验收后才将公开节点设为可见。按真实 ServerService 检查四档节点数 `15/16/17/18`，独享订阅仍为原两条；旧节点关键配置及套餐参数逐字段与备份一致。
+- 现有 NAS 探针范围扩为 18 条并增加预期日本出口；入口观测映射及采集器 peer 范围扩为 14 条。入口采集器已实际上报 14 peers。NAS 已收到日本首轮样本：256 KiB 上传完成（约 0.765 Mbps），两目标 HTTPS 和下载达到 5 秒超时，出口字段为空；同期部分旧节点也出现相同超时，第二轮 Cloudflare 成功并识别正确日本出口，Google 仍超时；尚不能单独定位根因，不修改探针阈值或强制标绿。
+- 补充从本机读取真实 Clash Meta 订阅的日本出站，以独立 Mihomo 固定该节点、绑定 en0、无直连回退进行两轮测试：6 次 HTTPS 中 5 次成功，1 次 Cloudflare TLS 请求失败；两次出口均匹配日本 IP。请求约 1.57–6 秒，确认本地实际可用且有间歇波动，不写成全部稳定。Clash Meta / Shadowrocket 的五组订阅输出共 10 项检查通过，只有组 1–4 包含日本；正式后台回读两层记录均仅四个普通组、机器在线，并已有流量入账。
+- 从面板主机直接连接日本公网 IPv4 的 31443 超时，隧道内代理成功，运行态 inet 防火墙规则匹配预期。面板无 IPv6 路由，未完成外部 IPv6 连通性验证；已检查同时覆盖 IPv4/IPv6 的拒绝规则。节点内存约 12 MB、NRestarts=0；未做整机重启验收。
+- 面板通过 SQLite VACUUM INTO 留存一致备份及节点/套餐/探针快照；入口保留 Nginx、WireGuard、防火墙和监控配置备份。运维位置及局部撤回方式见[日本节点运维](./docs/zh-CN/installation/japan-node.md)。只回退新增节点及配置，不整库覆盖新订单或用量。
+
+本轮只更新生产节点配置与运维文档，面板应用镜像未升级。项目笔记门禁、文档链接及 diff 检查通过后，以中文提交推送 master，再按提交从 GitHub 回读 README/progress-log；具体提交与回读终态在交付报告中列出。使用 `[skip ci]`，无新应用版本、GitHub Release 或安装包构建；仓库现有应用交付为 Docker CI，没有 GitHub Release/安装包发布流程。此前未提交的香港入口文档与笔记保留原归属。
+
 ## 2026-10-21：复核 10/19 Actions 失败通知
 
 用户反馈“10/19 生产部署失败，另有订单队列检查失败通知”。按北京时间 10 月 19 日（UTC 10 月 18 日 16:00 至 19 日 16:00）检索 `nanashiwang/Xboard` Actions，找到一条 Order Queue Checks 和两条 Production Deploy 失败，回读对应日志及后续成功运行。以下时间均为北京时间。
