@@ -16,7 +16,7 @@ Status: implemented
 
 [专属订单等待](../../implemented/bug-fix/2026-10-19-dedicated-admin-order-failures.md)部分重叠，保留预留与重试契约。[第一阶段迁移](../../implemented/architecture/2026-10-17-stage1-replacement.md)部分重叠，复用原节点、入口和后端隔离。[节点质量探针](../../implemented/feature/2026-10-18-node-quality-probes.md)部分重叠，复用真实出口检测。既有未提交香港入口笔记保持原归属。
 
-关联提案：[四档套餐第三方拓展线路](../../proposed/architecture/2026-10-21-tiered-upstream-route-family.md)规划新增另一组出口；本文已实施的自建与独享边界继续保留，第三方尚未上线。
+关联实施：[四档套餐第三方拓展线路](../../implemented/architecture/2026-10-21-tiered-upstream-route-family.md)已于 2026-10-22 接入普通套餐；本文已实施的自建与独享边界继续保留。
 
 后续[美国出口按套餐拆分](../../implemented/architecture/2026-10-21-owned-us-package-split.md)将普通美国出口收敛为两个，其余 11 个归固定池，并将原监控身份迁至内部组；本文其他已实施契约继续保留。
 

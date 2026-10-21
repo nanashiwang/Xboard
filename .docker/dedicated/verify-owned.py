@@ -44,7 +44,10 @@ $ordinary=App\Models\User::whereIn('group_id',[1,2,3,4])->where('banned',false)
 $publicIds=[148,319,325,354,356,358];
 foreach([1,2,3,4] as $group) {
     $viewer=clone $ordinary; $viewer->group_id=$group; $viewer->plan_id=null;
-    $availableIds=array_column(App\Services\ServerService::getAvailableServers($viewer),'id');
+    $available=App\Services\ServerService::getAvailableServers($viewer);
+    // Extension routes have their own allocation/acceptance; verify the retained owned scope here.
+    $owned=array_values(array_filter($available,fn($s)=>!in_array('upstream-extension-public',$s['tags']??[],true)));
+    $availableIds=array_column($owned,'id');
     sort($availableIds); $expectedIds=$publicIds; sort($expectedIds);
     $result['ordinary_scope'][$group]=$availableIds===$expectedIds;
 }

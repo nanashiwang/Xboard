@@ -22,7 +22,7 @@ Status: implemented
 
 [第一阶段架构](../../implemented/architecture/2026-10-17-stage1-replacement.md)部分重叠，继续复用入口与防火墙约束；[固定出口池](../../implemented/feature/2026-10-19-owned-fixed-exit-pool.md)说明独享分配边界，本次不扩池。荷兰、罗马尼亚完全复用本文原日本接入决定，原地扩充对象和验证，不创建同义笔记。本地未提交香港迁移记录属于此前工作，保留其原归属。
 
-关联提案：[四档套餐第三方拓展线路](../../proposed/architecture/2026-10-21-tiered-upstream-route-family.md)规划新增另一组出口；本文已实施的自建与独享边界继续保留，第三方尚未上线。
+关联实施：[四档套餐第三方拓展线路](../../implemented/architecture/2026-10-21-tiered-upstream-route-family.md)已于 2026-10-22 接入普通套餐；本文已实施的自建与独享边界继续保留。
 
 后续[美国出口按套餐拆分](../../implemented/architecture/2026-10-21-owned-us-package-split.md)将普通美国出口收敛为两个，其余 11 个归固定池，并将原监控身份迁至内部组；本文其他已实施契约继续保留。
 
