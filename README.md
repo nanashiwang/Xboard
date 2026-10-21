@@ -30,9 +30,15 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 节点名称统一与美国家宽倍率（2026-10-22）
+
+客户端使用 `国家两位编号｜倍率×｜可选家宽/原生IP`，例如 `美国01｜2×｜家宽`、`日本01｜1×`。全部 13 个自建美国出口按用户定义标家宽，公开、固定别名与后端实际计费同步为 2×；香港两条原生 IP 标记沿用上游声明。其他倍率、四档数量 14/22/34/47 和权限保持，UDP 与共享限速仍有效。更新原订阅后可能需要重新选择当前节点。
+
+四档两格式真实订阅无重名，13 条美国及 1×/第三方 2× 对照实际流量与扣量逐字节相符；测试账号已撤销。IP 属性标记不代表独立认证或物理独占，固定出口仍按原健康规则自动迁移。见[命名决定](./.agents/notes/implemented/simplification/2026-10-22-node-names-and-residential-rate.md)、[节点映射](./.docker/node-presentation.json)和[验证记录](./progress-log.md#2026-10-22节点短名称与美国家宽-2-倍率)。
+
 ### 自建美国出口已按套餐拆分（2026-10-21）
 
-四档普通套餐仅保留「美国自建｜06｜第一阶段入口」与「美国自建｜基础｜CF备用」两个美国出口；加上香港、日本、荷兰、罗马尼亚，当前每档共 **6 条自建线路**。其余 **11 个去重美国出口**只供独享固定池使用，仍按每账号固定一个出口、每出口最多五名额和原健康迁移规则分配。三个同 IP 的重复 CF 入口/后端已停用，未删除数据。
+四档普通套餐仅保留原「美国自建｜06｜第一阶段入口」与「美国自建｜基础｜CF备用」两个美国出口（现名「美国01｜2×｜家宽」与「美国02｜2×｜家宽」）；加上香港、日本、荷兰、罗马尼亚，当前每档共 **6 条自建线路**。其余 **11 个去重美国出口**只供独享固定池使用，仍按每账号固定一个出口、每出口最多五名额和原健康迁移规则分配。三个同 IP 的重复 CF 入口/后端已停用，未删除数据。
 
 48 项真实代理与拒绝检查、四档两种订阅格式共 8 项检查通过；17 条探针改用内部监控组后持续收到真实回报。25 个既有账号的身份、余额及权益对比备份保持（仅专用监控账号换组），客户价格、额度与固定订单不变。客户端需刷新订阅并切换保留线路，旧普通链接不能继续访问独享池。NAS 探测仍有波动，已配置 11 个出口不代表同时健康；见[拆分决定](./.agents/notes/implemented/architecture/2026-10-21-owned-us-package-split.md)和[执行记录](./progress-log.md#2026-10-21自建美国出口按套餐拆分)。
 
@@ -40,7 +46,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 四档保留原 6 条自建，并累计加入 **8 / 16 / 28 / 41** 条第三方拓展，实际订阅为 **14 / 22 / 34 / 47** 条（不含流量提示）。刷新原订阅即可使用，独享套餐未增加第三方；原价格、额度、用户身份和固定池保持。
 
-41 条完整 HTTPS 路径通过，四档 Clash Meta/Shadowrocket 实际订阅 8/8 通过且不含上游凭据；两用户的 1x/2x/5x 实际扣量与后端统计一致。33 条 UDP 通过，8 条美国标记“UDP受限”；4 条香港/台湾轻量线路每条共享限速 2 Mbps。上游额度/到期或批准配置变化会自动撤下相关拓展，恢复需复验；新增独立质量探针，原自建监控不变。节点数不代表独立 IP、共享额度增长或长期速度保证。见[接入决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)、[运维与回退](./docs/zh-CN/installation/upstream-extension.md)和[验证记录](./progress-log.md#2026-10-22第三方拓展线路实际接入)。
+41 条完整 HTTPS 路径通过，四档 Clash Meta/Shadowrocket 实际订阅 8/8 通过且不含上游凭据；两用户的 1x/2x/5x 实际扣量与后端统计一致。33 条 UDP 通过，8 条美国 UDP 受限；4 条香港/台湾轻量线路每条共享限速 2 Mbps，限制明细见运维映射。上游额度/到期或批准配置变化会自动撤下相关拓展，恢复需复验；新增独立质量探针，原自建监控不变。节点数不代表独立 IP、共享额度增长或长期速度保证。见[接入决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)、[运维与回退](./docs/zh-CN/installation/upstream-extension.md)和[验证记录](./progress-log.md#2026-10-22第三方拓展线路实际接入)。
 
 ### 第三方订阅转发评估（2026-10-21）
 

@@ -1,0 +1,433 @@
+{
+  "format": "国家编号｜倍率×｜可选属性",
+  "attribute_sources": {
+    "residential": "user_confirmed_all_13_owned_us_exits",
+    "native_ip": "upstream_declared_U36_U37_not_independently_verified"
+  },
+  "residential_source_ids": [
+    319,
+    148,
+    314,
+    315,
+    316,
+    317,
+    318,
+    320,
+    321,
+    322,
+    323,
+    324,
+    326
+  ],
+  "retired_ids_unchanged": [
+    149,
+    150,
+    155,
+    156,
+    157,
+    158
+  ],
+  "servers": [
+    {
+      "id": 147,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 148,
+      "name": "美国02｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 314,
+      "name": "美国03｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 315,
+      "name": "美国04｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 316,
+      "name": "美国05｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 317,
+      "name": "美国06｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 318,
+      "name": "美国07｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 319,
+      "name": "美国01｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 320,
+      "name": "美国08｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 321,
+      "name": "美国09｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 322,
+      "name": "美国10｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 323,
+      "name": "美国11｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 324,
+      "name": "美国12｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 325,
+      "name": "香港01｜1×"
+    },
+    {
+      "id": 326,
+      "name": "美国13｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 327,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 328,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 329,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 330,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 331,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 332,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 333,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 334,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 335,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 336,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 337,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 339,
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 340,
+      "name": "美国03｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 341,
+      "name": "美国04｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 342,
+      "name": "美国05｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 343,
+      "name": "美国06｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 344,
+      "name": "美国07｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 345,
+      "name": "美国01｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 346,
+      "name": "美国08｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 347,
+      "name": "美国09｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 348,
+      "name": "美国10｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 349,
+      "name": "美国11｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 350,
+      "name": "美国12｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 351,
+      "name": "美国13｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 352,
+      "name": "美国02｜2×｜家宽",
+      "rate": 2,
+      "rate_time_enable": false
+    },
+    {
+      "id": 354,
+      "name": "日本01｜1×"
+    },
+    {
+      "id": 356,
+      "name": "荷兰01｜1×"
+    },
+    {
+      "id": 358,
+      "name": "罗马尼亚01｜1×"
+    },
+    {
+      "id": 360,
+      "name": "美国14｜1×"
+    },
+    {
+      "id": 362,
+      "name": "美国15｜1×"
+    },
+    {
+      "id": 364,
+      "name": "美国16｜1×"
+    },
+    {
+      "id": 366,
+      "name": "新加坡01｜1×"
+    },
+    {
+      "id": 368,
+      "name": "新加坡02｜1×"
+    },
+    {
+      "id": 370,
+      "name": "日本03｜2×"
+    },
+    {
+      "id": 372,
+      "name": "日本04｜2×"
+    },
+    {
+      "id": 374,
+      "name": "日本05｜2×"
+    },
+    {
+      "id": 376,
+      "name": "日本06｜2×"
+    },
+    {
+      "id": 378,
+      "name": "日本07｜2×"
+    },
+    {
+      "id": 380,
+      "name": "香港02｜2×"
+    },
+    {
+      "id": 382,
+      "name": "香港03｜2×"
+    },
+    {
+      "id": 384,
+      "name": "香港04｜2×"
+    },
+    {
+      "id": 386,
+      "name": "新加坡03｜2×"
+    },
+    {
+      "id": 388,
+      "name": "新加坡04｜2×"
+    },
+    {
+      "id": 390,
+      "name": "新加坡05｜2×"
+    },
+    {
+      "id": 392,
+      "name": "日本08｜2×"
+    },
+    {
+      "id": 394,
+      "name": "香港05｜2×"
+    },
+    {
+      "id": 396,
+      "name": "新加坡06｜2×"
+    },
+    {
+      "id": 398,
+      "name": "美国20｜1×"
+    },
+    {
+      "id": 400,
+      "name": "美国17｜1×"
+    },
+    {
+      "id": 402,
+      "name": "美国18｜1×"
+    },
+    {
+      "id": 404,
+      "name": "美国19｜1×"
+    },
+    {
+      "id": 406,
+      "name": "美国21｜1×"
+    },
+    {
+      "id": 408,
+      "name": "日本02｜1×"
+    },
+    {
+      "id": 410,
+      "name": "加拿大02｜1×"
+    },
+    {
+      "id": 412,
+      "name": "英国02｜1×"
+    },
+    {
+      "id": 414,
+      "name": "法国02｜1×"
+    },
+    {
+      "id": 416,
+      "name": "德国02｜1×"
+    },
+    {
+      "id": 418,
+      "name": "卢森堡02｜1×"
+    },
+    {
+      "id": 420,
+      "name": "英国01｜1×"
+    },
+    {
+      "id": 422,
+      "name": "卢森堡01｜1×"
+    },
+    {
+      "id": 424,
+      "name": "加拿大01｜1×"
+    },
+    {
+      "id": 426,
+      "name": "德国01｜1×"
+    },
+    {
+      "id": 428,
+      "name": "法国01｜1×"
+    },
+    {
+      "id": 430,
+      "name": "香港06｜1×｜原生IP"
+    },
+    {
+      "id": 432,
+      "name": "香港07｜1×｜原生IP"
+    },
+    {
+      "id": 434,
+      "name": "台湾01｜5×"
+    },
+    {
+      "id": 436,
+      "name": "台湾02｜5×"
+    },
+    {
+      "id": 438,
+      "name": "韩国01｜1×"
+    },
+    {
+      "id": 440,
+      "name": "韩国02｜2×"
+    }
+  ]
+}
