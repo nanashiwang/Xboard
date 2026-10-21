@@ -24,6 +24,8 @@ Status: implemented
 
 [统一节点名称与家宽倍率](../../implemented/simplification/2026-10-22-node-names-and-residential-rate.md)部分取代原展示及倍率配置：家宽标记采用用户定义、实际倍率为 2×；五名额分配、健康迁移、身份与授权契约仍由本文和套餐拆分决定维护。
 
+客户端域名与过渡兼容由[节点入口独立主域名](../../implemented/architecture/2026-10-22-independent-node-domain.md)接管：主入口为 `node.lumavia.fyi`，七云 CF 备用为 `edge.lumavia.fyi`；原身份、路由、倍率和套餐职责保持。
+
 ## Alternatives considered
 
 - 把套餐改成共享全部线路最省配置，但用户明确选择保留固定分配。

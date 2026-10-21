@@ -4,11 +4,11 @@
 
 ## 拓扑与客户端
 
-- 第一阶段：`143.203.200.5`，管理端口 `22`，现有域名 `hk.taige.us:443` 继续作为 VLESS / WebSocket / TLS 入口。域名中的 hk 是兼容名称，不代表新服务器地域。
+- 第一阶段：`143.203.200.5`，管理端口 `22`，客户端域名为 `node.lumavia.fyi:443`（DNS-only），旧 `hk.taige.us` 在同一入口继续兼容。节点独立主域名、CF 备用和回退边界见[域名迁移决定](../../../.agents/notes/implemented/architecture/2026-10-22-independent-node-domain.md)。
 - 第二阶段：原 12 台美国出口和 `103.24.217.171` 香港出口；2026-10-21 增加 [FriendHosting 日本出口](./japan-node.md)和[荷兰、罗马尼亚出口](./europe-nodes.md)，共 16 条主线路。原出口身份保持不变。原香港机器同时保留旧入口，供 DNS 缓存过渡和局部回退。
 - 新隧道：`wg-vpn-stage1`，UDP `51872`，入口 `10.79.0.1/32`、香港 `10.79.0.3/32`、美国 `10.79.0.4–15/32`、日本 `10.79.0.18/32`、荷兰 `10.79.0.19/32`、罗马尼亚 `10.79.0.20/32`。AllowedIPs 仅为对应 `/32`，不改默认路由。
-- 公开节点 ID `314–326` 保持不变，仍关联原隐藏后端；四条 CF 备用维持原入口。日本 #354 → #353、荷兰 #356 → #355、罗马尼亚 #358 → #357，权限组均仅 1–4；四档普通套餐节点数为 `17 / 18 / 19 / 20`，独享套餐不含三台 FriendHosting 节点。
-- 更新原订阅即可获得「第一阶段入口」名称；原订阅地址、身份和节点协议参数保持不变。旧客户端缓存旧 DNS 时仍能经过旧入口。既有 sing-box 订阅模板兼容待办另行记录，本次代理验收不能代替全部客户端验证。
+- 公开节点 ID `314–326` 保持不变，仍关联原隐藏后端；当前仅保留七云 CF 基础备用 `edge.lumavia.fyi`，另外三条重复记录已停用。日本 #354 → #353、荷兰 #356 → #355、罗马尼亚 #358 → #357，权限组均仅 1–4；美国套餐拆分与第三方拓展后，四档普通套餐节点数为 `14 / 22 / 34 / 47`，独享套餐不含三台 FriendHosting 节点。
+- 更新原订阅即可获得新节点域名；面板与订阅地址保留 `taige.us`，身份、路径和倍率保持。名称采用“国家编号｜倍率｜可选属性”，旧域名站点继续兼容未更新客户端。既有 sing-box 订阅模板兼容待办另行记录，本次代理验收不能代替全部客户端验证。
 
 ## 新服务器防护
 
@@ -22,9 +22,9 @@ SSH 使用已有 `flawless_la_02` 密钥，保持 root / 22；禁用密码和键
 - `/etc/vpn-stage1.nft`、`/usr/local/sbin/vpn-stage1-firewall`
 - `/etc/fail2ban/jail.d/vpn-stage1.local`
 - `/etc/wireguard/wg-vpn-stage1.conf`（含私钥，只能在服务器内查看）
-- `/etc/nginx/sites-available/hk.taige.us.conf` 与 `/etc/nginx/snippets/hk-xboard-routes.conf`
+- `/etc/nginx/sites-available/node.lumavia.fyi.conf` 与旧 `hk.taige.us.conf` 共用 `/etc/nginx/snippets/hk-xboard-routes.conf`
 
-Nginx 依赖防火墙和 WireGuard 启动成功，关闭版本信息，保留 WebSocket 长连接；443 严格 TLS，80 保留 ACME 验证和 HTTPS 跳转。证书续期由新入口的 `certbot.timer` 负责，模拟续期已通过；原香港机器的旧续期定时器已停用。
+Nginx 依赖防火墙和 WireGuard 启动成功，关闭版本信息，保留 WebSocket 长连接；443 严格 TLS，80 保留 ACME 验证和 HTTPS 跳转。证书续期由入口的 `certbot.timer` 负责；新域名使用 `/var/www/xboard-acme` 的 HTTP-01，签发与 timer/部署 hook 已核验，未单独运行新证书模拟续期；原香港机器的旧续期定时器已停用。
 
 出口机保留原 `xboard-private` 隔离规则，只增加 `wg-vpn-stage1` 上源地址 `10.79.0.1` 对 TCP 31443 的访问；独立 `vpn_stage1_peer` 表限制 UDP 51872 来源。香港旧入口的附加端口隔离表也必须包含这一精确允许规则，否则香港出口会被另一条链丢弃。
 
@@ -32,7 +32,7 @@ Nginx 依赖防火墙和 WireGuard 启动成功，关闭版本信息，保留 We
 
 ### 分段监控
 
-后台「节点质量」现已接入本入口：NAS 直连 HTTPS 健康请求、入口机器资源、16 条出口隧道与原完整线路结果分层展示。4 条 CF 备用不绑定此入口。入口与资源历史在页面内查看；指标口径、映射调整及采集器配置见[节点质量运维](./node-probes.md#第一段入口机器资源与出口隧道)。
+后台「节点质量」现已接入本入口：NAS 直连 HTTPS 健康请求、入口机器资源、16 条出口隧道与原完整线路结果分层展示。保留的一条 CF 备用不绑定此入口。入口与资源历史在页面内查看；指标口径、映射调整及采集器配置见[节点质量运维](./node-probes.md#第一段入口机器资源与出口隧道)。
 
 入口采集程序为 `/opt/xboard-ingress-monitor/monitor.py`，systemd 服务为 `xboard-ingress-monitor.service`，私有配置为 `/etc/xboard-ingress-monitor.json`（root:600）。日常可用 `systemctl status xboard-ingress-monitor` 和 `journalctl -u xboard-ingress-monitor -n 20` 检查上报；不要将配置内容写入日志。仅停止此采集服务不会停止业务 Nginx 或 WireGuard。
 
@@ -49,7 +49,7 @@ systemctl is-enabled vpn-stage1-firewall fail2ban nginx wg-quick@wg-vpn-stage1 c
 fail2ban-client status sshd
 wg show wg-vpn-stage1 latest-handshakes
 nft list table inet vpn_stage1
-curl -fsS https://hk.taige.us/healthz
+curl -fsS https://node.lumavia.fyi/healthz
 ```
 
 健康检查应返回 `vpn-stage1-ready`；它只证明 TLS 入口，不能代替每条出口的代理请求。面板主机 `/root/Xboard/backups/stage1-20261017/` 保存本次受限备份和验证脚本；`panel_new.py verify` 固定新 IP、保留正确 SNI，用实际身份逐条检查 HTTPS 出口和 UDP DNS，`audit` 检查套餐节点数和机器心跳。测试文件会临时包含用户凭据，只能保留在 root 私有目录，测试结束删除客户端配置。
@@ -58,7 +58,7 @@ curl -fsS https://hk.taige.us/healthz
 
 ## 局部回退
 
-本次没有替换旧 `wg-xboard`，也没有删除原香港 Nginx 路由。新入口故障时，可把 `hk.taige.us` 的 A 记录恢复到 `103.24.217.171`，保持 DNS only；恢复前先按旧 IP 与严格 SNI 验证旧入口。日本、荷兰、罗马尼亚新增路径未同步到旧入口，回切前需同步其隧道及路由，或先隐藏这三条节点并撤下对应探针。DNS 缓存生效时间内新旧连接可能并存。
+本次没有替换旧 `wg-xboard`，也没有删除原香港 Nginx 路由。新入口故障时，不能只回切 `hk.taige.us`：当前客户端已使用 `node.lumavia.fyi`。如需把入口切回 `103.24.217.171`，先在旧机器部署当前域名证书、完整路由及隧道，按指定 IP 与严格 SNI 验收，再分别调整所需 A 记录并保持 DNS-only。日本、荷兰、罗马尼亚新增路径未同步到旧入口，回切前需同步其隧道及路由，或先隐藏这三条节点并撤下对应探针。DNS 缓存生效时间内新旧连接可能并存。
 
 服务器配置备份在各机器 `/root/xboard-stage1-20261017/`；公开节点名称变更前后快照在面板上述私有目录。仅恢复明确受影响的文件或节点字段，不能用旧整库覆盖新订单、用户或用量。若回退长期保留旧入口，需重新接管并验证其证书续期。
 

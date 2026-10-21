@@ -82,6 +82,8 @@ Status: implemented
 - [固定池](../../implemented/feature/2026-10-19-owned-fixed-exit-pool.md)保持原分配与健康迁移；本次原未提交香港工作不合入。
 - 后续[统一节点名称与家宽倍率](../../implemented/simplification/2026-10-22-node-names-and-residential-rate.md)部分取代本篇的展示命名；全部自建美国按用户定义标家宽并计 2×，拓展倍率、权限、ID、路径和既有限制继续保留。
 
+客户端域名与过渡兼容由[节点入口独立主域名](../../implemented/architecture/2026-10-22-independent-node-domain.md)接管：主入口为 `node.lumavia.fyi`，七云 CF 备用为 `edge.lumavia.fyi`；原身份、路由、倍率和套餐职责保持。
+
 ## Alternatives considered
 
 - 四档都开放全部 41 条省去分档，但不满足用户的价格差异；采用累计 8/16/28/41。

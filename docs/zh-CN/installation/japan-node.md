@@ -5,7 +5,7 @@
 ## 拓扑与权限
 
 ```text
-客户端 → hk.taige.us:443（VLESS / WebSocket / TLS）
+客户端 → node.lumavia.fyi:443（VLESS / WebSocket / TLS）
        → 第一阶段 143.203.200.5
        → WireGuard 10.79.0.18:31443
        → 日本 185.39.31.75 出网
@@ -14,7 +14,7 @@
 | 对象 | 配置 |
 | --- | --- |
 | 机器 #18 | `friendhosting-日本`，Ubuntu 24.04，SSH 3333 |
-| 公开节点 #354 | `hk.taige.us:443`，show=true，enabled=false，machine_id=null，parent_id=353 |
+| 公开节点 #354 | `node.lumavia.fyi:443`，show=true，enabled=false，machine_id=null，parent_id=353 |
 | 隐藏后端 #353 | `185.39.31.75`，server_port=31443，show=false，enabled=true，machine_id=18 |
 | 两层节点权限 | group_ids 仅字符串 `1/2/3/4`，dedicated_exit_id=null，倍率 1 |
 | 隧道 | `wg-vpn-stage1`，UDP 51872，MTU 1380；日本 10.79.0.18/32、入口 10.79.0.1/32 |
@@ -34,7 +34,7 @@
 
 ## 入口与监控
 
-入口现有 `/etc/nginx/snippets/hk-xboard-routes.conf` 追加一条独立 WebSocket 路径，只转发至 `10.79.0.18:31443`。客户端仍必须验证 `hk.taige.us` 的证书，不设置 insecure。日本路径未复制到旧香港备用入口，因此若将域名回切旧入口，需先同步日本 peer 和路由或临时隐藏本节点。
+入口现有 `/etc/nginx/snippets/hk-xboard-routes.conf` 追加一条独立 WebSocket 路径，只转发至 `10.79.0.18:31443`。客户端仍必须验证 `node.lumavia.fyi` 的证书，不设置 insecure。日本路径未复制到旧香港备用入口，因此若将域名回切旧入口，需先同步日本 peer 和路由或临时隐藏本节点。
 
 入口 `/etc/vpn-stage1.nft` 的隧道来源集合追加日本 IP，原其他规则保持一致。修改时先 `nft -c -f`，然后直接运行现有原子加载脚本；避免 restart 防火墙服务触发依赖服务停止。Nginx 修改先 `nginx -t` 后 reload。
 

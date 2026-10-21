@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 节点入口独立域名（2026-10-22）
+
+节点入口已迁到 `lumavia.fyi`：主入口 `node.lumavia.fyi` 直连现有第一阶段，CF 备用 `edge.lumavia.fyi` 继续使用七云。面板与原订阅地址保持 `taige.us`，客户端更新原订阅即可。旧节点域名继续兼容；本次隔开注册域名故障范围，不代表服务器双活或面板停机后节点仍可冷启动。
+
+新域名切换前后各 58 条监控线路真实 HTTPS 全部通过，四档两格式订阅 8/8 通过，数量仍为 **14 / 22 / 34 / 47**；普通美国保留两个 2× 家宽节点，独享池仍为 11 个出口。证书已签发，CF 使用完全（严格）模式。见[域名决定](./.agents/notes/implemented/architecture/2026-10-22-independent-node-domain.md)、[第一阶段运维](./docs/zh-CN/installation/vpn-stage1.md)与[执行记录](./progress-log.md#2026-10-22节点入口迁移至-lumaviafyi)。
+
 ### 节点名称统一与美国家宽倍率（2026-10-22）
 
 客户端使用 `国家两位编号｜倍率×｜可选家宽/原生IP`，例如 `美国01｜2×｜家宽`、`日本01｜1×`。全部 13 个自建美国出口按用户定义标家宽，公开、固定别名与后端实际计费同步为 2×；香港两条原生 IP 标记沿用上游声明。其他倍率、四档数量 14/22/34/47 和权限保持，UDP 与共享限速仍有效。更新原订阅后可能需要重新选择当前节点。

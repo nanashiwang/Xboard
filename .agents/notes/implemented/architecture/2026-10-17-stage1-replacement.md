@@ -20,6 +20,8 @@ Status: implemented
 
 关联实施：[四档套餐第三方拓展线路](../../implemented/architecture/2026-10-21-tiered-upstream-route-family.md)已于 2026-10-22 接入普通套餐；本文已实施的自建与独享边界继续保留。
 
+客户端域名与过渡兼容由[节点入口独立主域名](../../implemented/architecture/2026-10-22-independent-node-domain.md)接管：主入口为 `node.lumavia.fyi`，七云 CF 备用为 `edge.lumavia.fyi`；原身份、路由、倍率和套餐职责保持。
+
 ## Alternatives considered
 
 - 仅改 SSH 端口可以减少扫描噪声，但不能消除密码猜测，还增加管理客户端维护负担，因此保留 22 并收紧认证方式。

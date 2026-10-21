@@ -4,7 +4,7 @@
 
 ## 拓扑与对象
 
-客户端经 `hk.taige.us:443` 的严格 TLS / VLESS / WebSocket 到第一阶段入口 `143.203.200.5`，再经各自 WireGuard peer 到出口后端 TCP 31443。两层节点均只允许字符串权限组 `1/2/3/4`，倍率 1，`dedicated_exit_id=null`，不扩充固定出口池。
+客户端经 `node.lumavia.fyi:443` 的严格 TLS / VLESS / WebSocket 到第一阶段入口 `143.203.200.5`，再经各自 WireGuard peer 到出口后端 TCP 31443。两层节点均只允许字符串权限组 `1/2/3/4`，倍率 1，`dedicated_exit_id=null`，不扩充固定出口池。
 
 | 项目 | 荷兰 | 罗马尼亚 |
 | --- | --- | --- |
