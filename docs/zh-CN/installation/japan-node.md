@@ -1,6 +1,6 @@
 # FriendHosting 日本节点运维
 
-2026-10-21 接入。节点名为「日本｜friendhosting｜第一阶段入口」，供轻量、标准、进阶、旗舰套餐使用。独享套餐不包含该节点，后端也不下发独享用户身份。方案见[决策笔记](../../../.agents/notes/implemented/architecture/2026-10-21-friendhosting-japan-node.md)，验证见[进展记录](../../../progress-log.md#2026-10-21friendhosting-日本节点接入)。
+2026-10-21 接入。本页数量为日本接入时的验收快照；后续[欧洲节点扩容](./europe-nodes.md)后的当前数量见[第一阶段运维](./vpn-stage1.md)。节点名为「日本｜friendhosting｜第一阶段入口」，供轻量、标准、进阶、旗舰套餐使用。独享套餐不包含该节点，后端也不下发独享用户身份。方案见[决策笔记](../../../.agents/notes/implemented/architecture/2026-10-21-friendhosting-japan-node.md)，验证见[进展记录](../../../progress-log.md#2026-10-21friendhosting-日本节点接入)。
 
 ## 拓扑与权限
 

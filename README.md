@@ -30,9 +30,15 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 荷兰与罗马尼亚节点已接入（2026-10-21）
+
+`friendhosting-荷兰` 和 `friendhosting-罗马` 已加入轻量、标准、进阶、旗舰四个套餐，刷新订阅可见「荷兰｜friendhosting｜第一阶段入口」与「罗马尼亚｜friendhosting｜第一阶段入口」。第二台实际出口识别为罗马尼亚（RO），机器名保留用户原命名；四档节点数现为 **17 / 18 / 19 / 20**，独享仍仅原固定出口及香港备用。
+
+两台均完成三名普通账号的 HTTPS 出口与 UDP DNS、独享/无效身份拒绝和旧线路抽查；两种客户端订阅共 20 项权限检查通过。本机补充检查：荷兰 4/6 次 HTTPS 成功；罗马尼亚 5/6 次 HTTPS 成功。已扩展至 20 条质量探针和 16 条入口隧道；持续采样的成功、超时与速度不等同于长期性能保证。配置和回退见[欧洲节点运维](./docs/zh-CN/installation/europe-nodes.md)，本轮证据见[进展记录](./progress-log.md#2026-10-21荷兰与罗马尼亚节点接入)。
+
 ### 日本节点已接入普通套餐（2026-10-21）
 
-`friendhosting-日本` 已作为日本出口加入轻量版、标准版、进阶版、旗舰版，订阅节点名为「日本｜friendhosting｜第一阶段入口」，四档可见节点数为 **15 / 16 / 17 / 18**。独享套餐保持原固定出口及香港备用，日本节点既不出现在其订阅中，也不接受其身份转发。
+`friendhosting-日本` 已作为日本出口加入轻量版、标准版、进阶版、旗舰版，订阅节点名为「日本｜friendhosting｜第一阶段入口」，日本接入当时四档可见节点数为 **15 / 16 / 17 / 18**。独享套餐保持原固定出口及香港备用，日本节点既不出现在其订阅中，也不接受其身份转发。
 
 复用原入口与 WireGuard，实际出口为 `185.39.31.75`；三名有效普通账号的 HTTPS / 日本出口检查及 UDP DNS、独享与无效身份拒绝、原有线路抽查均通过。节点已加入既有质量探针与入口隧道映射；本机追加测试 5/6 成功，NAS 首轮存在间歇超时，当前不能承诺长期稳定或固定速度。配置、回退与记录见[日本节点运维](./docs/zh-CN/installation/japan-node.md)、[接入决策](./.agents/notes/implemented/architecture/2026-10-21-friendhosting-japan-node.md)及[本次进展](./progress-log.md#2026-10-21friendhosting-日本节点接入)。
 
