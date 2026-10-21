@@ -4,6 +4,24 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-21：复核 10/19 Actions 失败通知
+
+用户反馈“10/19 生产部署失败，另有订单队列检查失败通知”。按北京时间 10 月 19 日（UTC 10 月 18 日 16:00 至 19 日 16:00）检索 `nanashiwang/Xboard` Actions，找到一条 Order Queue Checks 和两条 Production Deploy 失败，回读对应日志及后续成功运行。以下时间均为北京时间。
+
+| 失败时间 / 运行 | 实际操作与根因 | 后续证据 |
+| --- | --- | --- |
+| 15:58，[Order Queue Checks 39219430285](https://github.com/nanashiwang/Xboard/actions/runs/39219430285) | 提交 `e40909d` 的 CI 回归：83 项测试、9 个错误均来自 `AttachOwnedDedicatedExits.php:86`，向不存在的 `storage/app` 写快照时报 `No such file or directory` | `f4f3849` 创建权限 0700 的备份目录并补充干净环境测试；16:05 的[后续 CI](https://github.com/nanashiwang/Xboard/actions/runs/39220235107)为 `OK (84 tests, 460 assertions)` |
+| 16:12，[Production Deploy 39221058963](https://github.com/nanashiwang/Xboard/actions/runs/39221058963) | 日志 `OPERATION=preview-owned-dedicated`，不是 deploy；`file_get_contents(/dev/stdin)` 因容器内路径不存在而退出，未进入应用接入 | `aab063c` 将清单输入改为 `php://stdin`；16:19 的[后续运维运行](https://github.com/nanashiwang/Xboard/actions/runs/39221925218) success，最终生产验收亦通过 |
+| 16:24，[Production Deploy 39222472708](https://github.com/nanashiwang/Xboard/actions/runs/39222472708) | 日志 `OPERATION=verify-owned-dedicated`；保留订单仍为 status 1，验收断言 `Retained order is still waiting; do not claim it has opened`，当时只有 3 个出口满足健康条件 | 正常探测与 5 分钟重试后，16:28 的[最终验收 39222948840](https://github.com/nanashiwang/Xboard/actions/runs/39222948840) success：订单 status 3、ready=true，200 GB 半年权益、普通账号 13/13 实际代理、固定账号及隔离/备用检查通过 |
+
+[实际部署 39220827392](https://github.com/nanashiwang/Xboard/actions/runs/39220827392)的 `OPERATION=deploy` 于 16:11 成功，日志同时确认容器 Healthy、运行 revision `f4f3849045b7d71f1d2dd4b6e42e73480cbc9c68`。两条失败是在该部署之后的预览/验收。订单最终日志 `updated_at=1792398391` 对应 10 月 19 日 16:26:31；没有强制改健康状态或手动标记开通的必要。既有修复与取舍见[自建固定出口池笔记](./.agents/notes/implemented/feature/2026-10-19-owned-fixed-exit-pool.md)。
+
+[Order Queue Checks](./.github/workflows/order-queue.yml)由 push / pull_request 触发，执行 PHPUnit，并非生产订单队列定时报警；[Production Deploy](./.github/workflows/deploy-production.yml)同时承载 inspect、preview、attach、verify 和 deploy 等操作，阅读通知时应核对 `OPERATION`。旧失败记录继续保留，后续成功不会把旧运行改成绿色；本轮未重跑部署或清除失败记录。
+
+当前只读核验：已有 XTerminal 生产连接中 `docker ps` 显示应用容器 Up 42 hours；`taige.us/api/v1/guest/comm/config` HTTP 200、站内验证码开关仍为 0。首页另一次请求 TLS 握手超时，不能据此判断源站宕机；终端后续窗口不可用，未取得新的订单状态、Horizon 失败数量或镜像 OCI revision，未声称当前队列完整健康。10 月 19 日的最终业务成功以当次日志为证，不能替代今天所有节点与用户的实时验收。
+
+结论是三条历史失败均已有对应修复或后续成功证据；本轮未发现需要重新部署的依据。只新增 README、能力地图和本段诊断记录，保留原香港入口未提交改动；执行工作流结构、文档链接及差异检查后，以中文 `[skip ci]` 文档提交推送 master，并从 GitHub 按提交版本回读 README/progress-log。无应用源码变更，无新版本、镜像构建、GitHub Release 或生产部署；提交与回读结果随交付报告。
+
 ## 2026-10-21：按确认关闭站内 Turnstile
 
 用户要求先关 CF 认证，并进一步明确“确认，关闭站内 Turnstile”，授权范围为取消邮箱验证码发送前的人机校验，Cloudflare 其他防护保持现状。
