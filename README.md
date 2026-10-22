@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 网站 Cloudflare 路径与速度核对（2026-10-22）
+
+`taige.us` 与 `board.taige.us` 的网站访问当前都经过 Cloudflare；公开 DNS 与 HTTP 响应头均已实测确认。当前本机代理路径命中洛杉矶 LAX，三次独立连接的首页约 2.05–2.14 秒、公开配置约 2.07–2.15 秒，其中 TLS 建连约 1.44–1.53 秒；主 JS 已 gzip 并可命中 CF 缓存，一次新连接在 25 秒超时。复用连接后配置接口约 0.52 秒、JS 约 0.91 秒，说明当前样本中建连开销明显。
+
+本机 DNS 为代理虚拟地址，以上不能代表大陆用户直连，也不能据此认定 CF 或源站是唯一瓶颈。浏览器登录页正常，公开配置确认站内验证码关闭；未改 DNS、CF 防护、源站或部署。后续需按反馈用户实际网络对照代理开关与首屏/接口，证据见[测速记录](./progress-log.md#2026-10-22网站-cloudflare-路径与访问耗时核对)。
+
 ### 节点入口独立域名（2026-10-22）
 
 节点入口已迁到 `lumavia.fyi`：主入口 `node.lumavia.fyi` 直连现有第一阶段，CF 备用 `edge.lumavia.fyi` 继续使用七云。面板与原订阅地址保持 `taige.us`，客户端更新原订阅即可。旧节点域名继续兼容；本次隔开注册域名故障范围，不代表服务器双活或面板停机后节点仍可冷启动。
