@@ -30,13 +30,15 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
-### 网站 Flawless 灰云入口准备（2026-10-22）
+### 网站 Flawless 灰云入口已切换（2026-10-22）
 
-用户授权 taige.us 改用现有 Flawless 跳板 155.103.118.155。独立 HTTPS 站点和证书已部署，DNS 尚未切换，board.taige.us 保留原 CF 路径。同一大陆网络预检跳板首页/公开接口/JS 共 9/9 完成，首页 0.73–0.85 秒、接口 0.66–0.79 秒；CF 对照 8/9 完成，有一次接口失败，但缓存 JS 更快。正在完成源站真实 IP 与续期验证，不能将小样本写成全网提速。见[入口方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)、[运维与回退](./docs/zh-CN/installation/website-relay.md)。
+`taige.us` 已改为 DNS-only A 指向 `155.103.118.155`，再严格 HTTPS 转发至原源站；两台权威 DNS、1.1.1.1 与 8.8.8.8 已返回新地址且无旧 AAAA，实际请求目的 IP 与响应头验证一致。独立证书、webroot 自动续期模拟、源站真实 IP/伪造头防护、压缩、下载 Range 和登录页通过；`board.taige.us` 保留 CF，节点与订阅域名保持。
 
-### 网站 Cloudflare 路径与速度核对（2026-10-22）
+同网预检新入口 9/9 完成，CF 对照 8/9；新入口首页/公开接口约 0.66–0.85 秒，但 CF 缓存 JS 略快。切换后 HTTP/1.1、HTTP/2 对照 12/12 完成，约 0.65–0.77 秒；含公网 DoH 解析的追加测试仍有一次 15 秒超时，不能宣称卡顿已彻底消失或全运营商更快。灰云主站不再享有 CF 边缘防护；源站原有 `/ws` 两路均返回 502，未标为成功。见[实施决定](./.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)、[运维与回退](./docs/zh-CN/installation/website-relay.md)和[完整记录](./progress-log.md#2026-10-22网站-flawless-灰云入口准备)。
 
-`taige.us` 与 `board.taige.us` 的网站访问当前都经过 Cloudflare；公开 DNS 与 HTTP 响应头均已实测确认。当前本机代理路径命中洛杉矶 LAX，三次独立连接的首页约 2.05–2.14 秒、公开配置约 2.07–2.15 秒，其中 TLS 建连约 1.44–1.53 秒；主 JS 已 gzip 并可命中 CF 缓存，一次新连接在 25 秒超时。复用连接后配置接口约 0.52 秒、JS 约 0.91 秒，说明当前样本中建连开销明显。
+### 网站切换前 Cloudflare 路径与速度核对（2026-10-22）
+
+切换前 `taige.us` 与 `board.taige.us` 都经过 Cloudflare，公开 DNS 与 HTTP 响应头已实测确认；主域当前灰云状态以上方最新记录为准。当次本机代理路径命中洛杉矶 LAX，三次独立连接的首页约 2.05–2.14 秒、公开配置约 2.07–2.15 秒，其中 TLS 建连约 1.44–1.53 秒；主 JS 已 gzip 并可命中 CF 缓存，一次新连接在 25 秒超时。复用连接后配置接口约 0.52 秒、JS 约 0.91 秒，说明当次样本中建连开销明显。
 
 用户随后确认慢发生在大陆无代理。绑定物理网卡、禁用本次请求代理并固定公开 CF 地址后，trace 确认 loc=CN / warp=off；12 次 IPv4 请求中，配置接口和主 JS 各一次 20 秒超时，其余完成。成功 JS 为 1.34–1.67 秒；严格 TLS 直接源站对照约 2.57 秒，源站未压缩主 JS 为 1.42 MB，CF 压缩后约 420 KB。因此大陆路径确有间歇卡顿，但不能断言关闭 CF 更快。IPv6 小样本全部成功，仍落在境外节点，不代表稳定性保证。浏览器登录页与站内验证码关闭已核验；没有修改 DNS、代理、防护或生产配置，详情见[测速记录](./progress-log.md#2026-10-22网站-cloudflare-路径与访问耗时核对)。
 

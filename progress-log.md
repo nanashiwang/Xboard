@@ -8,7 +8,7 @@
 
 用户提供 flawless_la_01 密钥引用和 155.103.118.155 / root / 22，要求网站灰云经该跳板访问。已用现有密钥和严格 SSH 主机校验登录；未输出或提交密钥。现场确认跳板共用 newapi、MetaR、ChatShare 等多个 HTTPS vhost，故采用新增 taige.us 独立 HTTP 反代，不改现有 443 监听结构。board.taige.us 保留 CF 兼容路径，VPN 节点域名和套餐不变。
 
-本机绑定物理网卡的跳板既有站点基线三次 HTTP 200，TLS 0.377–0.399 秒；同网直连 Xboard 源站 TLS 0.553–0.634 秒。跳板到 Xboard 源站首页严格 TLS 成功，约 0.287 秒。这是各段基线，尚非新网站入口端到端验收。新[方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)为 proposed；源站[只读检查](./.github/workflows/website-relay-origin.yml)复用现有 GitHub SSH Secret 与固定主机公钥，不提供任意命令执行入口。
+本机绑定物理网卡的跳板既有站点基线三次 HTTP 200，TLS 0.377–0.399 秒；同网直连 Xboard 源站 TLS 0.553–0.634 秒。跳板到 Xboard 源站首页严格 TLS 成功，约 0.287 秒。这是各段基线，尚非新网站入口端到端验收。新[方案](./.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)为 proposed；源站[只读检查](./.github/workflows/website-relay-origin.yml)复用现有 GitHub SSH Secret 与固定主机公钥，不提供任意命令执行入口。
 
 本批准备文件在工作流验证、Python 语法与脱敏样例检查后中文提交 master；使用 [skip ci] 避免纯运维工作重建应用，随后仅手动运行源站 inspect。证书、源站变更、DNS 切换、续期和业务验收仍待完成；无应用版本或 Release 发布。保留既有香港入口脏改动。
 
@@ -19,6 +19,18 @@
 同物理网卡、禁用请求代理、固定目的 IP 的交错三轮：首页跳板 3/3，0.730–0.851 秒；CF 3/3，0.822–0.905 秒。公开配置跳板 3/3，0.661–0.789 秒；CF 2/3，成功 0.728–0.747 秒，一次 TLS 已完成但 15.452 秒 HTTP/2 失败、无响应。JS 跳板 3/3，1.658–1.758 秒、gzip 约 434 KB；CF 3/3，1.326–1.751 秒、HIT 约 420 KB；解压后均 1,420,663 字节，SHA 相同。短样本支持尝试改善间歇失败，不证明全部资源或所有运营商更快。下载页与前 1024 字节 Range（206）在跳板/源站完全一致；/ws 两路均 502，属于源站现状，未标为 WebSocket 业务成功。
 
 源站只读 [Actions 39753987323](https://github.com/nanashiwang/Xboard/actions/runs/39753987323) 成功，确认原配置 SHA、证书 webroot 与续期 hook。新增 hash 守卫的 prepare/apply/verify/rollback，精确限定 taige.us vhost，临时身份测试仅允许本机/跳板并清理，不重启应用；12 项操作回归通过后才提交，实际源站应用与验证另按工作流结果记录。上一准备提交 322760e 已推送且 README/progress-log 精确 SHA 云端回读相同。本批仍为运维文件，无应用版本或 Release。
+
+### 实际切换与验收
+
+源站 [prepare 39756159130](https://github.com/nanashiwang/Xboard/actions/runs/39756159130)、[apply 39756287192](https://github.com/nanashiwang/Xboard/actions/runs/39756287192)、[verify 39756539312](https://github.com/nanashiwang/Xboard/actions/runs/39756539312) 均成功。原配置 SHA 为 4c2274c91eb95672dad7d5a6016313597f91bf61845ae36c8bec839d136ab615，最终为 4625d1ef7e981fa42365fdde775bcd37605c6256835a5f9e166b8d8118bd5029；备份位于源站 `/root/xboard-backups/website-relay-origin/20261022-flawless-website/`。只改 taige.us HTTPS vhost；board、HTTP ACME 与其他 include 文件保留。源站直连及经跳板携带伪造身份头后，真实 IP、HTTPS、Host 断言全部为 true，源站 ACME 经跳板回读成功，临时 location/listener/文件均清理。验证范围为真实 HTTP 代理头及运行容器内已安装的 Laravel TrustProxies；未冒充客户登录，也未重启 Caddy/Octane。
+
+用户在保存动作前明确确认灰云切换和临时 TXT 清理后，约北京时间 17:37 将主域改为 A 155.103.118.155、仅 DNS、TTL 自动（实测 300 秒），仅删除本次 `_acme-challenge.taige.us` 验证记录。两台权威 brianna/kenneth、公共 1.1.1.1/8.8.8.8 均返回新 A，AAAA 为空；权威 TXT 已不存在，board 仍解析 CF 两个 IPv4。浏览器控制台实际显示该记录，登录页正常、捕获的 warn/error 为空。证据截图随本次交付保存，不写入仓库。
+
+跳板证书 reconfigure 为 webroot/http-01，模拟续期成功并执行 nginx -t/reload hook；certbot.timer active/enabled。源站仍用原 webroot 续期，本轮验证 challenge 转发，没有执行源站完整 ACME 模拟。跳板 15 份原配置 SHA 保持，既有业务抽验成功，relay-monitor 最近执行 success/0。旧证书的 manual_auth_hook 字段仍保留在 Certbot 文件中，但当前 authenticator 已是 webroot，续期模拟实际使用 HTTP 验证。
+
+切流后使用物理网卡与公网 DoH 解析（不固定 taige 目的地址），首页、公开配置、JS、下载页 4/4 HTTP 200，remote_ip 均 155.103.118.155、无 CF-Ray/缓存头、gzip 正常；完整请求 3.45–4.55 秒，包含该测试方法的 DNS 开销。追加一次首页在 15.005 秒超时：DNS 3.459 秒、TLS 完成时刻 3.858 秒、未收到首字节；不把该样本排除或直接归因 CF。随后固定新公网 IP，HTTP/1.1 与 HTTP/2 × 首页/公开配置 × 三轮，共 12/12 HTTP 200，总耗时 0.652–0.766 秒。两个协议均成功，没有依据单独关闭 HTTP/2；尚未定位追加超时根因，不承诺全天稳定或所有运营商提速。未执行真实支付或客户认证业务。
+
+实施与回退见[网站运维](./docs/zh-CN/installation/website-relay.md)和[决定](./.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)。实施提交 bbc0f8e 已推送 master，README/progress-log 按精确 SHA 云端回读一致；本批收尾继续执行笔记/相对链接/diff 检查、中文提交推送和精确回读。纯运维配置使用 [skip ci]，无应用镜像更新、应用版本或 GitHub Release；原香港入口未提交工作保持原归属。DNS 缓存可能短期延续旧路线，board 为手动备用而非自动双活。
 
 ## 2026-10-22：网站 Cloudflare 路径与访问耗时核对
 

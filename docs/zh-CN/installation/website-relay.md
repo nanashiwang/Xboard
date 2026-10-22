@@ -1,16 +1,16 @@
 # taige.us 网站 Flawless 入口
 
-本文件只管理网站入口。VPN 节点的 lumavia.fyi、套餐、订阅 URL、支付回调域名和应用镜像不随本次入口调整变化。决定见[方案笔记](../../../.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)。
+本文件只管理网站入口。VPN 节点的 lumavia.fyi、套餐、订阅 URL、支付回调域名和应用镜像不随本次入口调整变化。决定见[方案笔记](../../../.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)。
 
-## 目标与当前阶段
+## 当前路径
 
-目标为 `taige.us → DNS-only A 155.103.118.155 → HTTPS 107.173.191.23`；`board.taige.us` 保留原 CF 代理路径。2026-10-22 跳板独立 vhost 和公开证书已准备，DNS 尚未切换；最终状态以[执行记录](../../../progress-log.md)为准。
+当前为 `taige.us → DNS-only A 155.103.118.155 → HTTPS 107.173.191.23`；`board.taige.us` 保留原 CF 代理路径。2026-10-22 已完成 DNS 切换、两台权威及两个公共解析器核对；A 的 TTL 为 300 秒，AAAA 为空。实际连接目的 IP、公开页面及压缩已验收；仍有一次追加超时，不宣称已消除全部卡顿，详情见[执行记录](../../../progress-log.md)。
 
 跳板配置源为 [website-relay.conf](../../../.docker/production/website-relay.conf)，安装到 `/etc/nginx/sites-enabled/taige.us`。上游固定 IP、SNI 与 Host，严格验证源站证书；开启 gzip，保留请求方法、正文、Range 与 Upgrade，不做公共代理缓存。访问日志不包含路径、查询参数、Cookie 或 Authorization，避免记录订阅凭据。
 
 ## 证书与真实 IP
 
-跳板首次通过 DNS 验证取得独立证书。正式切换后须用 `certbot reconfigure --cert-name taige.us --authenticator webroot --webroot-path /var/www/xboard-relay-acme` 测试并保存自动续期配置，核验 nginx 检查/reload hook 及 timer。只看到证书签发或 timer active 不等于续期验收完成。
+跳板首次通过 DNS 验证取得独立证书，到期 2027-01-20。正式切换后已使用 `certbot reconfigure --cert-name taige.us --authenticator webroot --webroot-path /var/www/xboard-relay-acme --preferred-challenges http` 成功模拟并保存自动续期配置；nginx 检查/reload hook 已执行，timer active/enabled。Certbot 仍保留旧 manual_auth_hook 字段，但当前 authenticator 为 webroot，实际模拟使用 HTTP 验证。
 
 80 端口的 ACME challenge 优先读取跳板 `/var/www/xboard-relay-acme`，缺失时转发到源站 `/var/www/xboard-acme`，以支持两端独立续期。其他 HTTP 请求保持路径和参数跳转 HTTPS。
 
