@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 网站 Flawless 灰云入口准备（2026-10-22）
+
+用户授权 taige.us 改用现有 Flawless 跳板 155.103.118.155。当前正在准备独立 HTTPS 站点、源站真实 IP 信任和证书续期；DNS 尚未切换，board.taige.us 保留原 CF 路径。先按[入口方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)验证大陆直连及现有业务，再执行切换。不能将准备完成写成已提速或已上线。
+
 ### 网站 Cloudflare 路径与速度核对（2026-10-22）
 
 `taige.us` 与 `board.taige.us` 的网站访问当前都经过 Cloudflare；公开 DNS 与 HTTP 响应头均已实测确认。当前本机代理路径命中洛杉矶 LAX，三次独立连接的首页约 2.05–2.14 秒、公开配置约 2.07–2.15 秒，其中 TLS 建连约 1.44–1.53 秒；主 JS 已 gzip 并可命中 CF 缓存，一次新连接在 25 秒超时。复用连接后配置接口约 0.52 秒、JS 约 0.91 秒，说明当前样本中建连开销明显。

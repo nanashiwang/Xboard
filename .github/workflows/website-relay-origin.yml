@@ -1,0 +1,45 @@
+name: Website Relay Origin
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Read-only origin inspection
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+
+jobs:
+  origin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect origin configuration without changing it
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          test "$OPERATION" = inspect
+          test -n "$SSHPASS"
+          python3 -c 'import ast,pathlib; ast.parse(pathlib.Path(".docker/production/website-relay-origin.py").read_text())'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          # Same previously verified origin host key as configure-primary-domain.yml.
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2)
+          # stdin execution avoids uploading a helper or modifying origin files.
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            'python3 - inspect' < .docker/production/website-relay-origin.py

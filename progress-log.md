@@ -4,6 +4,14 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-22：网站 Flawless 灰云入口准备
+
+用户提供 flawless_la_01 密钥引用和 155.103.118.155 / root / 22，要求网站灰云经该跳板访问。已用现有密钥和严格 SSH 主机校验登录；未输出或提交密钥。现场确认跳板共用 newapi、MetaR、ChatShare 等多个 HTTPS vhost，故采用新增 taige.us 独立 HTTP 反代，不改现有 443 监听结构。board.taige.us 保留 CF 兼容路径，VPN 节点域名和套餐不变。
+
+本机绑定物理网卡的跳板既有站点基线三次 HTTP 200，TLS 0.377–0.399 秒；同网直连 Xboard 源站 TLS 0.553–0.634 秒。跳板到 Xboard 源站首页严格 TLS 成功，约 0.287 秒。这是各段基线，尚非新网站入口端到端验收。新[方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)为 proposed；源站[只读检查](./.github/workflows/website-relay-origin.yml)复用现有 GitHub SSH Secret 与固定主机公钥，不提供任意命令执行入口。
+
+本批准备文件在工作流验证、Python 语法与脱敏样例检查后中文提交 master；使用 [skip ci] 避免纯运维工作重建应用，随后仅手动运行源站 inspect。证书、源站变更、DNS 切换、续期和业务验收仍待完成；无应用版本或 Release 发布。保留既有香港入口脏改动。
+
 ## 2026-10-22：网站 Cloudflare 路径与访问耗时核对
 
 用户询问 Xboard 的 taige 网站是否走 CF，并反馈访问慢。本轮只读访问线上公开站点、检查浏览器登录页与仓库入口代码；未修改网络或生产配置。面板域名与节点域名的职责见[既有域名决定](./.agents/notes/implemented/architecture/2026-10-22-independent-node-domain.md)，本轮没有新增架构决定。
