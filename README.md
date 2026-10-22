@@ -32,7 +32,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 网站 Flawless 灰云入口准备（2026-10-22）
 
-用户授权 taige.us 改用现有 Flawless 跳板 155.103.118.155。当前正在准备独立 HTTPS 站点、源站真实 IP 信任和证书续期；DNS 尚未切换，board.taige.us 保留原 CF 路径。先按[入口方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)验证大陆直连及现有业务，再执行切换。不能将准备完成写成已提速或已上线。
+用户授权 taige.us 改用现有 Flawless 跳板 155.103.118.155。独立 HTTPS 站点和证书已部署，DNS 尚未切换，board.taige.us 保留原 CF 路径。同一大陆网络预检跳板首页/公开接口/JS 共 9/9 完成，首页 0.73–0.85 秒、接口 0.66–0.79 秒；CF 对照 8/9 完成，有一次接口失败，但缓存 JS 更快。正在完成源站真实 IP 与续期验证，不能将小样本写成全网提速。见[入口方案](./.agents/notes/proposed/architecture/2026-10-22-website-flawless-relay.md)、[运维与回退](./docs/zh-CN/installation/website-relay.md)。
 
 ### 网站 Cloudflare 路径与速度核对（2026-10-22）
 

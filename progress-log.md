@@ -12,6 +12,14 @@
 
 本批准备文件在工作流验证、Python 语法与脱敏样例检查后中文提交 master；使用 [skip ci] 避免纯运维工作重建应用，随后仅手动运行源站 inspect。证书、源站变更、DNS 切换、续期和业务验收仍待完成；无应用版本或 Release 发布。保留既有香港入口脏改动。
 
+### 切流前配置与验证
+
+跳板独立 taige.us 证书已签发（到期 2027-01-20），新增 vhost 严格 HTTPS 回源、gzip 和 ACME 本地优先/源站回退；nginx -t 与 reload 成功，15 份既有配置 SHA 未变，原业务抽查及 relay-monitor 最近执行成功。证书仍待切流后 reconfigure 为 webroot 并模拟续期；尚未修改主域 DNS。
+
+同物理网卡、禁用请求代理、固定目的 IP 的交错三轮：首页跳板 3/3，0.730–0.851 秒；CF 3/3，0.822–0.905 秒。公开配置跳板 3/3，0.661–0.789 秒；CF 2/3，成功 0.728–0.747 秒，一次 TLS 已完成但 15.452 秒 HTTP/2 失败、无响应。JS 跳板 3/3，1.658–1.758 秒、gzip 约 434 KB；CF 3/3，1.326–1.751 秒、HIT 约 420 KB；解压后均 1,420,663 字节，SHA 相同。短样本支持尝试改善间歇失败，不证明全部资源或所有运营商更快。下载页与前 1024 字节 Range（206）在跳板/源站完全一致；/ws 两路均 502，属于源站现状，未标为 WebSocket 业务成功。
+
+源站只读 [Actions 39753987323](https://github.com/nanashiwang/Xboard/actions/runs/39753987323) 成功，确认原配置 SHA、证书 webroot 与续期 hook。新增 hash 守卫的 prepare/apply/verify/rollback，精确限定 taige.us vhost，临时身份测试仅允许本机/跳板并清理，不重启应用；12 项操作回归通过后才提交，实际源站应用与验证另按工作流结果记录。上一准备提交 322760e 已推送且 README/progress-log 精确 SHA 云端回读相同。本批仍为运维文件，无应用版本或 Release。
+
 ## 2026-10-22：网站 Cloudflare 路径与访问耗时核对
 
 用户询问 Xboard 的 taige 网站是否走 CF，并反馈访问慢。本轮只读访问线上公开站点、检查浏览器登录页与仓库入口代码；未修改网络或生产配置。面板域名与节点域名的职责见[既有域名决定](./.agents/notes/implemented/architecture/2026-10-22-independent-node-domain.md)，本轮没有新增架构决定。

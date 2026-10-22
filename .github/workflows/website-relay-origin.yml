@@ -4,12 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Read-only origin inspection
+        description: Inspect, prepare, apply, verify, or roll back the origin relay settings
         required: true
         default: inspect
         type: choice
         options:
           - inspect
+          - prepare
+          - apply
+          - verify
+          - rollback
+      change_id:
+        description: Guarded backup generation (lowercase letters, digits, hyphens)
+        required: true
+        default: 20261022-flawless-website
+        type: string
 
 permissions:
   contents: read
@@ -21,16 +30,18 @@ concurrency:
 jobs:
   origin:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect origin configuration without changing it
+      - name: Run the selected guarded origin operation
         env:
           SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
           OPERATION: ${{ inputs.operation }}
+          CHANGE_ID: ${{ inputs.change_id }}
         run: |
           set -euo pipefail
-          test "$OPERATION" = inspect
+          case "$OPERATION" in inspect|prepare|apply|verify|rollback) ;; *) exit 1 ;; esac
+          [[ "$CHANGE_ID" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]]
           test -n "$SSHPASS"
           python3 -c 'import ast,pathlib; ast.parse(pathlib.Path(".docker/production/website-relay-origin.py").read_text())'
           sudo apt-get update -qq
@@ -40,6 +51,7 @@ jobs:
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           chmod 600 ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2)
-          # stdin execution avoids uploading a helper or modifying origin files.
+          # stdin execution avoids storing a helper on the origin. Only the
+          # selected operation may modify the hash-guarded taige vhost.
           sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
-            'python3 - inspect' < .docker/production/website-relay-origin.py
+            "python3 - '$OPERATION' --change-id '$CHANGE_ID'" < .docker/production/website-relay-origin.py
