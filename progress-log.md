@@ -8,7 +8,11 @@
 
 用户要求去掉首页右上角“简体中文”区域。核对后该区域仅是静态语言标识；已删除文字、旁边的地球图标及专属 CSS，顶部登录、注册与手机菜单继续沿用已有实现。属于机械展示调整，不新建决策笔记；同步[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
 
-PHP 首页/下载 17 项、153 断言和 Blade 编译通过，19 篇笔记与差异检查通过。真实 Laravel 页面验证 1536px / 390px 没有语言元素或横向溢出、登录/注册显示符合断点、手机菜单可展开；桌面截图已回看。旧预览实例数据库锁和模板缓存影响初验，改用独立临时 SQLite 预览复验通过。未增加只验证静态删除的重复测试。提交后待镜像构建、生产部署与公网回读；网站沿用 GHCR，不创建独立网站 Release。
+PHP 首页/下载 17 项、153 断言和 Blade 编译通过，19 篇笔记与差异检查通过。真实 Laravel 页面验证 1536px / 390px 没有语言元素或横向溢出、登录/注册显示符合断点、手机菜单可展开；桌面截图已回看。旧预览实例数据库锁和模板缓存影响初验，改用独立临时 SQLite 预览复验通过。未增加只验证静态删除的重复测试。代码 `6eb3c2f7c3d92a45fac6cf8920af1bc7a84531fb` 已推送 master，[首页 CI](https://github.com/nanashiwang/Xboard/actions/runs/39943048586)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39943048442)和[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/39943048487)全部 success；两个架构 OCI revision 均已回读匹配。[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39943939718)于北京时间 **19:08:56** 成功，容器 Healthy、运行 revision 匹配，日志 Nothing to migrate。
+
+主站和备用域名首页均返回 200，版本 `20261023-6eb3c2f`，HTML 均无语言标识、保留登录/注册链接；主站 CSS 与提交逐字节一致。正式浏览器 1536px / 390px 确认标识不存在、无横向溢出、手机菜单可开关，截图已回看。备用域名首轮 TLS 连接超时，单独重试通过，不将有限复验表述为全网稳定性保证。
+
+README/progress-log 已按代码 SHA 从 GitHub 回读一致；最终验收记录用独立中文 `[skip ci]` 提交推送后再次回读。网站沿用 GHCR，不创建独立网站 Release，不重发桌面安装包；已有未提交内容保留。
 
 ## 2026-10-23：官网下载接入卡皮巴拉
 
