@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 官网首页继续使用 `/clients`，电脑端现默认提供自有卡皮巴拉 **0.1.0-alpha.2**，覆盖 Windows x64、macOS Apple Silicon/Intel、Linux x64 DEB/AppImage。安装后直接登录本站账号；自动同步流量与到期状态，无需复制订阅。手机明确标为第三方方案，Clash Verge 保留独立兼容入口。页面提供测试版、系统要求、签名限制、校验值及官方备用下载。
 
-本地 17 项 PHP / 153 断言、5 项 Node、4 项教程同步回归与 Blade 编译通过；真实浏览器已验证平台切换、320–1440px、暗色、第三方模拟导入及退出清理。5 个安装包 SHA-256 与既有 [Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 一致。本次不改变桌面版本；网站镜像构建、静态包同步、上线与文章 5 更新状态见[进展](./progress-log.md#2026-10-23官网下载接入卡皮巴拉)，取舍见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)。生产仍待本轮发布和验证。
+本地 17 项 PHP / 153 断言、5 项 Node、4 项教程同步回归与 Blade 编译通过；真实浏览器已验证平台切换、320–1440px、暗色、第三方模拟导入及退出清理。5 个安装包 SHA-256 与既有 [Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 一致。本次不改变桌面版本；网站镜像构建、静态包同步、上线与文章 5 更新状态见[进展](./progress-log.md#2026-10-23官网下载接入卡皮巴拉)，取舍见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)。已完成静态安装包同步及[网站部署](https://github.com/nanashiwang/Xboard/actions/runs/39939800928)，生产版本 `20261023-41a957f`、容器 Healthy；正式首页下载跳转、5 包完整下载与两域断点续传通过，下载教程也已同步。
 
 ### 卡皮巴拉官网首页（2026-10-23）
 
@@ -46,7 +46,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 已新增 [卡皮巴拉桌面工程](./desktop/capybara/README.md)：首页采用用户指定的蓝围巾旅行水豚，桌面 Logo 采用蓝色地球头像，统一浅蓝/暖白与深蓝主题；复用 Mihomo 与本站桌面 API。登录后每 30 秒同步流量/到期状态，额度耗尽或到期会暂停连接并显示原因；支持系统代理、线路选择、每小时配置更新和系统凭据库。首页将账号异常置顶，不依赖手动刷新订阅才出现提示。根据本地试用反馈，`0.1.0-alpha.2` 已移除四个页面的公共顶部标语、标题和连接状态栏，主题切换移至侧栏底部；本机已由用户确认顶部栏移除，发布证据见[界面优化记录](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。
 
-当前 `0.1.0-alpha.2` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；[测试版 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 已发布，四个构建目标通过，5 个安装包及源码包均已下载并校验 SHA-256；证据见[本次发布](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。真实账号、三系统代理权限与长期网络体验仍需验证，未部署生产。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
+当前 `0.1.0-alpha.2` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；[测试版 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 已发布，四个构建目标通过，5 个安装包及源码包均已下载并校验 SHA-256；证据见[本次发布](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。真实账号、三系统代理权限与长期网络体验仍需验证；官网下载入口的生产状态以上方记录为准。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
 
 ### 网站 Flawless 灰云入口已切换（2026-10-22）
 

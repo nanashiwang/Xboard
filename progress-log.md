@@ -13,7 +13,17 @@
 - 下载清单固定五个既有 Release 安装包的大小、SHA-256 和官方 URL。本地已逐包核对文件与 GitHub 元数据。Production Deploy 增加独立 `sync-downloads`，先同步校验静态包再部署页面；`sync-download-guide` 只处理文章 5，校验原文哈希并备份，拒绝覆盖后台新编辑。
 - PHP 8.2.33 下首页/下载 **17 项测试、153 断言通过**；首页 Node 5 项、教程同步 Python 4 项、Blade 编译、JS 语法、actionlint 和笔记检查通过。初次复用旧预览环境时 SQLite 检查阻塞，已改用独立临时数据库；业务回归均在隔离环境完成。
 - Playwright 实际 Laravel 页面验证各平台切换、320/390/768/1440px 无横向溢出、深浅主题；自有桌面即使存在模拟登录态也不请求导入；第三方模拟导入正常，退出后清除订阅地址与 URI。截图在忽略的本地 output/playwright；未使用客户凭据或将模拟导入当作真实代理连接。
-- 本次不重发桌面二进制，沿用 [0.1.0-alpha.2 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2)。网站按提交号构建 GHCR 镜像，无独立网站 GitHub Release。提交、CI、静态镜像和生产状态待下方完成记录，不把本地预览等同上线。
+- 本次不重发桌面二进制，沿用 [0.1.0-alpha.2 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2)。网站按提交号构建 GHCR 镜像，无独立网站 GitHub Release。提交、CI、静态镜像和生产验收见下方记录。
+
+### 发布与生产验收
+
+实现提交 `41a957f1825cdb775ea429c4940abf21d05a2dd5` 已推送 `origin/master`。[首页/下载 CI](https://github.com/nanashiwang/Xboard/actions/runs/39938806864)完成 17 项 PHP / 153 断言、5 项 Node、4 项 Python 与 Blade 编译；笔记、节点、邮件及管理脚本的相关 CI 也均成功。[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/39938806681)已发布 `ghcr.io/nanashiwang/xboard:41a957f`，amd64/arm64 的 OCI revision 均逐项回读匹配完整提交。
+
+- [静态包同步](https://github.com/nanashiwang/Xboard/actions/runs/39938885703)成功，保留旧包。5 个卡皮巴拉安装包全部从正式主域完整下载，大小、SHA-256 与 GitHub Release 一致；主站/备用域名共 10 个 Range 请求返回正确的 1024 字节及 Content-Range；公开校验清单与全部 11 包一致。
+- [生产部署](https://github.com/nanashiwang/Xboard/actions/runs/39939800928)在北京时间 **2026-10-23 18:33:22** 完成，容器 Healthy，运行 revision 为 `41a957f1825cdb775ea429c4940abf21d05a2dd5`，日志确认 Nothing to migrate。两域首页/下载/公开配置均 200，未登录个人接口均 403；页面版本 `20261023-41a957f`，下载 JS/CSS 与品牌图标逐字节匹配源码。
+- 正式浏览器通过电脑首页下载入口、Windows/macOS/Linux 五包选项、手机菜单进入下载、Android 第三方登录保护及 390px 无横溢，页面无脚本异常；水豚图标完成解码后再截图验收。追加图片/Actions 查询出现过 TLS 超时或 EOF，后续请求与浏览器均成功，不能推断全网长期稳定。截图位于本机忽略目录 `output/playwright/capybara/downloads-production-*.png`。
+- [下载教程同步](https://github.com/nanashiwang/Xboard/actions/runs/39940212904)于北京时间 **18:35:59** 成功：原文摘要校验通过，仅更新文章 5，备份 `/root/xboard-backups/knowledge/knowledge-before-client-guides-1792751759-2139032.json`；其他字段/文章未更改。未使用客户凭据登录知识库，文章生产证据为受保护的同步日志。
+- 本地 UA 推荐覆盖 Windows/macOS/Linux/Android/iPhone/iPad 桌面 UA，未知设备列出全部选项；禁用 JS 仍可下载。代码提交的 README/progress-log 已从 GitHub 精确 SHA 回读且字节一致。最终记录以独立中文文档提交收尾，推送后再次核对，不重发桌面版本或重建应用镜像。
 
 方案与约束见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)及[运维](./docs/zh-CN/installation/client-downloads.md)。保留既有 TUN 与香港入口未提交改动，不纳入本次提交。
 
