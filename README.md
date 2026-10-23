@@ -30,11 +30,11 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
-### 官网下载卡皮巴拉（2026-10-23）
+### 官网下载卡皮巴拉（2026-10-24）
 
-官网首页继续使用 `/clients`，电脑端现默认提供自有卡皮巴拉 **0.1.0-alpha.2**，覆盖 Windows x64、macOS Apple Silicon/Intel、Linux x64 DEB/AppImage。安装后直接登录本站账号；自动同步流量与到期状态，无需复制订阅。手机明确标为第三方方案，Clash Verge 保留独立兼容入口。页面提供测试版、系统要求、签名限制、校验值及官方备用下载。
+官网首页继续使用 `/clients`，电脑端现默认提供自有卡皮巴拉 **0.1.0-alpha.3**，覆盖 Windows x64、macOS Apple Silicon/Intel、Linux x64 DEB/AppImage。安装后直接登录本站账号；自动同步流量与到期状态，无需复制订阅。手机明确标为第三方方案，Clash Verge 保留独立兼容入口。页面提供测试版、系统要求、签名限制、校验值及官方备用下载。
 
-本地 17 项 PHP / 153 断言、5 项 Node、4 项教程同步回归与 Blade 编译通过；真实浏览器已验证平台切换、320–1440px、暗色、第三方模拟导入及退出清理。5 个安装包 SHA-256 与既有 [Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 一致。本次不改变桌面版本；网站镜像构建、静态包同步、上线与文章 5 更新状态见[进展](./progress-log.md#2026-10-23官网下载接入卡皮巴拉)，取舍见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)。已完成静态安装包同步及[网站部署](https://github.com/nanashiwang/Xboard/actions/runs/39939800928)，生产版本 `20261023-41a957f`、容器 Healthy；正式首页下载跳转、5 包完整下载与两域断点续传通过，下载教程也已同步。
+[官网下载页面](https://taige.us/clients)已部署 `8ecbd73`，生产容器 Healthy，两域名回读版本与新版五包链接一致。网站 17 项 PHP / 153 断言、5 项 Node、8 项同步回归通过；全部新版安装包、更新归档、签名及索引已从主站完整下载验 SHA，四目标更新签名通过，两域名五包 Range 共 10 项通过。文章 5 的更新说明已带备份同步。桌面 [alpha.3 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.3) 与网站分发均已验收；旧 alpha.1/alpha.2 需先手动安装一次。证据见[本次记录](./progress-log.md#2026-10-24卡皮巴拉六小时检查更新)。
 
 ### 卡皮巴拉官网首页（2026-10-23）
 
@@ -46,7 +46,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.3` 新增每 6 小时检查应用更新，重启保留周期，休眠恢复补查；帮助页可立即检查。发现新版后用户选择稍后或更新，确认后才下载；Windows/macOS/AppImage 验签并恢复系统代理后安装重启，DEB 打开官网下载页交由系统安装器。旧 alpha.1/alpha.2 需要先手动升级一次。更新签名不代表系统发行者签名或公证。
 
-本地前端 11、Rust 8、发布校验 2 项测试、生产前端构建、macOS 签名更新包、深浅与小窗口交互通过。[四目标 CI 与发布](https://github.com/nanashiwang/Xboard/actions/runs/39988361814)已成功，[alpha.3 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.3) 的 18 个附件全量下载且 SHA-256 一致，四目标更新签名与源码提交已校验；官网分发与页面上线待本轮部署验收；见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-10-24卡皮巴拉六小时检查更新)。
+本地前端 11、Rust 8、发布校验 2 项测试、生产前端构建、macOS 签名更新包、深浅与小窗口交互通过。[四目标 CI 与发布](https://github.com/nanashiwang/Xboard/actions/runs/39988361814)已成功，[alpha.3 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.3) 的 18 个附件全量下载且 SHA-256 一致，四目标更新签名与源码提交已校验；官网索引、安装包、下载页面与教程均已上线核对；见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-10-24卡皮巴拉六小时检查更新)。
 
 ### 卡皮巴拉桌面客户端（2026-10-23）
 

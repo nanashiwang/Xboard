@@ -16,6 +16,14 @@
 
 官网分发清单准备为 5 个新版安装包、2 个 macOS 更新归档、4 个签名、1 个更新索引及 6 个第三方兼容包，索引最后发布。补充分发同步 4 项与教程同步 4 项回归，PHP 17 项 / 153 断言、Node 路由 5 项、Blade 编译、actionlint 和笔记检查通过；此时官网仍为 alpha.2，生产静态同步、页面上线与文章 5 更新在后续执行记录中另验。
 
+### 正式分发与验收
+
+- 分发提交 `8ecbd733c3abd5ca6d8966fe128a56fbbd2fc67d` 已推送 master，README/progress-log 按 SHA 从 GitHub 回读一致。[网站检查 39999445182](https://github.com/nanashiwang/Xboard/actions/runs/39999445182)、笔记/管理脚本/邮件检查及[镜像构建 39999445223](https://github.com/nanashiwang/Xboard/actions/runs/39999445223)均 success；GHCR 两架构配置的 OCI revision 实际回读并匹配完整提交。
+- [静态同步 39999483209](https://github.com/nanashiwang/Xboard/actions/runs/39999483209)成功，全部附件校验后最后发布 `capybara-latest.json`。12 个新版文件（含索引）从 taige.us 完整下载，大小与 SHA-256 全部匹配；四目标签名再次验证。taige.us / board.taige.us 五安装包共 10 项 Range 均返回 206 与 1024 字节。
+- [生产部署 40000758152](https://github.com/nanashiwang/Xboard/actions/runs/40000758152)于 2026-10-24 02:09（Asia/Shanghai）确认容器 Healthy、运行 revision `8ecbd73`；两域首页与下载页回读确认同版本和 alpha.3 五包入口。浏览器从正式首页下载按钮进入 `/clients`，核对 Windows/macOS/Linux 新版选项及更新说明。桌面与 390px 布局另有截图留在忽略目录 `output/playwright/capybara/update-*.png`。
+- [教程同步 40001075514](https://github.com/nanashiwang/Xboard/actions/runs/40001075514)于 02:10 成功，通过文章标题/旧正文摘要检查，仅更新文章 5 的正文和时间，保留其余字段及文章；备份为 `/root/xboard-backups/knowledge/knowledge-before-client-guides-1792779022-2250821.json`。本次用受控事务和摘要验证文章写入，没有额外登录普通用户检查知识库页面。
+- GitHub/主站/Registry 验收途中出现过 TLS 握手超时，重试后的完整校验成功；本机 Docker imagetools 查询挂起后停止，改用 Registry API 验证两架构。下载页首次加载期间自动化选中多个可见版本标签，改用平台区域定位后复验；不把网络采样或构建成功解释为三系统真实升级全通过。未替换用户当前正在使用的本机应用或代理连接。
+
 方案见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。保留既有 TUN 与香港入口未提交内容，提交时仅纳入本轮变更。
 
 ## 2026-10-23：移除官网首页语言标识
