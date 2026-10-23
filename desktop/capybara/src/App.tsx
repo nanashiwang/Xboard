@@ -232,40 +232,24 @@ export default function App() {
                     </span>
                     <ChevronRight size={16} />
                 </button>
-                <div className="sidebar-version">
-                    v{view.version} <span>测试版</span>
+                <div className="sidebar-footer">
+                    <div className="sidebar-version">
+                        v{view.version} <span>测试版</span>
+                    </div>
+                    <button
+                        className="icon-button"
+                        aria-label={dark ? "切换浅色主题" : "切换深色主题"}
+                        title={dark ? "切换浅色主题" : "切换深色主题"}
+                        onClick={() => setDark(!dark)}
+                    >
+                        {dark ? <Sun size={19} /> : <Moon size={19} />}
+                    </button>
                 </div>
             </aside>
             <main>
-                <header className="topbar">
-                    <div>
-                        <span className="eyebrow">
-                            A LITTLE CALM, EVERY DAY
-                        </span>
-                        <h1>{pages.find((p) => p.id === page)?.name}</h1>
-                    </div>
-                    <div className="top-actions">
-                        <span
-                            className={
-                                "connection-pill " + (connected ? "online" : "")
-                            }
-                        >
-                            <span />
-                            {connected
-                                ? "系统代理已开启"
-                                : view.logged_in
-                                  ? "尚未连接"
-                                  : "尚未登录"}
-                        </span>
-                        <button
-                            className="icon-button"
-                            aria-label={dark ? "切换浅色主题" : "切换深色主题"}
-                            onClick={() => setDark(!dark)}
-                        >
-                            {dark ? <Sun size={19} /> : <Moon size={19} />}
-                        </button>
-                    </div>
-                </header>
+                <h1 className="sr-only">
+                    {pages.find((p) => p.id === page)?.name}
+                </h1>
                 {preview && (
                     <div className="preview-label">
                         界面预览 · 模拟数据 · 不会连接真实线路

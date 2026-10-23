@@ -32,7 +32,7 @@ export const emptyView: View = {
     connection: "disconnected",
     connection_error: null,
     routes: [],
-    version: "0.1.0-alpha.1",
+    version: "0.1.0-alpha.2",
     platform: "",
 };
 export function quotaPercent(s: Subscription | null) {

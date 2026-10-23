@@ -211,6 +211,23 @@ button svg {
     place-items: center;
     flex-shrink: 0;
 }
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
 .sidebar-version {
     font-size: 9px;
     color: #8d97a1;
@@ -230,52 +247,11 @@ main {
     padding: 29px 38px 24px;
     max-width: 1560px;
 }
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 27px;
-}
 .eyebrow {
     font-size: 9px;
     letter-spacing: 2px;
     color: var(--muted);
     font-weight: 550;
-}
-h1 {
-    font-size: 23px;
-    letter-spacing: 1px;
-    font-weight: 600;
-    margin-top: 7px;
-}
-.top-actions {
-    display: flex;
-    gap: 17px;
-    align-items: center;
-}
-.connection-pill {
-    font-size: 11px;
-    color: #858e98;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: #e4eaf0;
-    padding: 8px 11px;
-    border-radius: 20px;
-}
-.connection-pill > span {
-    width: 5px;
-    height: 5px;
-    background: #8d98a4;
-    border-radius: 50%;
-}
-.connection-pill.online {
-    color: var(--accent);
-    background: #d8e2ed;
-}
-.connection-pill.online > span {
-    background: #527ca7;
-    box-shadow: 0 0 0 3px #527ca718;
 }
 .icon-button {
     width: 34px;
@@ -1070,14 +1046,9 @@ h1 {
 [data-theme="dark"] .orbit {
     border-color: #3d5369;
 }
-[data-theme="dark"] .connection-pill,
 [data-theme="dark"] .subtle {
     background: #2c3743;
     color: #a5b7ca;
-}
-[data-theme="dark"] .connection-pill.online {
-    background: #2b3d4f;
-    color: #acc8e4;
 }
 [data-theme="dark"] .power-button {
     border-color: #2b3948;
@@ -1256,6 +1227,9 @@ h1 {
     .sidebar-version {
         display: none;
     }
+    .sidebar-footer {
+        justify-content: center;
+    }
     .sidebar nav {
         margin-top: 31px;
     }
@@ -1307,18 +1281,9 @@ h1 {
     main {
         padding: 20px 16px;
     }
-    .topbar {
-        margin-bottom: 20px;
-    }
-    .top-actions {
-        gap: 6px;
-    }
     .eyebrow {
         font-size: 8px;
         letter-spacing: 1px;
-    }
-    h1 {
-        font-size: 21px;
     }
     .hero {
         height: 300px;
@@ -1379,9 +1344,6 @@ h1 {
     }
     .profile-line {
         flex-wrap: wrap;
-    }
-    .connection-pill {
-        font-size: 9px;
     }
     .login-dialog {
         width: calc(100% - 24px);
