@@ -15,7 +15,7 @@
 - Playwright 使用真实 Laravel + 内置 Vue 壳、独立 SQLite 与本机回环服务：320/390/768/1024/1536px 无横向溢出；手机菜单/Escape、段落锚点、FAQ、深色系统偏好及减少动画通过。旧套餐入口仍跳登录，`#/register?code=HOMEQA` 正确填入邀请码，下载页可达；主动阻断面板 JS 时显示重试/返回首页，恢复后可用；无 JS 导航和正文可读，图片失败时 CTA/正文仍存在。正常页面无控制台错误；故障模拟的网络错误为预期。
 - 本地截图保存在忽略的 output/playwright/home；未用真实账号提交注册或订单，不把 UI 回归写成支付、套餐资格或生产验证。已有香港入口、TUN 与其他任务的改动保留，不混入提交。
 
-取舍与边界见[实施笔记](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。本批代码与本轮文档将按项目约定提交并推送 master，随后核对主线镜像及专项 CI；当前尚未确认远程构建完成。网站没有独立 GitHub Release/安装包流程，沿用 GHCR 的提交号镜像版本；未部署生产，未触发桌面客户端发布。
+取舍与边界见[实施笔记](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。代码提交 `85009b4598ae1806dea6d96e59c82e5fb2b4ae11` 已推送 `origin/master`；[首页专项 CI](https://github.com/nanashiwang/Xboard/actions/runs/39923705833)在 PHP 8.2.35 再次完成 15 项 / 91 断言及 Blade 编译，[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705756)、[节点检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705834)和[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39923705765)均 success。GHCR `ghcr.io/nanashiwang/xboard:85009b4` 的 linux/amd64 与 linux/arm64 manifest 及镜像配置已实际回读，两者 OCI revision 均匹配完整提交。README/progress-log 已按代码 SHA 从 GitHub 回读且逐字节一致；最终记录以独立中文 `[skip ci]` 文档提交推送，随后再次回读，不重复构建应用。网站没有独立 GitHub Release/安装包流程，沿用 GHCR 的提交号镜像版本；未部署生产，未触发桌面客户端发布。
 
 ## 2026-10-23：卡皮巴拉移除重复顶部栏
 
