@@ -1,0 +1,6 @@
+{
+    "identifier": "main",
+    "description": "卡皮巴拉本地窗口；网络和凭据只经受限 Rust 命令",
+    "windows": ["main"],
+    "permissions": ["core:default"]
+}

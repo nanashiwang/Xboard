@@ -72,6 +72,43 @@ class ClientApiTest extends TestCase
             ->assertHeader('ETag', '"' . $config['sha256'] . '"');
     }
 
+    public function test_subscription_reports_exhaustion_without_refreshing_config(): void
+    {
+        $user = $this->createUser();
+        $deviceId = '9dfc6298-69c4-4f4d-a42e-0ca109b76440';
+        $token = $this->postJson('/api/v1/auth/login', $this->loginPayload($deviceId))->assertOk()->json('data.access_token');
+        $headers = ['Authorization' => 'Bearer ' . $token, 'X-Device-ID' => $deviceId];
+        $this->withHeaders($headers)->getJson('/api/v1/user/subscription')->assertOk()->assertJsonPath('data.status', 'active');
+        $user->update(['d' => $user->transfer_enable]);
+        $this->app['auth']->forgetGuards();
+        $this->withHeaders($headers)->getJson('/api/v1/user/subscription')->assertOk()
+            ->assertJsonPath('data.status', 'traffic_exhausted')->assertJsonPath('data.traffic.remaining_bytes', 0);
+        $this->withHeaders($headers)->getJson('/api/v1/client/config')->assertForbidden()->assertJsonPath('code', 'SUBSCRIPTION_UNAVAILABLE');
+        $user->update(['u' => 0, 'd' => 0]);
+        $this->app['auth']->forgetGuards();
+        $this->withHeaders($headers)->getJson('/api/v1/user/subscription')->assertOk()->assertJsonPath('data.status', 'active');
+    }
+
+    public function test_config_uses_the_core_version_and_preserves_legacy_fallback(): void
+    {
+        $user = $this->createUser();
+        $versions = [];
+        $this->app->bind(\App\Protocols\ClashMeta::class, function ($app, $parameters) use (&$versions) {
+            $versions[] = $parameters['clientVersion'];
+            $protocol = \Mockery::mock(\App\Protocols\ClashMeta::class);
+            $protocol->shouldReceive('handle')->once()->andReturn(response("proxies: []\n"));
+            return $protocol;
+        });
+        foreach ([['X-Client-Version' => '0.1.0', 'X-Core-Version' => '1.19.33'], ['X-Client-Version' => '1.18.0']] as $headers) {
+            $request = Request::create('/api/v1/client/config');
+            foreach ($headers as $name => $value) {
+                $request->headers->set($name, $value);
+            }
+            $this->app->make(ClientConfigService::class)->generate($user, $request);
+        }
+        $this->assertSame(['1.19.33', '1.18.0'], $versions);
+    }
+
     public function test_unexpected_desktop_errors_use_the_standard_response(): void
     {
         $this->createUser();

@@ -1,0 +1,556 @@
+use crate::{account, private_write, proxy};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::{
+    io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+    process::{Child, ChildStdin, Command, Stdio},
+    time::{Duration, Instant},
+};
+#[derive(Serialize, Deserialize)]
+struct Launch {
+    dir: PathBuf,
+    binary: PathBuf,
+    port: u16,
+    api: u16,
+    secret: String,
+}
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct Route {
+    pub group: String,
+    pub selected: String,
+    pub choices: Vec<String>,
+}
+pub struct Engine {
+    worker: Child,
+    input: ChildStdin,
+    pub port: u16,
+    api: u16,
+    secret: String,
+}
+#[allow(unused_mut)]
+fn cmd(binary: impl AsRef<std::ffi::OsStr>) -> Command {
+    let mut c = Command::new(binary);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        c.creation_flags(0x08000000);
+    }
+    c
+}
+fn port() -> Result<u16, String> {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .and_then(|s| s.local_addr())
+        .map(|a| a.port())
+        .map_err(|_| "无法分配本地连接端口".into())
+}
+pub fn sanitize(content: &str, port: u16, api: u16, secret: &str) -> Result<String, String> {
+    let source: serde_yaml::Mapping =
+        serde_yaml::from_str(content).map_err(|_| "订阅配置格式无效")?;
+    // Keep only subscription data and rule semantics; never inherit listeners, TUN, scripts or local paths.
+    let mut output = serde_yaml::Mapping::new();
+    for key in [
+        "proxies",
+        "proxy-groups",
+        "rules",
+        "dns",
+        "hosts",
+        "unified-delay",
+        "tcp-concurrent",
+        "ipv6",
+    ] {
+        if let Some(v) = source.get(serde_yaml::Value::String(key.into())) {
+            output.insert(key.into(), v.clone());
+        }
+    }
+    if let Some(proxies) = output
+        .get(serde_yaml::Value::String("proxies".into()))
+        .and_then(|v| v.as_sequence())
+    {
+        if proxies.is_empty() {
+            return Err("当前套餐没有可用线路".into());
+        }
+        for p in proxies {
+            for key in [
+                "private-key-path",
+                "certificate-path",
+                "ca-cert",
+                "ca-cert-path",
+            ] {
+                if p.get(key).is_some() {
+                    return Err("订阅包含不支持的本地证书路径".into());
+                }
+            }
+        }
+    } else {
+        return Err("当前套餐没有可用线路".into());
+    }
+    for (key, value) in [
+        ("mixed-port", json!(port)),
+        ("port", json!(0)),
+        ("socks-port", json!(0)),
+        ("redir-port", json!(0)),
+        ("tproxy-port", json!(0)),
+        ("allow-lan", json!(false)),
+        ("bind-address", json!("127.0.0.1")),
+        ("mode", json!("rule")),
+        ("log-level", json!("silent")),
+        ("external-controller", json!(format!("127.0.0.1:{api}"))),
+        ("secret", json!(secret)),
+        ("tun", json!({"enable":false})),
+        (
+            "profile",
+            json!({"store-selected":false,"store-fake-ip":false}),
+        ),
+    ] {
+        output.insert(
+            key.into(),
+            serde_yaml::to_value(value).map_err(|_| "无法生成配置")?,
+        );
+    }
+    if let Some(dns) = output
+        .get_mut(serde_yaml::Value::String("dns".into()))
+        .and_then(|v| v.as_mapping_mut())
+    {
+        dns.remove(serde_yaml::Value::String("listen".into()));
+    }
+    if let Some(rules) = output
+        .get_mut(serde_yaml::Value::String("rules".into()))
+        .and_then(|v| v.as_sequence_mut())
+    {
+        rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+    }
+    serde_yaml::to_string(&output).map_err(|_| "无法生成本地配置".into())
+}
+impl Engine {
+    pub async fn start(dir: &Path, binary: PathBuf, content: &str) -> Result<Self, String> {
+        let port = port()?;
+        let api = port_fn(port)?;
+        let secret = uuid::Uuid::new_v4().to_string();
+        let config = sanitize(content, port, api, &secret)?;
+        private_write(&dir.join("runtime.yaml"), config.as_bytes())?;
+        let launch = Launch {
+            dir: dir.into(),
+            binary,
+            port,
+            api,
+            secret: secret.clone(),
+        };
+        let mut worker = cmd(std::env::current_exe().map_err(|_| "无法定位桌面程序")?)
+            .arg("--capybara-engine")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|_| "无法启动连接管理进程")?;
+        let mut input = worker.stdin.take().ok_or("无法连接管理进程")?;
+        if writeln!(
+            input,
+            "{}",
+            serde_json::to_string(&launch).map_err(|_| "无法初始化连接")?
+        )
+        .is_err()
+        {
+            let _ = worker.kill();
+            return Err("无法初始化连接进程".into());
+        }
+        let stdout = worker.stdout.take().ok_or("无法读取连接状态")?;
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            let mut line = String::new();
+            BufReader::new(stdout)
+                .read_line(&mut line)
+                .map_err(|_| "无法读取内核状态")?;
+            serde_json::from_str::<Value>(&line)
+                .map_err(|_| "内核启动失败，请检查系统代理权限或防火墙")
+        })
+        .await
+        .map_err(|_| "连接进程异常")?;
+        match result {
+            Ok(value) if value["ready"] == true => Ok(Self {
+                worker,
+                input,
+                port,
+                api,
+                secret,
+            }),
+            other => {
+                let _ = writeln!(input, "stop");
+                let _ = worker.wait();
+                Err(other
+                    .ok()
+                    .and_then(|v| v["error"].as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "内核启动失败，请检查网络和系统代理权限".into()))
+            }
+        }
+    }
+    pub fn alive(&mut self) -> bool {
+        matches!(self.worker.try_wait(), Ok(None))
+    }
+    pub fn stop(&mut self) -> Result<(), String> {
+        let _ = writeln!(self.input, "stop");
+        let status = self.worker.wait().map_err(|_| "无法停止连接进程")?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err("连接已停止，但代理恢复未完成，请重启应用修复".into())
+        }
+    }
+    async fn call(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: Option<Value>,
+    ) -> Result<Value, String> {
+        let mut request = account::http()?
+            .request(method, format!("http://127.0.0.1:{}{path}", self.api))
+            .bearer_auth(&self.secret);
+        if let Some(body) = body {
+            request = request.json(&body);
+        }
+        let response = request
+            .send()
+            .await
+            .map_err(|_| "本地连接组件没有响应")?
+            .error_for_status()
+            .map_err(|_| "本地连接操作失败")?;
+        if response.status() == reqwest::StatusCode::NO_CONTENT {
+            return Ok(Value::Null);
+        }
+        response.json().await.map_err(|_| "本地连接响应无效".into())
+    }
+    pub async fn reload(&self, content: &str) -> Result<(), String> {
+        let config = sanitize(content, self.port, self.api, &self.secret)?;
+        let selected = self.routes().await.unwrap_or_default();
+        self.call(
+            reqwest::Method::PUT,
+            "/configs?force=true",
+            Some(json!({"payload": config})),
+        )
+        .await?;
+        for route in selected {
+            let _ = self.select(&route.group, &route.selected).await;
+        }
+        Ok(())
+    }
+    pub async fn routes(&self) -> Result<Vec<Route>, String> {
+        let data = self.call(reqwest::Method::GET, "/proxies", None).await?;
+        let map = data["proxies"].as_object().ok_or("线路数据无效")?;
+        Ok(map
+            .iter()
+            .filter(|(name, v)| name.as_str() != "GLOBAL" && v["type"] == "Selector")
+            .map(|(name, v)| Route {
+                group: name.clone(),
+                selected: v["now"].as_str().unwrap_or("").into(),
+                choices: v["all"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(str::to_owned))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            })
+            .collect())
+    }
+    pub async fn select(&self, group: &str, name: &str) -> Result<(), String> {
+        let routes = self.routes().await?;
+        if !routes
+            .iter()
+            .any(|r| r.group == group && r.choices.iter().any(|n| n == name))
+        {
+            return Err("这条线路已变更，请重新连接".into());
+        }
+        let mut url = reqwest::Url::parse("http://localhost").map_err(|_| "地址无效")?;
+        url.path_segments_mut().map_err(|_| "地址无效")?.push(group);
+        let encoded = url.path();
+        self.call(
+            reqwest::Method::PUT,
+            &format!("/proxies{encoded}"),
+            Some(json!({"name":name})),
+        )
+        .await?;
+        Ok(())
+    }
+    pub async fn check(&self) -> Result<(), String> {
+        let proxy = reqwest::Proxy::all(format!("http://127.0.0.1:{}", self.port))
+            .map_err(|_| "检测代理地址无效")?;
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .proxy(proxy)
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(12))
+            .build()
+            .map_err(|_| "无法初始化连接检测")?;
+        let response = client
+            .get("https://www.gstatic.com/generate_204")
+            .send()
+            .await
+            .map_err(|_| "线路暂时无法访问检测站点，可切换线路或重试")?;
+        if response.status() != reqwest::StatusCode::NO_CONTENT {
+            return Err("线路连通检测未通过，可切换线路或重试".into());
+        }
+        Ok(())
+    }
+}
+fn port_fn(other: u16) -> Result<u16, String> {
+    for _ in 0..10 {
+        let p = port()?;
+        if p != other {
+            return Ok(p);
+        }
+    }
+    Err("无法分配内核端口".into())
+}
+impl Drop for Engine {
+    fn drop(&mut self) {
+        let _ = writeln!(self.input, "stop");
+    }
+}
+
+pub fn worker_main() -> i32 {
+    let mut stdin = BufReader::new(std::io::stdin());
+    let mut line = String::new();
+    if stdin.read_line(&mut line).is_err() {
+        return 1;
+    }
+    let launch: Launch = match serde_json::from_str(&line) {
+        Ok(v) => v,
+        Err(_) => return 1,
+    };
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(_) => return 1,
+    };
+    let mut core = match cmd(&launch.binary)
+        .arg("-d")
+        .arg(&launch.dir)
+        .arg("-f")
+        .arg(launch.dir.join("runtime.yaml"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(_) => {
+            println!(
+                "{}",
+                json!({"error":"未找到代理内核，请重新安装完整客户端"})
+            );
+            return 1;
+        }
+    };
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut line = String::new();
+        let _ = stdin.read_line(&mut line);
+        let _ = tx.send(());
+    });
+    let ready = runtime.block_on(async {
+        let client = account::http()?;
+        let start = Instant::now();
+        loop {
+            if rx.try_recv().is_ok() {
+                return Err("连接已取消".to_string());
+            }
+            if !matches!(core.try_wait(), Ok(None)) {
+                return Err("内核未能加载配置，请检查线路配置或重新连接".into());
+            }
+            if let Ok(r) = client
+                .get(format!("http://127.0.0.1:{}/version", launch.api))
+                .bearer_auth(&launch.secret)
+                .timeout(Duration::from_millis(800))
+                .send()
+                .await
+            {
+                if r.status().is_success() {
+                    break;
+                }
+            }
+            if start.elapsed() > Duration::from_secs(35) {
+                return Err("内核启动超时，请检查网络或安全软件".into());
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+        proxy::enable(&launch.dir, launch.port)
+    });
+    if let Err(error) = ready {
+        let _ = core.kill();
+        let _ = core.wait();
+        let recovery = proxy::recover(&launch.dir);
+        println!(
+            "{}",
+            json!({"error":if recovery.is_err(){"代理恢复失败，请重启应用修复".to_owned()}else{error}})
+        );
+        let _ = std::fs::remove_file(launch.dir.join("runtime.yaml"));
+        return 1;
+    }
+    println!("{}", json!({"ready":true}));
+    let _ = std::io::stdout().flush();
+    loop {
+        if rx.recv_timeout(Duration::from_millis(500)).is_ok()
+            || !matches!(core.try_wait(), Ok(None))
+        {
+            break;
+        }
+    }
+    let recovery = proxy::recover(&launch.dir);
+    let _ = core.kill();
+    let _ = core.wait();
+    let _ = std::fs::remove_file(launch.dir.join("runtime.yaml"));
+    if recovery.is_ok() {
+        0
+    } else {
+        1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn config_cannot_open_network_listeners_or_tun() {
+        let raw="proxies:\n  - { name: one, type: ss, server: example.com, port: 443, cipher: aes-128-gcm, password: x }\nproxy-groups: []\nrules: [MATCH,DIRECT]\nallow-lan: true\ntun: { enable: true }\nexternal-ui: /etc\nlisteners: [{port: 80}]\ndns: { listen: '0.0.0.0:53' }\n";
+        let output = sanitize(raw, 17897, 19091, "private").unwrap();
+        let data: serde_yaml::Value = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(data["allow-lan"], false);
+        assert_eq!(data["bind-address"], "127.0.0.1");
+        assert_eq!(data["tun"]["enable"], false);
+        assert!(data["listeners"].is_null());
+        assert!(data["external-ui"].is_null());
+        assert!(data["dns"]["listen"].is_null());
+        assert_eq!(data["rules"][0], "DOMAIN,taige.us,DIRECT");
+    }
+    #[test]
+    fn refuses_empty_and_local_key_config() {
+        assert!(sanitize("proxies: []", 1, 2, "x").is_err());
+        assert!(sanitize(
+            "proxies: [{name: x, private-key-path: /etc/passwd}]",
+            1,
+            2,
+            "x"
+        )
+        .is_err());
+    }
+}
+
+#[cfg(test)]
+mod integration {
+    use super::*;
+    struct Running(Child, PathBuf);
+    impl Drop for Running {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+            let _ = std::fs::remove_dir_all(&self.1);
+        }
+    }
+    #[tokio::test]
+    async fn bundled_core_enforces_controller_auth_and_keeps_config_after_invalid_reload() {
+        let binary = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(format!(
+                "mihomo-{}{}",
+                crate::host_target(),
+                if cfg!(windows) { ".exe" } else { "" }
+            ));
+        assert!(
+            binary.exists(),
+            "Run npm run core:prepare before native tests"
+        );
+        let dir = std::env::temp_dir().join(format!("capybara-core-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::copy(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/geoip.metadb"),
+            dir.join("geoip.metadb"),
+        )
+        .unwrap();
+        let port = port().unwrap();
+        let api = port_fn(port).unwrap();
+        let secret = uuid::Uuid::new_v4().to_string();
+        let raw="proxies: [{name: 测试线路, type: direct}]\nproxy-groups: [{name: 卡皮巴拉, type: select, proxies: [测试线路]}]\nrules: ['GEOIP,CN,DIRECT', 'MATCH,卡皮巴拉']\n";
+        let config = sanitize(raw, port, api, &secret).unwrap();
+        private_write(&dir.join("config.yaml"), config.as_bytes()).unwrap();
+        let mut core = Running(
+            cmd(binary)
+                .args([
+                    "-d",
+                    dir.to_str().unwrap(),
+                    "-f",
+                    dir.join("config.yaml").to_str().unwrap(),
+                ])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+            dir,
+        );
+        let client = account::http().unwrap();
+        let base = format!("http://127.0.0.1:{api}");
+        let mut ready = false;
+        for _ in 0..100 {
+            if let Ok(r) = client
+                .get(format!("{base}/version"))
+                .bearer_auth(&secret)
+                .send()
+                .await
+            {
+                if r.status().is_success() {
+                    ready = true;
+                    break;
+                }
+            }
+            assert!(matches!(core.0.try_wait(), Ok(None)));
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert!(ready, "bundled core did not become ready");
+        assert_eq!(
+            client
+                .get(format!("{base}/proxies"))
+                .send()
+                .await
+                .unwrap()
+                .status(),
+            reqwest::StatusCode::UNAUTHORIZED
+        );
+        let before: Value = client
+            .get(format!("{base}/proxies"))
+            .bearer_auth(&secret)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert!(before["proxies"]["卡皮巴拉"].is_object());
+        let response = client
+            .put(format!("{base}/configs?force=true"))
+            .bearer_auth(&secret)
+            .json(&json!({"payload":"rules: ['MATCH,不存在的组']"}))
+            .send()
+            .await
+            .unwrap();
+        assert!(!response.status().is_success());
+        let after: Value = client
+            .get(format!("{base}/proxies"))
+            .bearer_auth(&secret)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(
+            before["proxies"]["卡皮巴拉"]["now"],
+            after["proxies"]["卡皮巴拉"]["now"]
+        );
+        let response = client
+            .put(format!("{base}/configs?force=true"))
+            .bearer_auth(&secret)
+            .json(&json!({"payload":config}))
+            .send()
+            .await
+            .unwrap();
+        assert!(response.status().is_success());
+    }
+}

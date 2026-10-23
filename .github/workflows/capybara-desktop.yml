@@ -1,0 +1,98 @@
+name: Capybara Desktop
+on:
+  push:
+    branches: [master]
+    paths: ['desktop/capybara/**', '.github/workflows/capybara-desktop.yml']
+  pull_request:
+    paths: ['desktop/capybara/**', '.github/workflows/capybara-desktop.yml']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: '全部构建通过后发布测试版（不部署服务器）'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: capybara-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop/capybara
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/capybara/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev libsecret-1-dev patchelf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/capybara/src-tauri -> target
+      - name: Install and verify frontend
+        run: npm ci && npm test && npm run build
+      - name: Prepare pinned Mihomo core
+        run: npm run core:prepare -- ${{ matrix.target }}
+      - name: Verify native behavior
+        run: cargo fmt --check && cargo test --locked
+        working-directory: desktop/capybara/src-tauri
+      - name: Build test installers
+        run: npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - name: Collect installers and checksums
+        run: node scripts/collect-artifacts.mjs ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capybara-${{ matrix.target }}
+          path: desktop/capybara/artifacts/*
+          if-no-files-found: error
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: capybara-*
+          merge-multiple: true
+          path: release-assets
+      - name: Publish prerelease after all platforms succeed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./desktop/capybara/package.json').version")
+          TAG="capybara-v$VERSION"
+          git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md > "release-assets/Capybara_${VERSION}_source.zip"
+          cd release-assets
+          sha256sum --check SHA256SUMS-*.txt
+          sha256sum Capybara_* > SHA256SUMS.txt
+          cd ..
+          gh release create "$TAG" release-assets/* --target "$GITHUB_SHA" --title "卡皮巴拉 $VERSION" --notes-file desktop/capybara/RELEASE_NOTES.md --prerelease

@@ -26,7 +26,9 @@ class ClientConfigService
         $servers = ServerService::getAvailableServers($user);
         $servers = HookManager::filter('client.subscribe.servers', $servers, $user, $request);
 
-        $clientVersion = (string) $request->header('X-Client-Version', '');
+        // App and Mihomo versions are independent. Keep the legacy header as a
+        // fallback for clients released before the explicit core-version contract.
+        $clientVersion = (string) $request->header('X-Core-Version', $request->header('X-Client-Version', ''));
         $protocol = app()->make(ClashMeta::class, [
             'user' => $user,
             'servers' => $servers,

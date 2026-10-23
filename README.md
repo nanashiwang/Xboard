@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉桌面客户端（2026-10-23）
+
+已新增 [卡皮巴拉桌面工程](./desktop/capybara/README.md)：原创水豚 Logo 和首页，复用 Mihomo 与本站桌面 API。登录后每 30 秒同步流量/到期状态，额度耗尽或到期会暂停连接并显示原因；支持系统代理、线路选择、每小时配置更新和系统凭据库。首页将账号异常置顶，不依赖手动刷新订阅才出现提示。
+
+首版 `0.1.0-alpha.1` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；跨平台 Actions 和 Release 状态见[本次进展](./progress-log.md#2026-10-23卡皮巴拉桌面客户端首版)。真实账号、三系统代理权限与长期网络体验仍需验证，未部署生产。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
+
 ### 网站 Flawless 灰云入口已切换（2026-10-22）
 
 `taige.us` 已改为 DNS-only A 指向 `155.103.118.155`，再严格 HTTPS 转发至原源站；两台权威 DNS、1.1.1.1 与 8.8.8.8 已返回新地址且无旧 AAAA，实际请求目的 IP 与响应头验证一致。独立证书、webroot 自动续期模拟、源站真实 IP/伪造头防护、压缩、下载 Range 和登录页通过；`board.taige.us` 保留 CF，节点与订阅域名保持。

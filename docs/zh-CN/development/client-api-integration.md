@@ -49,10 +49,12 @@ Content-Type: application/json
 X-Request-ID: 0190f1d0-...
 X-Device-ID: 9dfc6298-69c4-4f4d-a42e-0ca109b76440
 X-Client-Version: 1.2.0
+X-Core-Version: 1.19.33
 X-Platform: windows
 X-Architecture: x64
 ```
 
+- `X-Core-Version` 为实际 Mihomo 内核版本，与应用版本 `X-Client-Version` 独立；服务端优先用它判断协议能力，缺省时保留旧客户端版本回退。
 - `X-Device-ID` 为客户端首次安装生成并持久化的 UUID，不使用 MAC 地址、磁盘序列号等原始硬件标识。
 - 所有流量字段均为 64 位整数，单位统一为 `byte`。
 - 所有时间均使用 UTC ISO 8601，例如 `2026-08-10T08:30:00Z`；永不过期使用 `null`。
