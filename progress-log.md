@@ -23,7 +23,19 @@
 
 正式浏览器验收发现真实网络慢加载竞态：返回首页后在 defer 启动器到达前点击注册，head 中保存的 home 模式与后续读取的 #/register 不一致，注册组件实际已挂载但被首页样式隐藏。修复为启动器执行时重新同步页面模式；bfcache 恢复时清除上次导航标志，脚本 URL 加应用版本避免旧缓存。
 
-新增 5 项 Node 回归覆盖延迟启动、反向返回、捕获顺序、重复事件及 bfcache；15 项 PHP / 91 断言和 Blade 编译再次通过。真实本地浏览器主动拦住 home.js，在点击注册后释放响应，确认从 home 切为 panel 且表单可见；快速返回后再次注册通过。修正版构建、部署与最终生产复验待完成；首次容器升级成功不等于所有交互已经验收。
+新增 5 项 Node 回归覆盖延迟启动、反向返回、捕获顺序、重复事件及 bfcache；15 项 PHP / 91 断言和 Blade 编译再次通过。真实本地浏览器主动拦住 home.js，在点击注册后释放响应，确认从 home 切为 panel 且表单可见；快速返回后再次注册通过。修正版构建、部署与最终生产复验结果见下。
+
+### 修正版上线与最终复验
+
+慢加载修复提交 `238cdbc` 的[首次专项 CI](https://github.com/nanashiwang/Xboard/actions/runs/39928480998)失败：本机大小写不敏感的 frontend 忽略规则漏掉 tests/Frontend 中新增回归文件。已用 `git add -f` 补齐为 `16272a231f25fdbc4e5703c7b24b81cc9ae516a6` 并推送 master；取消过时镜像任务，避免旧构建覆盖 latest。最终[首页 CI](https://github.com/nanashiwang/Xboard/actions/runs/39928577358)完成 5 项 Node、15 项 PHP / 91 断言及 Blade 编译，[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39928577305)和[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/39928577323)均成功，两个平台 OCI revision 均与完整提交匹配。
+
+锁定该 revision 的[正式部署](https://github.com/nanashiwang/Xboard/actions/runs/39929108999)于 **2026-10-23 17:04:47（北京时间）**完成，生产容器 Healthy，运行镜像 revision 为 `16272a231f25fdbc4e5703c7b24b81cc9ae516a6`；镜像 ID 为 `sha256:5b5f163dc09e064b60caa3c0d5558b5fbc993cd0538e595455caa3d9419f3e8a`。日志确认 Nothing to migrate，无新增数据库迁移；未调整 DNS、反代或节点配置。
+
+- [主站](https://taige.us/)与[备用域名](https://board.taige.us/)均回读版本 `20261023-16272a2`；首页、下载页与公开配置各返回 200，未登录用户信息接口各返回 403。主站五个首页静态资源逐字节匹配最终提交，启动脚本使用新版缓存标记。
+- 正式浏览器通过登录、返回首页后注册、注册刷新和未登录套餐重定向；390px 手机无横向溢出，菜单、指南锚点及 FAQ 展开正常；1536px 桌面与手机完整截图已目视检查。实际暂停生产 home.js 响应，在旧 head 模式为 home 时点击注册，再释放响应，确认最终 panel / display:block、注册表单可见，测试中无 pageerror。未提交真实注册或支付。
+- 复验期间主站与备用路径曾有 30 秒连接超时，浏览器一次等待 load 超时；随后的完整 13 项 HTTP/资源复测与分步浏览器交互全部通过。此为当前环境的有限样本，不把重试成功写成全网卡顿已解决；网络配置保持不变。
+
+本轮最终文档按中文 `[skip ci]` 独立提交并推送 master；提交前回读本段、README、能力地图和决策笔记，执行笔记/链接/差异检查，推送后按精确 SHA 从 GitHub 回读 README/progress-log。网站沿用 GHCR 镜像发布，没有独立网站 GitHub Release 或安装包，不触发桌面客户端发布；本地无关改动继续保留。
 
 ## 2026-10-23：卡皮巴拉移除重复顶部栏
 
