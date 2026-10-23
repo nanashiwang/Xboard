@@ -1,6 +1,6 @@
 # 卡皮巴拉桌面客户端
 
-蓝围巾旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.0-alpha.2**。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
+蓝围巾旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.0-alpha.3**。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
 
 ## 已实现
 
@@ -9,6 +9,7 @@
 - 一键系统代理、规则分流、线路选择、连接检测。连接前重新核对套餐并下载校验配置；连接期间每小时更新配置，失败继续使用上次配置。
 - 独立连接管理进程，在主程序退出、崩溃或内核退出时尝试恢复原代理；保留恢复记录供下次启动修复。检测到已有系统代理时拒绝覆盖，需先关闭其他代理客户端。
 - 浅色、深色、窄窗口、登录弹窗、账户中心/支持入口与不含凭据的诊断摘要。
+- 每 6 小时检查应用更新，重启保留周期、休眠恢复补查，帮助页可立即检查。用户确认后才下载；Windows/macOS/AppImage 验签、恢复系统代理后安装重启。DEB 确认后打开官网下载页，交由系统安装器更新。更新检查独立于套餐同步。
 
 ## 首版边界
 
@@ -22,7 +23,7 @@
 - 服务端计费上报有延迟，30 秒轮询不代表字节级实时计费。节点更新与流量状态查询是两个独立周期。
 - 站点 API 固定为 `https://taige.us`，使用系统外的直连 HTTP 客户端并禁止重定向；其他软件或系统级 TUN 仍可能影响真实路由。
 - 配置只接收本站下发的内置节点、代理组、规则和 DNS。不会继承订阅中的 TUN、对外监听、脚本、外部 UI 或本地证书路径；依赖外部 providers 的自定义模板需要单独适配。
-- 未配置 Windows 代码签名、macOS Developer ID 公证或签名自动更新。当前只能手动安装测试版；构建成功不代表三系统真实账号、代理权限、休眠恢复和所有网络环境已验收。
+- 未配置 Windows 代码签名或 macOS Developer ID 公证；更新签名只验证来源与更新包完整性。旧 alpha.1/alpha.2 需手动安装 alpha.3 一次，之后才能接收后续更新。构建成功不代表三系统真实账号、代理权限、安装升级、休眠恢复和所有网络环境已验收。
 - 服务端配套支持 `X-Core-Version`，应用版本不再误作 Mihomo 版本。此提交不部署服务器，生产仍需在后续部署后核对。
 
 ## 开发与检查
@@ -52,3 +53,13 @@ npm run desktop:build
 [Capybara Desktop 工作流](../../.github/workflows/capybara-desktop.yml)在各平台运行前端测试、Rust 测试、真实打包内核的控制接口/配置回退测试，构建四个目标的五个安装包并产生摘要。手动触发且 `publish=true` 时，只有全部目标成功才创建 `capybara-v<version>` 预发布及源码附件；正常 push 仅构建。版本需同步 package.json、Cargo.toml 和 tauri.conf.json，说明写入 RELEASE_NOTES.md。
 
 本地检查、GitHub Actions、安装包发布和生产验证分别记录在[进展日志](../../progress-log.md)。架构约束见[决策笔记](../../.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)；图片说明见 [BRAND.md](BRAND.md)，许可证和来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## 更新分发
+
+开发预览另支持 `?preview=update` 与 `?preview=update-deb`，不会下载或安装文件。
+
+发布必须配置 `CAPYBARA_UPDATER_PRIVATE_KEY` 仓库 Secret；PR 构建不读取密钥，不生成可分发的签名更新索引。发布前验证四目标的包体及可信注释签名，缺包或验签失败阻止发布。更新签名与 Windows 发行者签名/macOS 公证是两回事。
+
+Release 的 `capybara-latest.json` 包含四目标版本、说明、签名和 taige.us 下载地址。发布后将安装包及更新附件加入 `.docker/downloads/manifest.json`，索引文件必须最后列出；执行现有 `sync-downloads`，前面的文件全部验证通过后才原子替换索引，不能只上传新索引。客户端使用每次检查的新查询参数避免静态缓存拖延检查。
+
+密钥只保存在受限本机目录和 GitHub Secrets；公钥随应用配置发布。需保留私钥备份才能继续给已安装用户更新。机制与边界见[更新决定](../../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。

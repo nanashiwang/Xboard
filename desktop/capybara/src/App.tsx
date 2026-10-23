@@ -1,3 +1,4 @@
+import Updates from "./Updates";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
     ArrowDownToLine,
@@ -694,14 +695,6 @@ export default function App() {
                             </button>
                             <button
                                 className="secondary-button"
-                                onClick={() => void link("releases")}
-                            >
-                                <ArrowDownToLine size={17} />
-                                查看新版本
-                                <ArrowUpRight size={15} />
-                            </button>
-                            <button
-                                className="secondary-button"
                                 onClick={async () => {
                                     try {
                                         await navigator.clipboard.writeText(
@@ -732,6 +725,11 @@ export default function App() {
                         </p>
                     </section>
                 )}
+                <Updates
+                    version={view.version}
+                    settings={page === "help"}
+                    blocked={loginOpen || !!busy}
+                />
             </main>
             <dialog
                 ref={loginRef}

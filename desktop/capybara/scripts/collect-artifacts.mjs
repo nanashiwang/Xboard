@@ -26,11 +26,16 @@ async function files(dir) {
     }
     return out;
 }
+const signed = process.argv.includes("--signed");
 const wanted = target.includes("apple")
     ? [".dmg"]
     : target.includes("windows")
       ? [".exe"]
       : [".deb", ".AppImage"];
+if (signed) {
+    if (target.includes("apple")) wanted.push(".app.tar.gz", ".app.tar.gz.sig");
+    else wanted.push(target.includes("windows") ? ".exe.sig" : ".AppImage.sig");
+}
 await mkdir(path.join(root, "artifacts"), { recursive: true });
 const sums = [];
 for (const extension of wanted) {

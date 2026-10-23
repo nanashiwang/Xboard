@@ -1,4 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import type { UpdateView } from "./Updates";
 import { emptyView, type View } from "./model";
 export const native = isTauri();
 export const preview =
@@ -40,12 +41,50 @@ if (preview === "exhausted")
         },
     };
 if (preview === "offline") demo = { ...demo, sync_error: "账号服务连接失败" };
+let demoUpdate: UpdateView = {
+    phase:
+        preview === "update" || preview === "update-deb"
+            ? "available"
+            : "current",
+    last_checked: Math.floor(Date.now() / 1000),
+    release:
+        preview === "update" || preview === "update-deb"
+            ? {
+                  version: "0.1.0-alpha.4",
+                  notes: "优化连接体验。\n修复已知问题，提升稳定性。",
+              }
+            : null,
+    prompt: preview === "update" || preview === "update-deb",
+    downloaded: 0,
+    total: null,
+    error: null,
+    manual_install: preview === "update-deb",
+};
 export async function command<T = View>(
     name: string,
     args?: Record<string, unknown>,
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (
+            [
+                "update_snapshot",
+                "check_updates",
+                "dismiss_update",
+                "install_update",
+            ].includes(name)
+        ) {
+            if (name === "dismiss_update") demoUpdate.prompt = false;
+            if (name === "check_updates")
+                demoUpdate.prompt = !!demoUpdate.release;
+            if (name === "install_update")
+                demoUpdate = {
+                    ...demoUpdate,
+                    phase: "error",
+                    error: "这是模拟预览，不会下载或安装更新。",
+                };
+            return structuredClone(demoUpdate) as T;
+        }
         if (name === "connect")
             demo = {
                 ...demo,

@@ -1,13 +1,13 @@
 {
     "name": "capybara-desktop",
     "private": true,
-    "version": "0.1.0-alpha.2",
+    "version": "0.1.0-alpha.3",
     "type": "module",
     "license": "GPL-3.0-only",
     "scripts": {
         "dev": "vite --host 127.0.0.1",
         "build": "tsc --noEmit && vite build",
-        "test": "vitest run",
+        "test": "vitest run && node --test scripts/*.test.mjs",
         "tauri": "tauri",
         "core:prepare": "node scripts/prepare-core.mjs",
         "desktop:dev": "tauri dev",

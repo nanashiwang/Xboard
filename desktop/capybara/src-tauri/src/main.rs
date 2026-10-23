@@ -2,6 +2,7 @@
 mod account;
 mod engine;
 mod proxy;
+mod updates;
 use account::{Account, Fault};
 use engine::{Engine, Route};
 use serde::Serialize;
@@ -78,6 +79,7 @@ struct Runtime {
     view: View,
     config_synced: Option<std::time::Instant>,
     app: tauri::AppHandle,
+    installing: Arc<std::sync::atomic::AtomicBool>,
 }
 impl Runtime {
     async fn sync(&mut self) -> Result<(), Fault> {
@@ -212,6 +214,9 @@ async fn logout(state: State<'_, AppState>) -> Result<View, Fault> {
 #[tauri::command]
 async fn connect(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
+    if rt.installing.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(Fault::local("正在更新，请稍候再连接"));
+    }
     if rt.engine.is_some() {
         return Ok(rt.view.clone());
     }
@@ -309,6 +314,7 @@ fn main() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -363,6 +369,8 @@ fn main() {
                         "mihomo"
                     })
             };
+            let installing = Arc::new(std::sync::atomic::AtomicBool::new(false));
+            updates::start(app.handle(), &dir, installing.clone());
             let state = Arc::new(Mutex::new(Runtime {
                 account,
                 engine: None,
@@ -370,6 +378,7 @@ fn main() {
                 binary,
                 view,
                 config_synced: None,
+                installing,
                 app: app.handle().clone(),
             }));
             app.manage(AppState(state.clone()));
@@ -394,7 +403,11 @@ fn main() {
             disconnect,
             select_route,
             check_connection,
-            open_link
+            open_link,
+            updates::update_snapshot,
+            updates::check_updates,
+            updates::dismiss_update,
+            updates::install_update
         ]);
     let app = builder
         .build(tauri::generate_context!())
@@ -402,6 +415,10 @@ fn main() {
     let exiting = Arc::new(std::sync::atomic::AtomicU8::new(0));
     app.run(move |handle, event| {
         if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            if updates::prevent_exit(handle) {
+                api.prevent_exit();
+                return;
+            }
             use std::sync::atomic::Ordering;
             if exiting.load(Ordering::SeqCst) == 2 {
                 return;

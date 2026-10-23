@@ -62,10 +62,20 @@ jobs:
       - name: Verify native behavior
         run: cargo fmt --check && cargo test --locked
         working-directory: desktop/capybara/src-tauri
-      - name: Build test installers
-        run: npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-      - name: Collect installers and checksums
-        run: node scripts/collect-artifacts.mjs ${{ matrix.target }}
+      - name: Build installers and signed updates
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.CAPYBARA_UPDATER_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+            node scripts/collect-artifacts.mjs ${{ matrix.target }} --signed
+          else
+            if [ "$PUBLISH" = true ]; then echo '发布必须配置更新签名密钥'; exit 1; fi
+            npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
+            node scripts/collect-artifacts.mjs ${{ matrix.target }}
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: capybara-${{ matrix.target }}
@@ -92,8 +102,9 @@ jobs:
           VERSION=$(node -p "require('./desktop/capybara/package.json').version")
           TAG="capybara-v$VERSION"
           git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md > "release-assets/Capybara_${VERSION}_source.zip"
+          node desktop/capybara/scripts/update-manifest.mjs release-assets
           cd release-assets
           sha256sum --check SHA256SUMS-*.txt
-          sha256sum Capybara_* > SHA256SUMS.txt
+          sha256sum Capybara_* capybara-latest.json > SHA256SUMS.txt
           cd ..
           gh release create "$TAG" release-assets/* --target "$GITHUB_SHA" --title "卡皮巴拉 $VERSION" --notes-file desktop/capybara/RELEASE_NOTES.md --prerelease

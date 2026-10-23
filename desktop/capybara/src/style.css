@@ -1423,3 +1423,78 @@ main {
         animation: none;
     }
 }
+
+.update-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-top: 24px;
+    background: var(--panel);
+}
+.update-settings h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+}
+.update-settings p {
+    margin: 0 0 7px;
+    font-size: 13px;
+}
+.update-settings small {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.7;
+}
+.update-settings button {
+    flex-shrink: 0;
+}
+.update-dialog {
+    width: 480px;
+}
+.update-icon {
+    height: 76px;
+    width: 76px;
+    border-radius: 18px;
+}
+.update-notes {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    text-align: left;
+    max-height: 180px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.7;
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+.update-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+}
+.update-actions .primary-button {
+    width: auto;
+}
+.update-progress {
+    font-size: 13px;
+    margin-top: 22px;
+}
+.update-progress progress {
+    width: 100%;
+    accent-color: #397fe8;
+}
+.update-dialog .update-error {
+    color: #c45134;
+}
+@media (max-width: 800px) {
+    .update-settings {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
