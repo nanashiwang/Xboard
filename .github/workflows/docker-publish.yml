@@ -53,7 +53,7 @@ jobs:
 
       - name: Get version
         id: get_version
-        run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+        run: echo "version=$(git describe --tags --exclude 'capybara-*' --always)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata
         id: meta

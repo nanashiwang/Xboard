@@ -9,7 +9,7 @@ import {
     Clock3,
     Globe2,
     House,
-    Leaf,
+    Compass,
     LifeBuoy,
     LoaderCircle,
     LogOut,
@@ -148,7 +148,7 @@ export default function App() {
                 {status.tone === "warning" || status.tone === "danger" ? (
                     <TriangleAlert size={21} />
                 ) : (
-                    <Leaf size={21} />
+                    <Compass size={21} />
                 )}
             </span>
             <div>
@@ -204,7 +204,7 @@ export default function App() {
                     ))}
                 </nav>
                 <div className="sidebar-note">
-                    <Leaf size={20} />
+                    <Compass size={20} />
                     <p>
                         慢下来，
                         <br />
@@ -289,7 +289,8 @@ export default function App() {
                         <section className="hero">
                             <div className="hero-copy">
                                 <span className="tag">
-                                    <Leaf size={13} /> 和卡皮巴拉一起，轻松连接
+                                    <Compass size={13} />{" "}
+                                    和卡皮巴拉一起，探索世界
                                 </span>
                                 <h2>
                                     世界很大，
@@ -314,7 +315,7 @@ export default function App() {
                                 <img
                                     className="mascot"
                                     src="/capybara.png"
-                                    alt="头顶绿叶、安静坐着的卡皮巴拉水豚"
+                                    alt="戴蓝围巾、背旅行包的卡皮巴拉水豚"
                                 />
                                 <span className="mascot-caption">
                                     <span /> 今天，也要松弛一点。
@@ -690,7 +691,7 @@ export default function App() {
                                 </p>
                             </article>
                             <article>
-                                <Leaf />
+                                <Compass />
                                 <h3>关于卡皮巴拉</h3>
                                 <p>
                                     v{view.version} · 使用 Mihomo

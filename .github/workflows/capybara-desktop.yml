@@ -87,6 +87,7 @@ jobs:
       - name: Publish prerelease after all platforms succeed
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           VERSION=$(node -p "require('./desktop/capybara/package.json').version")
           TAG="capybara-v$VERSION"
