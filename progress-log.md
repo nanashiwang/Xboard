@@ -10,8 +10,8 @@
 
 - 删除四个页面共用的可见顶部栏及对应样式，主要内容直接从顶部开始；保留不占布局空间的辅助阅读器标题。
 - 深浅主题切换移至侧栏底部，窄窗口仍可使用；首页连接卡片与额度异常提示继续展示实际状态。本次仅调整展示，不修改账号、套餐、节点或代理逻辑。
-- 本地前端 6 项测试、类型检查与生产构建通过；macOS 应用/DMG 已构建，codesign 深度校验通过。Playwright 核对四页面顶部栏移除、内容顶部为 29px、主题开关位于侧栏；原生应用启动后窗口读取工具超时，本轮暂未确认原生窗口。
-- 版本更新为 `0.1.0-alpha.2`，复用既有四目标发布流程；GitHub Actions、Release 与附件校验结果完成后追加。机械布局调整不新增架构决策，原有边界见[桌面客户端笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。没有生产部署。
+- 本地前端 6 项测试、类型检查与生产构建通过；macOS 应用/DMG 已构建，codesign 深度校验通过。Playwright 核对四页面顶部栏移除、内容顶部为 29px、主题开关位于侧栏；原生应用启动后窗口读取工具超时，随后用户明确反馈「已经没有顶部栏」，确认本机新版界面已生效；760 × 620 深色小窗口无横向溢出，主题开关可用。
+- 版本 [0.1.0-alpha.2](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 已预发布，指向 `e86d777c56ef891135c6436c5a35b7565c12d601`；[Actions 39920855284](https://github.com/nanashiwang/Xboard/actions/runs/39920855284) 四个构建目标和 publish 全部通过。5 个安装包、源码 ZIP 与校验清单均 uploaded，6 个安装/源码附件全部实际下载并通过 SHA-256，摘要与 GitHub 资产一致；源码中 App.tsx、CSS 和版本文件与提交一致。重复 push 构建主动取消，文档检查 39920698115 与 Docker 构建 39920698069 均通过。机械布局调整不新增架构决策，原有边界见[桌面客户端笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。没有生产部署。实现提交已推送 master，并从 GitHub 按精确 SHA 回读 README/progress-log 核对一致；本段发布记录另作纯文档提交。
 
 ## 2026-10-23：卡皮巴拉桌面客户端首版
 
