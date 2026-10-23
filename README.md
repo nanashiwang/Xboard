@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 官网下载卡皮巴拉（2026-10-23）
+
+官网首页继续使用 `/clients`，电脑端现默认提供自有卡皮巴拉 **0.1.0-alpha.2**，覆盖 Windows x64、macOS Apple Silicon/Intel、Linux x64 DEB/AppImage。安装后直接登录本站账号；自动同步流量与到期状态，无需复制订阅。手机明确标为第三方方案，Clash Verge 保留独立兼容入口。页面提供测试版、系统要求、签名限制、校验值及官方备用下载。
+
+本地 17 项 PHP / 153 断言、5 项 Node、4 项教程同步回归与 Blade 编译通过；真实浏览器已验证平台切换、320–1440px、暗色、第三方模拟导入及退出清理。5 个安装包 SHA-256 与既有 [Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 一致。本次不改变桌面版本；网站镜像构建、静态包同步、上线与文章 5 更新状态见[进展](./progress-log.md#2026-10-23官网下载接入卡皮巴拉)，取舍见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)。生产仍待本轮发布和验证。
+
 ### 卡皮巴拉官网首页（2026-10-23）
 
 内置 Xboard 主题的公开首页采用用户参考的蓝天海岸、蓝围巾旅行水豚与木质路牌，配套服务概览、使用步骤、FAQ 和移动端菜单。标题、按钮及说明均为可操作 HTML；不沿用未经当期核实的节点数量、带宽或稳定性承诺。横幅使用内置 ImageGen 衍生素材并压缩为 WebP，桌面约 197 KiB、手机约 63 KiB；[素材与提示词](./public/assets/capybara-home/README.md)随源码保存。

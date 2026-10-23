@@ -2,6 +2,7 @@
   'use strict';
   var key = 'VUE_NAIVE_ACCESS_TOKEN';
   var sections = Array.from(document.querySelectorAll('.client'));
+  var importSections = sections.filter(function (section) { return section.dataset.flow === 'subscription'; });
   var tabs = Array.from(document.querySelectorAll('[data-platform]'));
   var currentToken = '';
   var generation = 0;
@@ -29,7 +30,7 @@
     if (/Win/i.test(ua)) return 'windows';
     if (/Mac/i.test(ua)) return 'macos';
     if (/Linux/i.test(ua)) return 'linux';
-    return 'windows';
+    return '';
   }
 
   function message(section, text, error) {
@@ -41,7 +42,7 @@
   function clear() {
     generation++;
     if (controller) controller.abort();
-    sections.forEach(function (section) {
+    importSections.forEach(function (section) {
       section.querySelector('.auth-state').hidden = !!currentToken;
       section.querySelector('.import-controls').hidden = !currentToken;
       section.querySelector('.import-ready').hidden = true;
@@ -68,6 +69,7 @@
   }
 
   async function prepare(section) {
+    if (!section || section.dataset.flow !== 'subscription') return;
     syncAuth();
     if (!currentToken || section.querySelector('.prepare').disabled) return;
     if (controller) controller.abort();
@@ -113,17 +115,17 @@
   function select() {
     var platform = location.hash.slice(1);
     if (!sections.some(function (section) { return section.id === platform; })) platform = device();
-    sections.forEach(function (section) { section.hidden = section.id !== platform; });
+    sections.forEach(function (section) { section.hidden = !!platform && section.id !== platform; });
     tabs.forEach(function (tab) { tab.setAttribute('aria-current', String(tab.dataset.platform === platform)); });
     var tab = tabs.find(function (item) { return item.dataset.platform === platform; });
-    document.getElementById('device-hint').textContent = platform === device()
+    document.getElementById('device-hint').textContent = !platform ? '请选择要安装客户端的设备，以下提供所有可用安装方式。' : platform === device()
       ? '已按当前设备推荐 ' + tab.textContent + '，也可以切换到其他设备。'
       : '正在查看 ' + tab.textContent + ' 的安装方式。';
     clear();
     if (currentToken) prepare(active());
   }
 
-  sections.forEach(function (section) {
+  importSections.forEach(function (section) {
     section.querySelector('.prepare').addEventListener('click', function () { prepare(section); });
     section.querySelector('.launch').addEventListener('click', function (event) {
       if (!token() || token() !== authenticatedSections.get(section)) {

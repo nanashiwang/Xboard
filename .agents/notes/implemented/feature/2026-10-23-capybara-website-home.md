@@ -12,6 +12,8 @@ Status: implemented
 
 图片只承载风景和角色，标题、按钮、功能说明均使用真实 HTML，适配手机、键盘和无 JS。使用参考图生成独立风景横幅，压缩为 WebP；站点不依赖第三方图片域名。不沿用没有当期依据的 50+、全天稳定、无限带宽等断言。
 
+官网下载入口由[卡皮巴拉客户端下载](../../implemented/feature/2026-10-23-capybara-client-downloads.md)接管：电脑优先自有客户端，手机与原 Clash 保留第三方流程，复用已发布安装包。
+
 ## Existing notes audit
 
 - [桌面客户端](../../implemented/architecture/2026-10-23-capybara-desktop.md)部分重叠：复用已提交的品牌图标；本篇只管理网站首页，不改变桌面工程。

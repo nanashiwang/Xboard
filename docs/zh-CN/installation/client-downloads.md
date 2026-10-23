@@ -4,17 +4,18 @@
 
 `/clients` 提供独立的中文下载与导入页面。Xboard 默认主题的侧栏增加“客户端下载”，仪表盘增加“下载与导入”入口；不修改压缩后的 `umi.js`。页面会识别操作系统，也允许手动切换，macOS 芯片类型由用户选择，避免浏览器将 Apple 芯片误判为 Intel。
 
-- Windows、macOS、Linux：Clash Verge Rev 2.4.7。
+- Windows、macOS、Linux：卡皮巴拉 0.1.0-alpha.2，安装后直接登录本站账号；macOS 12+、Linux GNOME x64，当前为无 TUN、无签名自动更新的测试版。
+- 第三方桌面兼容入口：`/clients#clash-verge` 保留 Clash Verge Rev 2.4.7 及原订阅导入。
 - Android：Clash Meta for Android 2.11.24，提供 ARM64 和通用包。
 - iPhone/iPad：sing-box 官方 App Store 入口。当前官方要求 iOS 15+ 和中国大陆以外地区的 Apple 账户；安装由用户在 App Store 完成。
 
 桌面与安卓继续使用下方已托管的固定版本，并保留每个包的官方备用链接、大小和 SHA-256。目录由 `app/Services/ClientDownloadService.php` 组织，安装包校验信息读取 `.docker/downloads/manifest.json`。升级版本时同时更新这两处，回归测试会检查清单一致性；不会自动把未经验证的 latest 推给用户。
 
-下载页面无需登录。个人订阅通过带现有登录态的 `GET /api/v1/user/client/import?client=...` 获取，仅支持 `clash-verge`、`clash-meta`、`sing-box` 三种值。无有效订阅、到期、流量用完或被封禁的账号不能获取导入信息。响应标记 `private, no-store`，页面不使用第三方订阅转换服务，也不将个人订阅写进公开 HTML、安装包或浏览器持久存储。
+下载页面无需登录。卡皮巴拉页签使用 `account` 流程，不请求个人订阅；第三方使用 `subscription` 流程。个人订阅通过带现有登录态的 `GET /api/v1/user/client/import?client=...` 获取，仅支持 `clash-verge`、`clash-meta`、`sing-box` 三种值。无有效订阅、到期、流量用完或被封禁的账号不能获取导入信息。响应标记 `private, no-store`，页面不使用第三方订阅转换服务，也不将个人订阅写进公开 HTML、安装包或浏览器持久存储。
 
 一键导入使用项目官方支持的 URI Scheme：`clash-verge://`、`clashmeta://`、`sing-box://`。其中 Clash Verge 的 `url` 参数放在最后，兼容其读取余下整段查询串的实现。订阅 URL 不强行指定 `flag`，保留客户端 User-Agent 对格式和内核能力版本的识别。浏览器拉起客户端后，仍需用户在客户端确认保存和开启连接；页面只提示“请确认导入”，不把拉起动作当作连接成功。自动复制不可用时提供可选中的手动地址。
 
-部署应用镜像前先确认原有 `/downloads/` 文件仍在。应用更新需刷新当前主题，才能发布新的侧栏入口脚本；现有 `xboard:update` 已调用 `refreshCurrentTheme()`。`/clients` 使用的静态文件位于 `public/assets/client-downloads.*`，随应用镜像发布。
+部署应用镜像前先同步并校验新增安装包，再从公网验证下载、大小和 Range；同步失败不得部署引用新包的页面。Production Deploy 的 `sync-downloads` 操作复用固定清单同步脚本，不重启应用。应用更新需刷新当前主题，才能发布新的侧栏入口脚本；现有 `xboard:update` 已调用 `refreshCurrentTheme()`。`/clients` 使用的静态文件位于 `public/assets/client-downloads.*`，随应用镜像发布。
 
 协议及平台要求核验来源：
 
@@ -46,11 +47,13 @@ python3 /opt/xboard-knowledge/sync.py \
   --apply
 ```
 
+`--article-id 5` 可仅同步下载教程，其他文章不读取或修改；Production Deploy 的 `sync-download-guide` 操作以该范围执行并保存备份。应在安装包与页面验收后执行，正文冲突须重新审阅。
+
 脚本核对文章 ID、标题和审阅时的正文 SHA-256；正文在后台被编辑过会拒绝覆盖。执行前保存受影响文章的完整快照，只更新正文及更新时间，不改变分类、语言、排序、显示状态或其他文章。整批在一个 SQLite 事务内执行，重复执行不会重复写入。
 
 后续修改教程前重新读取线上正文，并更新清单中的审阅哈希，不要跳过冲突检查。回滚时用快照恢复对应文章的 `body` 和 `updated_at`；先核对当前正文仍匹配快照的 `after_body_sha256`，避免覆盖发布后产生的新编辑。无需重启应用，但已打开的文档需要刷新或重新打开。发布后用真实用户页面检查文章、平台锚点、返回操作和窄屏显示。
 
-主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。当前托管 CMFA 2.11.24 的两个安卓包，以及 Clash Verge Rev 2.4.7 的 Windows x64、macOS Intel/Apple Silicon、Linux AMD64 DEB 包，总计约 295 MiB。
+主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。清单包含卡皮巴拉 0.1.0-alpha.2 的 5 个桌面安装包，以及 CMFA 2.11.24 的两个安卓包、Clash Verge Rev 2.4.7 的 4 个桌面包；实际镜像同步状态见 progress-log。旧文件继续兼容，不因更换默认客户端删除。
 
 ## 安装和更新
 
@@ -78,4 +81,4 @@ SHA-256 和文件大小来自对应官方 GitHub Release 的资产元数据，�
 
 回滚时先恢复备份文章的正文，再移除 Nginx include，检查配置并平滑重载；无需删除安装包。不要回滚文章的其他字段或覆盖备份之后产生的无关编辑。
 
-两个域名均通过 Cloudflare HTTPS 入口访问；主域名解析、证书和续期见 [主域名配置](primary-domain.md)。用户无需访问 GitHub，但大陆实际速度仍受用户到站点的网络线路影响。下载会产生服务器流量，应结合主机套餐观察用量。
+主站使用 Flawless HTTPS 入口，备用域名保留 Cloudflare；主域名解析、证书和续期见 [主域名配置](primary-domain.md)。用户无需访问 GitHub，但大陆实际速度仍受用户到站点的网络线路影响。下载会产生服务器流量，应结合主机套餐观察用量。

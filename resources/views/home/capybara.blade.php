@@ -59,17 +59,17 @@
       <div class="capy-section-heading"><span class="capy-kicker">LET’S GET GOING</span><h2 id="guide-title">出发，只需三步</h2><p>从第一次连接，到每一次轻松抵达。</p></div>
       <ol class="capy-steps">
         <li><span class="capy-step-number">01</span><h3>选择你的旅程</h3><p>注册账号，查看套餐的流量、周期与线路，选择适合自己的方案。</p><a href="/#/plan">查看套餐<svg><use href="#capy-arrow"/></svg></a></li>
-        <li><span class="capy-step-number">02</span><h3>准备好客户端</h3><p>进入下载中心，按设备系统选择客户端，并参照指引安装。</p><a href="/clients">下载客户端<svg><use href="#capy-arrow"/></svg></a></li>
-        <li><span class="capy-step-number">03</span><h3>连接更大的世界</h3><p>登录用户中心，导入有效订阅，选择线路并开启客户端连接。</p><a href="/#/dashboard">进入用户中心<svg><use href="#capy-arrow"/></svg></a></li>
+        <li><span class="capy-step-number">02</span><h3>准备好客户端</h3><p>下载卡皮巴拉电脑客户端，支持 Windows、macOS 和 Linux；手机另有安装指引。</p><a href="/clients">下载客户端<svg><use href="#capy-arrow"/></svg></a></li>
+        <li><span class="capy-step-number">03</span><h3>连接更大的世界</h3><p>在卡皮巴拉电脑客户端登录本站账号，选择线路并连接，流量状态自动同步。</p><a href="/#/dashboard">进入用户中心<svg><use href="#capy-arrow"/></svg></a></li>
       </ol>
     </section>
     <section class="capy-help capy-container" id="help" aria-labelledby="help-title">
       <div class="capy-help-intro"><span class="capy-kicker">HERE TO HELP</span><h2 id="help-title">出发前的小问题</h2><p>第一次使用也没关系，<br>我们把常用指引放在这里。</p><a class="capy-text-link" href="/#/knowledge">查看使用文档 <span aria-hidden="true">↗</span></a></div>
       <div class="capy-faq">
-        <details><summary>第一次使用，应该从哪里开始？<span aria-hidden="true">+</span></summary><p>先注册账号并选择套餐，再到<a href="/clients">下载中心</a>安装适合设备的客户端。登录用户中心后，按照下载页指引导入订阅并连接。</p></details>
-        <details><summary>手机和电脑都可以使用吗？<span aria-hidden="true">+</span></summary><p>下载中心提供 Windows、macOS、Linux、Android 和 iOS 的客户端或安装指引。各平台支持方式不同，同时连接与设备限制以所选套餐和客户端说明为准。</p></details>
+        <details><summary>第一次使用，应该从哪里开始？<span aria-hidden="true">+</span></summary><p>先注册账号并选择套餐，再到<a href="/clients">下载中心</a>安装适合设备的客户端。电脑端安装卡皮巴拉后直接登录本站账号并连接，无需复制订阅；手机按下载页指引导入订阅。</p></details>
+        <details><summary>手机和电脑都可以使用吗？<span aria-hidden="true">+</span></summary><p>卡皮巴拉自有客户端已提供 Windows、macOS、Linux 测试版；Android 和 iOS 暂使用下载中心推荐的第三方客户端。系统要求、同时连接与设备限制以下载页和所选套餐为准。</p></details>
         <details><summary>套餐有哪些线路，价格是多少？<span aria-hidden="true">+</span></summary><p>登录后可在<a href="/#/plan">套餐页面</a>查看当前方案与价格。可使用的地区、流量和有效期以套餐说明和账号实际订阅为准。</p></details>
-        <details><summary>导入订阅后还是无法连接怎么办？<span aria-hidden="true">+</span></summary><p>先确认套餐未到期且有剩余流量，再更新订阅、选择线路，并按客户端指引开启连接或系统代理。仍有问题时，可登录用户中心<a href="/#/ticket">提交工单</a>，附上客户端名称与错误信息，请勿发送密码或完整订阅链接。</p></details>
+        <details><summary>客户端无法连接怎么办？<span aria-hidden="true">+</span></summary><p>先查看客户端提示，确认套餐未到期且有剩余流量。卡皮巴拉会自动同步账号状态；第三方客户端可尝试更新订阅，再按指引开启连接或系统代理。仍有问题时，可登录用户中心<a href="/#/ticket">提交工单</a>，附上客户端名称与错误信息，请勿发送密码或完整订阅链接。</p></details>
       </div>
     </section>
     <section class="capy-final-cta capy-container" aria-label="开始使用"><div><span class="capy-kicker">YOUR NEXT ADVENTURE</span><h2>世界很大，一起去看看。</h2><p>让卡皮巴拉，陪你开启下一段探索。</p></div><a class="capy-button" href="/#/register">开启我的旅程<svg><use href="#capy-arrow"/></svg></a></section>

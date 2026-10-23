@@ -16,6 +16,8 @@ Status: implemented
 
 桌面版本标签使用 `capybara-v*`，PHP 镜像版本计算排除此命名空间；发布命令显式锁定当前 fork，避免 GitHub CLI 默认选择上游仓库。桌面构建资源不进入 PHP Docker 上下文。
 
+官网下载入口由[卡皮巴拉客户端下载](../../implemented/feature/2026-10-23-capybara-client-downloads.md)接管：电脑优先自有客户端，手机与原 Clash 保留第三方流程，复用已发布安装包。
+
 ## Existing decisions
 
 检索活跃笔记：Clash Meta DNS 修复部分重叠，继续复用服务端规则与 DNS，不在本任务重写节点；网站独立入口部分重叠，只使用现有 HTTPS API。其他节点部署、香港未提交记录与本任务无关。后端已有桌面认证、设备限额和额度接口，不重复实现账号系统。

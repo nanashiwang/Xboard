@@ -4,6 +4,19 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-23：官网下载接入卡皮巴拉
+
+用户指出官网“下载客户端”应下载我们开发的软件。现场请求 `https://taige.us/clients` 返回 200，但桌面卡片仍是 Clash Verge Rev 2.4.7；既有卡皮巴拉 0.1.0-alpha.2 的五个安装包已发布且摘要可核对。
+
+- 保留首页及用户中心的 `/clients` 入口；Windows/macOS/Linux 默认卡皮巴拉，明确测试版与架构。Android/iOS 仍使用第三方方案，原 Clash 四包移至独立兼容入口，旧安装包链接保留。
+- 自有客户端使用 `account` 流程，安装后直接登录，不请求个人订阅；第三方 `subscription` 保留资格检查与导入。同步首页三步说明、FAQ、下载教程；页面使用品牌水豚和蓝色主题。
+- 下载清单固定五个既有 Release 安装包的大小、SHA-256 和官方 URL。本地已逐包核对文件与 GitHub 元数据。Production Deploy 增加独立 `sync-downloads`，先同步校验静态包再部署页面；`sync-download-guide` 只处理文章 5，校验原文哈希并备份，拒绝覆盖后台新编辑。
+- PHP 8.2.33 下首页/下载 **17 项测试、153 断言通过**；首页 Node 5 项、教程同步 Python 4 项、Blade 编译、JS 语法、actionlint 和笔记检查通过。初次复用旧预览环境时 SQLite 检查阻塞，已改用独立临时数据库；业务回归均在隔离环境完成。
+- Playwright 实际 Laravel 页面验证各平台切换、320/390/768/1440px 无横向溢出、深浅主题；自有桌面即使存在模拟登录态也不请求导入；第三方模拟导入正常，退出后清除订阅地址与 URI。截图在忽略的本地 output/playwright；未使用客户凭据或将模拟导入当作真实代理连接。
+- 本次不重发桌面二进制，沿用 [0.1.0-alpha.2 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2)。网站按提交号构建 GHCR 镜像，无独立网站 GitHub Release。提交、CI、静态镜像和生产状态待下方完成记录，不把本地预览等同上线。
+
+方案与约束见[下载分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)及[运维](./docs/zh-CN/installation/client-downloads.md)。保留既有 TUN 与香港入口未提交改动，不纳入本次提交。
+
 ## 2026-10-23：卡皮巴拉官网首页设计
 
 用户要求官网首页参考所提供的蓝天、海岸、蓝围巾旅行水豚与木质目的地路牌设计。现有根路由加载内置 Vue 用户面板，本轮在原 Blade 入口增加公开首页，保留登录、注册、套餐、订单等既有 hash 路径及自定义主题机制，不修改支付、订阅、节点或用户身份。

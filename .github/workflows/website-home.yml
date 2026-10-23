@@ -2,9 +2,9 @@ name: Website Home Checks
 on:
   push:
     branches: [master]
-    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Frontend/website-home.test.cjs', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
+    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'resources/views/client/**', 'app/Services/ClientDownloadService.php', 'public/assets/client-downloads.*', '.docker/downloads/**', '.docker/knowledge/**', 'tests/Operations/test_knowledge_sync.py', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Frontend/website-home.test.cjs', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
   pull_request:
-    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Frontend/website-home.test.cjs', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
+    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'resources/views/client/**', 'app/Services/ClientDownloadService.php', 'public/assets/client-downloads.*', '.docker/downloads/**', '.docker/knowledge/**', 'tests/Operations/test_knowledge_sync.py', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Frontend/website-home.test.cjs', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
 permissions:
   contents: read
 jobs:
@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: node --check public/assets/capybara-home/home.js
+      - run: node --check public/assets/client-downloads.js
       - run: node --test tests/Frontend/website-home.test.cjs
+      - run: python3 -m unittest discover -s tests/Operations -p test_knowledge_sync.py
       - run: vendor/bin/phpunit tests/Feature/Desktop/WebsiteHomeTest.php tests/Feature/Desktop/ClientDownloadTest.php
       - run: php artisan view:cache

@@ -20,6 +20,10 @@ def sync(args):
     articles = manifest["articles"]
     if len({item["id"] for item in articles}) != len(articles):
         raise ValueError("清单包含重复文章 ID")
+    if args.article_id is not None:
+        if args.article_id not in {item["id"] for item in articles}:
+            raise ValueError("指定文章不在清单中")
+        articles = [item for item in articles if item["id"] == args.article_id]
     mode = "rw" if args.apply else "ro"
     uri = Path(args.database).resolve().as_uri() + "?mode=" + mode
     with sqlite3.connect(uri, uri=True, timeout=30) as db:
@@ -77,6 +81,7 @@ def main():
     parser.add_argument("--database", required=True, help="现有 SQLite 数据库路径")
     parser.add_argument("--apply", action="store_true", help="执行写入；默认仅预览")
     parser.add_argument("--backup-dir", help="执行写入时的备份目录")
+    parser.add_argument("--article-id", type=int, help="仅处理指定文章；其余文章不读取或修改")
     args = parser.parse_args()
     if args.apply and not args.backup_dir:
         parser.error("--apply 必须同时提供 --backup-dir")

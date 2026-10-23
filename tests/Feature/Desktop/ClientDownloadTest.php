@@ -18,9 +18,49 @@ class ClientDownloadTest extends TestCase
     {
         $user = $this->user();
         $this->get('/clients')->assertOk()
-            ->assertSee('客户端下载')->assertSee('Clash Verge Rev')
+            ->assertSee('卡皮巴拉客户端下载')->assertSee('Clash Verge Rev')
             ->assertSee('sing-box')->assertDontSee($user->token);
         $this->getJson('/api/v1/user/client/import?client=clash-verge')->assertForbidden();
+    }
+
+    public function test_own_desktop_clients_use_account_login_and_never_offer_subscription_import(): void
+    {
+        $catalog = app(ClientDownloadService::class)->catalog();
+        $html = $this->get('/clients')->assertOk()->getContent();
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+        $xpath = new \DOMXPath($dom);
+        foreach (['windows' => 1, 'macos' => 2, 'linux' => 2] as $platform => $count) {
+            $client = $catalog[$platform];
+            $this->assertSame('capybara', $client['id']);
+            $this->assertSame('account', $client['flow']);
+            $this->assertSame('0.1.0-alpha.2', $client['version']);
+            $this->assertCount($count, $client['packages']);
+            $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
+            $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
+            $this->assertStringContainsString('Alpha 测试版', $section->textContent);
+            $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
+            foreach ($client['packages'] as $package) {
+                $this->assertStringStartsWith('/downloads/Capybara_0.1.0-alpha.2_', $package['url']);
+                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.0-alpha.2/', $package['official_url']);
+            }
+        }
+        $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
+        $this->assertStringContainsString('GNOME', $catalog['linux']['requirement']);
+    }
+
+    public function test_mobile_and_legacy_desktop_keep_third_party_import_flows(): void
+    {
+        $catalog = app(ClientDownloadService::class)->catalog();
+        foreach (['android', 'ios', 'clash-verge'] as $platform) {
+            $this->assertSame('subscription', $catalog[$platform]['flow']);
+            $this->assertNotSame('capybara', $catalog[$platform]['id']);
+        }
+        $this->assertCount(4, $catalog['clash-verge']['packages']);
+        $this->get('/clients')->assertOk()->assertSee('目前没有卡皮巴拉手机版')
+            ->assertSee('href="#clash-verge"', false);
+        Sanctum::actingAs($this->user());
+        $this->getJson('/api/v1/user/client/import?client=capybara')->assertUnprocessable();
     }
 
     public function test_download_page_respects_safe_mode_and_escapes_site_name(): void

@@ -17,6 +17,8 @@ on:
           - verify-owned-dedicated
           - baseline-owned-dedicated
           - deploy
+          - sync-downloads
+          - sync-download-guide
           - install-cli
       image_revision:
         description: Expected full image commit SHA (blank uses workflow commit)
@@ -56,6 +58,23 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [ "$OPERATION" = sync-downloads ]; then
+            remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'test -d /srv/xboard-downloads && mktemp -d /tmp/xboard-downloads.XXXXXX')
+            trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/sync.py $remote_dir/manifest.json; rmdir -- $remote_dir"' EXIT
+            sshpass -e scp "${ssh_opts[@]}" .docker/downloads/{sync.py,manifest.json} "root@107.173.191.23:$remote_dir/"
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "python3 '$remote_dir/sync.py' /srv/xboard-downloads"
+            exit 0
+          fi
+          if [ "$OPERATION" = sync-download-guide ]; then
+            remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'mktemp -d /tmp/xboard-guide.XXXXXX')
+            trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/sync.py $remote_dir/manifest.json $remote_dir/articles/05-downloads.md; rmdir -- $remote_dir/articles $remote_dir"' EXIT
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "mkdir '$remote_dir/articles'"
+            sshpass -e scp "${ssh_opts[@]}" .docker/knowledge/{sync.py,manifest.json} "root@107.173.191.23:$remote_dir/"
+            sshpass -e scp "${ssh_opts[@]}" .docker/knowledge/articles/05-downloads.md "root@107.173.191.23:$remote_dir/articles/"
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              "python3 '$remote_dir/sync.py' --database /root/Xboard/.docker/.data/database.sqlite --article-id 5 --backup-dir /root/xboard-backups/knowledge --apply"
+            exit 0
+          fi
           if [ "$OPERATION" = inspect-dedicated ]; then
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker compose exec -T xboard php' < .docker/dedicated/inspect.php

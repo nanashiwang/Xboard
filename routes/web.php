@@ -81,7 +81,7 @@ Route::get('/clients', function (Request $request) {
     return response()->view('client.downloads', [
         'title' => admin_setting('app_name', 'Xboard'),
         'clients' => app(\App\Services\ClientDownloadService::class)->catalog(),
-        'assetVersion' => '1',
+        'assetVersion' => '2',
     ])->header('Referrer-Policy', 'no-referrer');
 });
 
