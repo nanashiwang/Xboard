@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉官网首页（2026-10-23）
+
+内置 Xboard 主题的公开首页采用用户参考的蓝天海岸、蓝围巾旅行水豚与木质路牌，配套服务概览、使用步骤、FAQ 和移动端菜单。标题、按钮及说明均为可操作 HTML；不沿用未经当期核实的节点数量、带宽或稳定性承诺。横幅使用内置 ImageGen 衍生素材并压缩为 WebP，桌面约 197 KiB、手机约 63 KiB；[素材与提示词](./public/assets/capybara-home/README.md)随源码保存。
+
+原 `/#/login`、`/#/register`、套餐/用户中心路由与 `/clients` 继续使用；公开首页不加载完整 Vue 面板，跨首页/面板的前进后退保持兼容。PHP 8.2 的首页与下载回归 15 项 / 91 断言、Blade 编译、JS/actionlint 和笔记检查通过；真实项目壳完成 320–1536px、菜单、FAQ、邀请码、登录保护、加载失败与无 JS 验收。首页保持浅色风景设计，不改变用户面板主题。方案见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)，发布与生产状态见[本次记录](./progress-log.md#2026-10-23卡皮巴拉官网首页设计)。本地预览完成，生产尚未部署；网站沿用 GHCR 镜像发布，没有独立的网站 GitHub Release/安装包流程。
+
 ### 卡皮巴拉桌面客户端（2026-10-23）
 
 已新增 [卡皮巴拉桌面工程](./desktop/capybara/README.md)：首页采用用户指定的蓝围巾旅行水豚，桌面 Logo 采用蓝色地球头像，统一浅蓝/暖白与深蓝主题；复用 Mihomo 与本站桌面 API。登录后每 30 秒同步流量/到期状态，额度耗尽或到期会暂停连接并显示原因；支持系统代理、线路选择、每小时配置更新和系统凭据库。首页将账号异常置顶，不依赖手动刷新订阅才出现提示。根据本地试用反馈，`0.1.0-alpha.2` 已移除四个页面的公共顶部标语、标题和连接状态栏，主题切换移至侧栏底部；本机已由用户确认顶部栏移除，发布证据见[界面优化记录](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。

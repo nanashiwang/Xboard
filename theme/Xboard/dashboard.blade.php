@@ -1,42 +1,32 @@
 <!doctype html>
-<html lang="zh-CN">
-
+<html lang="zh-CN" data-xboard-page="home">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="与卡皮巴拉一起畅游全球网络。了解套餐、下载客户端，轻松开启你的网络探索。" />
+  <meta name="theme-color" content="#eaf5ff" />
   <title>{{$title}}</title>
-  <script type="module" crossorigin src="/theme/{{$theme}}/assets/umi.js"></script>
+  <script>document.documentElement.dataset.xboardPage = location.hash.indexOf('#/') === 0 ? 'panel' : 'home';</script>
+  <link rel="icon" type="image/webp" href="/assets/capybara-home/icon.webp" />
+  <link rel="stylesheet" href="/assets/capybara-home/home.css?v=1" />
 </head>
-
 <body>
-
   <script>
     window.routerBase = "/";
-    window.settings = {
-      title: '{{$title}}',
-      assets_path: '/theme/{{$theme}}/assets',
-      theme: {
-        color: '{{ $theme_config['theme_color'] ?? "default" }}',
-      },
-      version: '{{$version}}',
-      background_url: '{{$theme_config['background_url']}}',
-      description: '{{$description}}',
-      i18n: [
-        'zh-CN',
-        'en-US',
-        'ja-JP',
-        'vi-VN',
-        'ko-KR',
-        'zh-TW',
-        'fa-IR'
-      ],
-      logo: '{{$logo}}'
-    }
+    window.settings = {{ Illuminate\Support\Js::from([
+      'title' => $title,
+      'assets_path' => '/theme/' . $theme . '/assets',
+      'theme' => ['color' => $theme_config['theme_color'] ?? 'default'],
+      'version' => $version,
+      'background_url' => $theme_config['background_url'] ?? '',
+      'description' => $description,
+      'i18n' => ['zh-CN', 'en-US', 'ja-JP', 'vi-VN', 'ko-KR', 'zh-TW', 'fa-IR'],
+      'logo' => $logo,
+    ]) }};
   </script>
-  <div id="app"></div>
-  <script defer src="/theme/{{$theme}}/assets/gift-card.js?v={{$version}}"></script>
-  <script defer src="/theme/{{$theme}}/assets/client-download-entry.js?v={{$version}}"></script>
-  {!! $theme_config['custom_html'] !!}
+  @include('home.capybara')
+  <div id="app"><noscript>登录和用户中心需要启用 JavaScript。<a href="/">返回首页</a></noscript></div>
+  <script defer src="/assets/capybara-home/home.js?v=1" data-panel-src="/theme/{{$theme}}/assets/umi.js"></script>
+  {!! $theme_config['custom_html'] ?? '' !!}
 </body>
-
 </html>

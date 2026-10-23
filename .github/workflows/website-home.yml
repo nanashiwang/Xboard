@@ -1,0 +1,26 @@
+name: Website Home Checks
+on:
+  push:
+    branches: [master]
+    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
+  pull_request:
+    paths: ['theme/Xboard/dashboard.blade.php', 'resources/views/home/**', 'public/assets/capybara-home/**', 'routes/web.php', 'tests/Feature/Desktop/WebsiteHomeTest.php', 'tests/Feature/Desktop/ClientDownloadTest.php', '.github/workflows/website-home.yml']
+permissions:
+  contents: read
+jobs:
+  home:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sqlite3, pdo_sqlite, redis, gmp, bcmath
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: node --check public/assets/capybara-home/home.js
+      - run: vendor/bin/phpunit tests/Feature/Desktop/WebsiteHomeTest.php tests/Feature/Desktop/ClientDownloadTest.php
+      - run: php artisan view:cache
