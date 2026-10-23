@@ -2,6 +2,9 @@
   'use strict';
   var isPanel = function () { return location.hash.indexOf('#/') === 0; };
   var startedInPanel = isPanel();
+  // A visitor can follow a link before this deferred script arrives. Re-read
+  // the current hash here instead of keeping the mode from the head script.
+  document.documentElement.dataset.xboardPage = startedInPanel ? 'panel' : 'home';
   // The existing Vue router owns #/ paths; section anchors belong to the homepage.
   // Reload only when crossing that boundary, preserving query strings and history.
   var switchingPage = false;
@@ -17,6 +20,11 @@
   }
   window.addEventListener('popstate', crossPageBoundary, true);
   window.addEventListener('hashchange', crossPageBoundary, true);
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    switchingPage = false;
+    crossPageBoundary(event);
+  }, true);
   if (startedInPanel) {
     var entry = document.currentScript;
     var main = document.createElement('script');

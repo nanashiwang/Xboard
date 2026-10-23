@@ -15,7 +15,15 @@
 - Playwright 使用真实 Laravel + 内置 Vue 壳、独立 SQLite 与本机回环服务：320/390/768/1024/1536px 无横向溢出；手机菜单/Escape、段落锚点、FAQ、深色系统偏好及减少动画通过。旧套餐入口仍跳登录，`#/register?code=HOMEQA` 正确填入邀请码，下载页可达；主动阻断面板 JS 时显示重试/返回首页，恢复后可用；无 JS 导航和正文可读，图片失败时 CTA/正文仍存在。正常页面无控制台错误；故障模拟的网络错误为预期。
 - 本地截图保存在忽略的 output/playwright/home；未用真实账号提交注册或订单，不把 UI 回归写成支付、套餐资格或生产验证。已有香港入口、TUN 与其他任务的改动保留，不混入提交。
 
-取舍与边界见[实施笔记](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。代码提交 `85009b4598ae1806dea6d96e59c82e5fb2b4ae11` 已推送 `origin/master`；[首页专项 CI](https://github.com/nanashiwang/Xboard/actions/runs/39923705833)在 PHP 8.2.35 再次完成 15 项 / 91 断言及 Blade 编译，[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705756)、[节点检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705834)和[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39923705765)均 success。GHCR `ghcr.io/nanashiwang/xboard:85009b4` 的 linux/amd64 与 linux/arm64 manifest 及镜像配置已实际回读，两者 OCI revision 均匹配完整提交。README/progress-log 已按代码 SHA 从 GitHub 回读且逐字节一致；最终记录以独立中文 `[skip ci]` 文档提交推送，随后再次回读，不重复构建应用。网站没有独立 GitHub Release/安装包流程，沿用 GHCR 的提交号镜像版本；未部署生产，未触发桌面客户端发布。
+取舍与边界见[实施笔记](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。代码提交 `85009b4598ae1806dea6d96e59c82e5fb2b4ae11` 已推送 `origin/master`；[首页专项 CI](https://github.com/nanashiwang/Xboard/actions/runs/39923705833)在 PHP 8.2.35 再次完成 15 项 / 91 断言及 Blade 编译，[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705756)、[节点检查](https://github.com/nanashiwang/Xboard/actions/runs/39923705834)和[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39923705765)均 success。GHCR `ghcr.io/nanashiwang/xboard:85009b4` 的 linux/amd64 与 linux/arm64 manifest 及镜像配置已实际回读，两者 OCI revision 均匹配完整提交。README/progress-log 已按代码 SHA 从 GitHub 回读且逐字节一致；最终记录以独立中文 `[skip ci]` 文档提交推送，随后再次回读，不重复构建应用。网站没有独立 GitHub Release/安装包流程，沿用 GHCR 的提交号镜像版本；初次设计交付未部署；用户后续授权的执行记录见下。本轮未触发桌面客户端发布。
+
+### 首次部署与慢加载修复
+
+用户明确要求直接部署到服务器。[部署前检查](https://github.com/nanashiwang/Xboard/actions/runs/39926320878)确认旧版本 f4f3849；与 85009b4 比较无新增迁移，仅首页及已发布的桌面核心版本兼容逻辑。锁定完整 revision 的[首次部署](https://github.com/nanashiwang/Xboard/actions/runs/39926610734)于北京时间 16:44 成功，容器 Healthy、运行 revision 为 85009b4，日志确认 Nothing to migrate。两个域名首页/下载/公开配置均 200，未登录用户信息接口均 403，五个首页静态资源与提交逐字节相同。
+
+正式浏览器验收发现真实网络慢加载竞态：返回首页后在 defer 启动器到达前点击注册，head 中保存的 home 模式与后续读取的 #/register 不一致，注册组件实际已挂载但被首页样式隐藏。修复为启动器执行时重新同步页面模式；bfcache 恢复时清除上次导航标志，脚本 URL 加应用版本避免旧缓存。
+
+新增 5 项 Node 回归覆盖延迟启动、反向返回、捕获顺序、重复事件及 bfcache；15 项 PHP / 91 断言和 Blade 编译再次通过。真实本地浏览器主动拦住 home.js，在点击注册后释放响应，确认从 home 切为 panel 且表单可见；快速返回后再次注册通过。修正版构建、部署与最终生产复验待完成；首次容器升级成功不等于所有交互已经验收。
 
 ## 2026-10-23：卡皮巴拉移除重复顶部栏
 

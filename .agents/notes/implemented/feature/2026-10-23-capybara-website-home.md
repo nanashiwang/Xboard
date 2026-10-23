@@ -15,7 +15,7 @@ Status: implemented
 ## Existing notes audit
 
 - [桌面客户端](../../implemented/architecture/2026-10-23-capybara-desktop.md)部分重叠：复用已提交的品牌图标；本篇只管理网站首页，不改变桌面工程。
-- [网站入口](../../implemented/architecture/2026-10-22-website-flawless-relay.md)无关：不调整 DNS、反向代理、生产部署或网络边界。
+- [网站入口](../../implemented/architecture/2026-10-22-website-flawless-relay.md)无关：应用更新不调整 DNS、反向代理或网络边界。
 - 检索 proposed/implemented/rejected 中的首页、主题和 ThemeService，未发现现有官网首页决定。
 
 ## Alternatives considered
@@ -32,8 +32,10 @@ PHP 8.2.33 下首页与客户端下载 15 项测试、91 断言通过；Blade �
 
 回退时 Vue 原路由器先于 hashchange 处理 popstate，会把根页面改写成登录页。启动器在捕获阶段拦截跨页面模式的 popstate/hashchange，停止后续监听并只刷新一次；同一模式内不拦截，由 Vue 或原生段落锚点处理。
 
+正式网络允许访客在 defer 启动脚本到达前点击链接，因此启动器必须重新读取 hash 并同步显示模式，不能只信任 head 的首帧状态；pageshow/bfcache 恢复时清除防重复标志。脚本 URL 使用应用版本，避免修复后继续使用固定 v=1 的缓存。5 项 Node 回归及实际浏览器暂停启动器后点击注册的复现测试通过，防止只用快速本地网络验收。
+
 ## Consequences
 
 首页独立轻量显示、真实文字可检索并适配手机；旧面板深链接与身份边界保持。跨首页/面板多一次文档加载。内置 Xboard 模板被用户主题覆盖时需另行适配，其他主题保持原样。页面采用固定浅色风景，原面板深浅主题不变。
 
-首页没有实时节点/套餐数据接口，装饰路牌不是库存保证；价格与实际线路由现有受保护页面提供。构建、Release 与生产验证分开记录；本轮未部署生产、未注册真实账号或执行支付。
+首页没有实时节点/套餐数据接口，装饰路牌不是库存保证；价格与实际线路由现有受保护页面提供。构建、Release 与生产验证分开记录；用户后续授权的首次生产部署已完成，慢加载竞态修复后的最终发布与生产验收见 progress-log.md；未注册真实账号或执行支付。
