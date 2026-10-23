@@ -38,7 +38,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 卡皮巴拉官网首页（2026-10-23）
 
-内置 Xboard 主题的公开首页采用用户参考的蓝天海岸、蓝围巾旅行水豚与木质路牌，配套服务概览、使用步骤、FAQ 和移动端菜单。标题、按钮及说明均为可操作 HTML；不沿用未经当期核实的节点数量、带宽或稳定性承诺。横幅使用内置 ImageGen 衍生素材并压缩为 WebP，桌面约 197 KiB、手机约 63 KiB；[素材与提示词](./public/assets/capybara-home/README.md)随源码保存。
+内置 Xboard 主题的公开首页采用用户参考的蓝天海岸、蓝围巾旅行水豚与木质路牌，配套服务概览、使用步骤、FAQ 和移动端菜单。按用户反馈移除右上角“简体中文”及地球语言标识，保留登录/注册入口。标题、按钮及说明均为可操作 HTML；不沿用未经当期核实的节点数量、带宽或稳定性承诺。横幅使用内置 ImageGen 衍生素材并压缩为 WebP，桌面约 197 KiB、手机约 63 KiB；[素材与提示词](./public/assets/capybara-home/README.md)随源码保存。
 
 原 `/#/login`、`/#/register`、套餐/用户中心路由与 `/clients` 继续使用；公开首页不加载完整 Vue 面板，跨首页/面板的前进后退保持兼容。PHP 8.2 的首页与下载回归 15 项 / 91 断言、Blade 编译、JS/actionlint 和笔记检查通过；真实项目壳完成 320–1536px、菜单、FAQ、邀请码、登录保护、加载失败与无 JS 验收。首页保持浅色风景设计，不改变用户面板主题。方案见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)，发布与生产状态见[本次记录](./progress-log.md#2026-10-23卡皮巴拉官网首页设计)。慢加载导航竞态已修复，新增 5 项 Node 回归；最终 `16272a2` 的[首页 CI](https://github.com/nanashiwang/Xboard/actions/runs/39928577358)与 [GHCR 双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39928577323)成功。用户授权后已[部署生产](https://github.com/nanashiwang/Xboard/actions/runs/39929108999)，容器 Healthy；两个域名回读版本 `20261023-16272a2`，正式站登录/注册往返、手机布局与延迟加载回归通过。复验期间有连接超时，完整重测通过，网络采样边界见进展记录。网站沿用 GHCR 镜像发布，没有独立的网站 GitHub Release/安装包流程。
 

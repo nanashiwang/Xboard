@@ -23,7 +23,6 @@
       <a href="#help">帮助中心</a>
     </nav>
     <div class="capy-header-actions">
-      <span class="capy-language"><svg><use href="#capy-globe"/></svg>简体中文</span>
       <a class="capy-button capy-button-outline capy-login" href="/#/login">登录</a>
       <a class="capy-button capy-register" href="/#/register">立即注册</a>
       <button class="capy-menu" type="button" aria-expanded="false" aria-controls="capy-navigation" aria-label="打开导航菜单" hidden><span></span><span></span><span></span></button>
