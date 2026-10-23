@@ -49,7 +49,7 @@
                 <h2>用你的账号，直接出发</h2><p class="guide">{{ $client['guide'] }}</p>
                 <ul class="benefits"><li><strong>流量状态自动同步</strong><span>每 30 秒检查剩余流量与到期状态，耗尽时明确提示。</span></li><li><strong>线路配置自动更新</strong><span>连接前核对配置，连接期间每小时更新。</span></li><li><strong>从第一次连接开始</strong><span>先关闭其他代理客户端，再在卡皮巴拉中连接。</span></li></ul>
                 <a class="button secondary" href="/#/register">还没有账号？前往注册</a>
-                <p class="preview-note">当前通过系统代理连接，暂不支持 TUN。测试版需手动安装更新；流量统计可能存在上报延迟。</p>
+                <p class="preview-note">每 6 小时检查新版本，确认后才更新；旧版需先手动升级一次。Linux DEB 通过系统安装器更新。当前采用系统代理，暂不支持 TUN；流量统计可能存在上报延迟。</p>
                 @else
                 <div class="section-label">03 / 导入订阅</div>
                 <h2>装好后，只差一步</h2><p class="guide">{{ $client['guide'] }}</p>

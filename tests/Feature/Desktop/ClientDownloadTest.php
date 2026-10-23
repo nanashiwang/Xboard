@@ -34,15 +34,15 @@ class ClientDownloadTest extends TestCase
             $client = $catalog[$platform];
             $this->assertSame('capybara', $client['id']);
             $this->assertSame('account', $client['flow']);
-            $this->assertSame('0.1.0-alpha.2', $client['version']);
+            $this->assertSame('0.1.0-alpha.3', $client['version']);
             $this->assertCount($count, $client['packages']);
             $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
             $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
             $this->assertStringContainsString('Alpha 测试版', $section->textContent);
             $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
             foreach ($client['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.0-alpha.2_', $package['url']);
-                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.0-alpha.2/', $package['official_url']);
+                $this->assertStringStartsWith('/downloads/Capybara_0.1.0-alpha.3_', $package['url']);
+                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.0-alpha.3/', $package['official_url']);
             }
         }
         $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
@@ -78,7 +78,7 @@ class ClientDownloadTest extends TestCase
         $manifest = collect(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true))->keyBy('name');
         $packages = collect(app(ClientDownloadService::class)->catalog())->pluck('packages')->flatten(1);
         $local = $packages->filter(fn ($package) => isset($package['sha256']));
-        $this->assertCount($manifest->count(), $local);
+        $this->assertCount($manifest->filter(fn ($asset) => ($asset['kind'] ?? 'installer') === 'installer')->count(), $local);
         foreach ($local as $package) {
             $asset = $manifest->get(rawurldecode(basename($package['url'])));
             $this->assertNotNull($asset);

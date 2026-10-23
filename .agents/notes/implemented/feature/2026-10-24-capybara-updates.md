@@ -14,8 +14,8 @@ Status: implemented
 
 ## History audit
 
-- [首版架构](../../implemented/architecture/2026-10-23-capybara-desktop.md)：部分重叠；本决定取代首版暂不提供签名更新的边界，其余账号、系统代理与 TUN 边界不变，实施时互链。
-- [客户端下载](../../implemented/feature/2026-10-23-capybara-client-downloads.md)：部分重叠；保留分发与账号登录路径，更新版本入口与安装说明，实施时互链。
+- [首版架构](../../implemented/architecture/2026-10-23-capybara-desktop.md)：部分重叠；本决定取代首版暂不提供签名更新的边界，其余账号、系统代理与 TUN 边界不变，两篇互链。
+- [客户端下载](../../implemented/feature/2026-10-23-capybara-client-downloads.md)：部分重叠；保留分发与账号登录路径，更新版本入口与安装说明，两篇互链。
 - 未发现其他更新提案或被否决定。
 
 ## Alternatives considered
@@ -27,6 +27,8 @@ Status: implemented
 ## Testing
 
 本地 11 项前端、8 项 Rust、2 项发布签名校验测试通过；覆盖首次启动、六小时边界、重启、休眠、时间回拨、手动检查、失败周期和检查互斥，以及稍后不下载、确认才安装、错误重试、登录不被打断、DEB 提示和更新中关闭保护。签名校验覆盖包体、可信注释篡改与错误密钥；本地实际 macOS 更新包通过同一验证器。生产构建、actionlint、深浅主题与 760×620 弹窗浏览器验收通过。四目标 CI、发布附件与分发上线证据分别记录于 progress-log，不以本地检查代替。
+
+分发同步的 4 项回归覆盖全量成功、重复执行、包体损坏、索引签名不一致和索引顺序错误；失败保留原索引。教程同步 4 项、网站 PHP 17 项 / 153 断言和前端路由 5 项通过。清单中的 `kind: update` 只标识不进入网页安装选项的附件，包体仍与普通安装包一样逐一校验。
 
 ## Consequences
 

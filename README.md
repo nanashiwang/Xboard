@@ -46,13 +46,13 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.3` 新增每 6 小时检查应用更新，重启保留周期，休眠恢复补查；帮助页可立即检查。发现新版后用户选择稍后或更新，确认后才下载；Windows/macOS/AppImage 验签并恢复系统代理后安装重启，DEB 打开官网下载页交由系统安装器。旧 alpha.1/alpha.2 需要先手动升级一次。更新签名不代表系统发行者签名或公证。
 
-本地前端 11、Rust 8、发布校验 2 项测试、生产前端构建、macOS 签名更新包、深浅与小窗口交互通过。四目标 CI、Release 和官网分发尚待本轮发布验收；见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-10-24卡皮巴拉六小时检查更新)。
+本地前端 11、Rust 8、发布校验 2 项测试、生产前端构建、macOS 签名更新包、深浅与小窗口交互通过。[四目标 CI 与发布](https://github.com/nanashiwang/Xboard/actions/runs/39988361814)已成功，[alpha.3 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.3) 的 18 个附件全量下载且 SHA-256 一致，四目标更新签名与源码提交已校验；官网分发与页面上线待本轮部署验收；见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-10-24卡皮巴拉六小时检查更新)。
 
 ### 卡皮巴拉桌面客户端（2026-10-23）
 
 已新增 [卡皮巴拉桌面工程](./desktop/capybara/README.md)：首页采用用户指定的蓝围巾旅行水豚，桌面 Logo 采用蓝色地球头像，统一浅蓝/暖白与深蓝主题；复用 Mihomo 与本站桌面 API。登录后每 30 秒同步流量/到期状态，额度耗尽或到期会暂停连接并显示原因；支持系统代理、线路选择、每小时配置更新和系统凭据库。首页将账号异常置顶，不依赖手动刷新订阅才出现提示。根据本地试用反馈，`0.1.0-alpha.2` 已移除四个页面的公共顶部标语、标题和连接状态栏，主题切换移至侧栏底部；本机已由用户确认顶部栏移除，发布证据见[界面优化记录](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。
 
-当前 `0.1.0-alpha.2` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；[测试版 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 已发布，四个构建目标通过，5 个安装包及源码包均已下载并校验 SHA-256；证据见[本次发布](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。真实账号、三系统代理权限与长期网络体验仍需验证；官网下载入口的生产状态以上方记录为准。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
+上一版 `0.1.0-alpha.2` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；[测试版 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.2) 已发布，四个构建目标通过，5 个安装包及源码包均已下载并校验 SHA-256；证据见[本次发布](./progress-log.md#2026-10-23卡皮巴拉移除重复顶部栏)。真实账号、三系统代理权限与长期网络体验仍需验证；官网下载入口的生产状态以上方记录为准。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
 
 ### 网站 Flawless 灰云入口已切换（2026-10-22）
 

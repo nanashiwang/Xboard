@@ -12,6 +12,10 @@
 - 本地前端 11、Rust 8、发布校验 2 项测试通过；生产前端构建、cargo fmt、actionlint、git diff 检查通过。macOS App/DMG 与更新 tar.gz 已构建，实际更新包签名通过发布验证器。浏览器验证浅色 1180×780、深色 760×620、稍后、手动检查、模拟失败重试；没有触发用户正在使用的原生应用安装或改动其代理。
 - 本地验证不代表 Windows/Linux 真机升级、发行者签名或 macOS 公证。四目标 Actions、Release 资产、网站更新索引和官网新版下载入口在此记录时尚未完成，后续追加实际结果。
 
+代码提交 `b9eae163eb1db3a848783096df1dddfb1b11bebd` 已推送 master；README/progress-log 按精确 SHA 从 GitHub 回读一致。[发布构建 39988361814](https://github.com/nanashiwang/Xboard/actions/runs/39988361814) 四目标与 publish 全部 success，已发布 [0.1.0-alpha.3](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.3)。18 个附件全部 downloaded，大小及 SHA-256 与 GitHub 元数据和总清单一致；四目标包体验签通过，源码 ZIP 的更新模块/界面/配置与代码提交一致。重复 push 桌面构建主动取消，笔记检查与 Docker 构建成功。
+
+官网分发清单准备为 5 个新版安装包、2 个 macOS 更新归档、4 个签名、1 个更新索引及 6 个第三方兼容包，索引最后发布。补充分发同步 4 项与教程同步 4 项回归，PHP 17 项 / 153 断言、Node 路由 5 项、Blade 编译、actionlint 和笔记检查通过；此时官网仍为 alpha.2，生产静态同步、页面上线与文章 5 更新在后续执行记录中另验。
+
 方案见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。保留既有 TUN 与香港入口未提交内容，提交时仅纳入本轮变更。
 
 ## 2026-10-23：移除官网首页语言标识
