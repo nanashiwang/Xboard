@@ -14,7 +14,10 @@
 - 修复桌面接口将应用版本误作 Mihomo 版本的契约：新增 X-Core-Version 优先，旧客户端回退保留。地理数据库随包提供并校验摘要，避免首次连接临时下载。
 - 本地验证：前端类型/构建与 6 项状态测试通过；Rust 5 项测试通过，包含真实打包内核控制接口鉴权及有效/无效热更新；后端 Desktop 37 项测试、287 断言通过，PHP 8.5 下有既有弃用提示。macOS 应用与 DMG 构建完成，实际原生窗口首页、打开及退出已验证。未使用真实账号、未开启本机系统代理。
 - Playwright 验证未登录、登录提示、深浅主题及窄窗口；耗尽提示移至首屏、禁止连接，开发模拟数据有显式标签。新参考图已通过内置 image_gen 提取透明背景并接入首页/登录页/侧栏，Tauri 生成 ICNS/ICO/PNG；浅蓝/深蓝主题与 760 × 620 小窗口已检查，本地新素材 DMG 构建与 codesign 深度校验通过。截图为本地验收产物，不作为真实流量或线路测试证据。
-- 新增 [Capybara Desktop 工作流](./.github/workflows/capybara-desktop.yml)：四个构建目标、五个安装包，全部通过后才允许手动触发预发布。当前版本 `0.1.0-alpha.1`，尚未将触发任务写成发布成功；CI / Release 完成状态另行追加。现有 Docker push 构建和网站生产部署仍分离。
+- 新增 [Capybara Desktop 工作流](./.github/workflows/capybara-desktop.yml)：手动触发时构建四个目标、五个安装包，全部通过后才发布测试版。版本 [0.1.0-alpha.1](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.1) 于 2026-10-23 12:23（Asia/Shanghai）作为预发布完成；现有 Docker push 构建和网站生产部署仍分离。
+- 发布证据：初始实现 `88a7b0a`、蓝围巾形象更新 `fe5c87f` 均已推送 master；最终 [Actions 39899664777](https://github.com/nanashiwang/Xboard/actions/runs/39899664777) 的四个构建目标与 publish 全部 success。重复的同提交 push 构建主动取消，保留预发布工作流；Docker Build and Publish 39899625039 与 Agent Workflow Notes 39899623906 通过，不代表生产已升级。
+- Release 指向 `fe5c87f263b39f86fadca3861441e577aadc0dd7`。Windows EXE、macOS ARM/Intel DMG、Linux DEB/AppImage 共 5 个安装包，以及源码 ZIP、4 份平台清单、1 份总清单均 uploaded。全部 6 个二进制/源码附件从 Release 实际下载后 SHA-256 通过，并与 GitHub 资产 digest 一致；源码 ZIP 完整，首页、图标源图及 ICNS 与本地提交相同。
+- 两次实现推送后，README/progress-log 已按精确 SHA 从 GitHub 回读并逐字节核对。新素材原生窗口复查遇到本机锁屏而未执行；此前初版原生窗口启动已验证，本轮新素材使用浏览器验收、生产资源/打包图标比对与 macOS 构建签名检查。
 
 边界：首版系统代理不等于 TUN；Linux 自动设置仅覆盖 GNOME/gsettings。签名自动更新、Windows 代码签名、macOS Developer ID 公证、真实账号与多系统代理权限、休眠/网络切换仍待验收。没有更改生产网站、客户端默认下载清单或现有用户安装。决策与取舍见[实施笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
 

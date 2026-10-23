@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 已新增 [卡皮巴拉桌面工程](./desktop/capybara/README.md)：首页采用用户指定的蓝围巾旅行水豚，桌面 Logo 采用蓝色地球头像，统一浅蓝/暖白与深蓝主题；复用 Mihomo 与本站桌面 API。登录后每 30 秒同步流量/到期状态，额度耗尽或到期会暂停连接并显示原因；支持系统代理、线路选择、每小时配置更新和系统凭据库。首页将账号异常置顶，不依赖手动刷新订阅才出现提示。
 
-首版 `0.1.0-alpha.1` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；跨平台 Actions 和 Release 状态见[本次进展](./progress-log.md#2026-10-23卡皮巴拉桌面客户端首版)。真实账号、三系统代理权限与长期网络体验仍需验证，未部署生产。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
+首版 `0.1.0-alpha.1` 为测试版本，构建目标是 Windows x64、macOS Apple Silicon/Intel 和 Linux GNOME x64；暂不含 TUN、签名自动更新、Windows 发行者签名或 macOS Developer ID 公证。前端 6 项、Rust 5 项、后端 Desktop 37 项测试通过，本地 macOS 应用和 DMG 已生成并启动验收；[测试版 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.1) 已发布，四个构建目标通过，5 个安装包及源码包均已下载并校验 SHA-256；证据见[本次进展](./progress-log.md#2026-10-23卡皮巴拉桌面客户端首版)。真实账号、三系统代理权限与长期网络体验仍需验证，未部署生产。方案见[决策笔记](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)。
 
 ### 网站 Flawless 灰云入口已切换（2026-10-22）
 
