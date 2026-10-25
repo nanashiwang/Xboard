@@ -42,6 +42,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 原 `/#/login`、`/#/register`、套餐/用户中心路由与 `/clients` 继续使用；公开首页不加载完整 Vue 面板，跨首页/面板的前进后退保持兼容。PHP 8.2 的首页与下载回归 15 项 / 91 断言、Blade 编译、JS/actionlint 和笔记检查通过；真实项目壳完成 320–1536px、菜单、FAQ、邀请码、登录保护、加载失败与无 JS 验收。首页保持浅色风景设计，不改变用户面板主题。方案见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)，发布与生产状态见[本次记录](./progress-log.md#2026-10-23卡皮巴拉官网首页设计)。慢加载导航竞态已修复，新增 5 项 Node 回归；最终 `16272a2` 的[首页 CI](https://github.com/nanashiwang/Xboard/actions/runs/39928577358)与 [GHCR 双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39928577323)成功。用户授权后已[部署生产](https://github.com/nanashiwang/Xboard/actions/runs/39929108999)，容器 Healthy；两个域名回读版本 `20261023-16272a2`，正式站登录/注册往返、手机布局与延迟加载回归通过。复验期间有连接超时，完整重测通过，网络采样边界见进展记录。网站沿用 GHCR 镜像发布，没有独立的网站 GitHub Release/安装包流程。
 
+### 卡皮巴拉钥匙串重复授权修复（2026-10-25）
+
+`0.1.0-alpha.4` 修复 macOS 启动及重新登录反复读取旧钥匙串项的问题：启动/后台操作静默执行，授权受阻只提示；登录记录按当前二进制构建隔离，重新登录不覆盖旧版受限记录。升级后需重新登录一次卡皮巴拉账号，同一构建后续启动自动恢复；钥匙串锁定仍受系统解锁要求约束，未降低存储保护。
+
+前端 14、Rust 11、发布校验 2 项与额外 1 项真实钥匙串跨进程读写测试通过。本机 App/DMG 已构建，/Applications 已更新并验证启动无钥匙串错误或授权弹窗；真实账号复启待用户试用，四目标发布待核实。GitHub Release 与官网生产更新索引分开处理，详情见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-25-capybara-keychain-prompts.md)及[进展](./progress-log.md#2026-10-25卡皮巴拉钥匙串重复授权修复)。
+
 ### 卡皮巴拉应用更新（2026-10-24）
 
 `0.1.0-alpha.3` 新增每 6 小时检查应用更新，重启保留周期，休眠恢复补查；帮助页可立即检查。发现新版后用户选择稍后或更新，确认后才下载；Windows/macOS/AppImage 验签并恢复系统代理后安装重启，DEB 打开官网下载页交由系统安装器。旧 alpha.1/alpha.2 需要先手动升级一次。更新签名不代表系统发行者签名或公证。

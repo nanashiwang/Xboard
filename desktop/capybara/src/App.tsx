@@ -120,7 +120,9 @@ export default function App() {
     const primary = () =>
         view.logged_in
             ? void act(connected ? "disconnect" : "connect")
-            : setLoginOpen(true);
+            : view.session_needs_unlock
+              ? void act("restore_session")
+              : setLoginOpen(true);
     const eligible =
         !view.logged_in ||
         connected ||
@@ -130,11 +132,15 @@ export default function App() {
             ? "正在建立连接"
             : busy === "disconnect"
               ? "正在断开"
-              : !view.logged_in
-                ? "登录并开始"
-                : connected
-                  ? "断开连接"
-                  : "一键连接";
+              : busy === "restore_session"
+                ? "正在恢复登录"
+                : view.session_needs_unlock
+                  ? "恢复登录并继续"
+                  : !view.logged_in
+                    ? "登录并开始"
+                    : connected
+                      ? "断开连接"
+                      : "一键连接";
     const submit = (event: FormEvent) => {
         event.preventDefault();
         void act("login", { email, password });
@@ -156,7 +162,15 @@ export default function App() {
                 <h3>{status.title}</h3>
                 <p>{status.text}</p>
             </div>
-            {view.logged_in && (s?.status !== "active" || percent >= 90) ? (
+            {view.session_needs_unlock ? (
+                <button
+                    disabled={!!busy}
+                    onClick={() => void act("restore_session")}
+                >
+                    {busy === "restore_session" ? "正在恢复登录" : "恢复登录"}
+                    <ShieldCheck size={16} />
+                </button>
+            ) : view.logged_in && (s?.status !== "active" || percent >= 90) ? (
                 <button onClick={() => void link("account")}>
                     账户中心
                     <ArrowUpRight size={16} />
@@ -766,6 +780,13 @@ export default function App() {
                 <span className="eyebrow">WELCOME TO CAPYBARA</span>
                 <h2>欢迎回到卡皮巴拉</h2>
                 <p>登录账号，连接你的世界。</p>
+                {view.platform === "macos" && (
+                    <p className="credential-hint">
+                        登录记录保存在 macOS
+                        钥匙串中。保存时可能需要系统授权，系统密码只在 macOS
+                        弹窗内输入。
+                    </p>
+                )}
                 <form onSubmit={submit}>
                     <label>
                         邮箱地址

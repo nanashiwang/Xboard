@@ -41,6 +41,8 @@ if (preview === "exhausted")
         },
     };
 if (preview === "offline") demo = { ...demo, sync_error: "账号服务连接失败" };
+if (preview === "keychain")
+    demo = { ...emptyView, platform: "macos", session_needs_unlock: true };
 let demoUpdate: UpdateView = {
     phase:
         preview === "update" || preview === "update-deb"
@@ -114,6 +116,8 @@ export async function command<T = View>(
                 ),
             };
         if (name === "logout") demo = { ...emptyView };
+        if (name === "restore_session")
+            throw { message: "这是模拟预览，不会访问系统钥匙串。" };
         if (name === "open_link") return undefined as T;
         return structuredClone(demo) as T;
     }

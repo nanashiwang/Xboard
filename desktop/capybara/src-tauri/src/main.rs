@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod account;
+mod credentials;
 mod engine;
 mod proxy;
 mod updates;
@@ -45,6 +46,7 @@ fn now() -> u64 {
 #[derive(Clone, Serialize)]
 struct View {
     logged_in: bool,
+    session_needs_unlock: bool,
     profile: Option<Value>,
     subscription: Option<Value>,
     synced_at: Option<u64>,
@@ -59,6 +61,7 @@ impl Default for View {
     fn default() -> Self {
         Self {
             logged_in: false,
+            session_needs_unlock: false,
             profile: None,
             subscription: None,
             synced_at: None,
@@ -196,6 +199,24 @@ async fn login(state: State<'_, AppState>, email: String, password: String) -> R
     rt.view.logged_in = true;
     let _ = rt.sync().await;
     Ok(rt.view.clone())
+}
+#[tauri::command]
+async fn restore_session(state: State<'_, AppState>) -> Result<View, Fault> {
+    let mut rt = state.0.lock().await;
+    match rt.account.resume(credentials::Access::UserInitiated) {
+        Ok(saved) => {
+            rt.view.session_needs_unlock = false;
+            rt.view.sync_error = None;
+            rt.view.logged_in = saved;
+            let _ = rt.sync().await;
+            Ok(rt.view.clone())
+        }
+        Err(e) => {
+            rt.view.session_needs_unlock = e.code == "CREDENTIALS_LOCKED";
+            rt.view.sync_error = Some(e.message.clone());
+            Err(e)
+        }
+    }
 }
 #[tauri::command]
 async fn refresh(state: State<'_, AppState>) -> Result<View, Fault> {
@@ -347,9 +368,12 @@ fn main() {
                 ..View::default()
             };
             let mut account = Account::new(&dir).map_err(std::io::Error::other)?;
-            match account.resume() {
+            match account.resume(credentials::Access::Background) {
                 Ok(saved) => view.logged_in = saved,
-                Err(e) => view.sync_error = Some(e.message),
+                Err(e) => {
+                    view.session_needs_unlock = e.code == "CREDENTIALS_LOCKED";
+                    view.sync_error = Some(e.message);
+                }
             }
             let binary = if cfg!(debug_assertions) {
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -397,6 +421,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             snapshot,
             login,
+            restore_session,
             refresh,
             logout,
             connect,

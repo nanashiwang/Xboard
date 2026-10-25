@@ -1,3 +1,4 @@
+use crate::credentials::{access, Access};
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -92,7 +93,11 @@ impl Account {
         Ok(Self {
             client: http()?,
             origin: ORIGIN.into(),
-            credential: keyring::Entry::new("us.taige.capybara", "desktop-session").ok(),
+            credential: keyring::Entry::new(
+                "us.taige.capybara",
+                &crate::credentials::account_name()?,
+            )
+            .ok(),
             device_id,
             access: String::new(),
             refresh: String::new(),
@@ -107,8 +112,11 @@ impl Account {
     pub fn logged_in(&self) -> bool {
         !self.refresh.is_empty()
     }
-    pub fn resume(&mut self) -> Result<bool, Fault> {
-        match self.entry()?.get_password() {
+    pub fn resume(&mut self, mode: Access) -> Result<bool, Fault> {
+        if self.logged_in() {
+            return Ok(true);
+        }
+        match access(mode, || self.entry_raw()?.get_password()) {
             Ok(raw) => {
                 let saved: Saved = serde_json::from_str(&raw)
                     .map_err(|_| Fault::local("登录记录损坏，请重新登录"))?;
@@ -119,8 +127,16 @@ impl Account {
                 Ok(true)
             }
             Err(keyring::Error::NoEntry) => Ok(false),
-            Err(_) => Err(Fault::local("无法读取系统凭据库，请解锁后重试")),
+            Err(_) => Err(Fault {
+                code: "CREDENTIALS_LOCKED".into(),
+                message: "登录记录暂时无法读取。点击“恢复登录”允许访问系统凭据库，或使用账号密码重新登录。".into(),
+            }),
         }
+    }
+    fn entry_raw(&self) -> keyring::Result<&keyring::Entry> {
+        self.credential
+            .as_ref()
+            .ok_or_else(|| keyring::Error::Invalid("credential".into(), "unavailable".into()))
     }
     fn request(&self, method: Method, path: &str) -> reqwest::RequestBuilder {
         self.client
@@ -169,7 +185,7 @@ impl Account {
             message: message.into(),
         }
     }
-    async fn save_tokens(&mut self, value: Value) -> Result<(), Fault> {
+    async fn save_tokens(&mut self, value: Value, mode: Access) -> Result<(), Fault> {
         let tokens: Tokens =
             serde_json::from_value(value).map_err(|_| Fault::local("登录响应不完整"))?;
         let saved = serde_json::to_string(&Saved {
@@ -177,15 +193,7 @@ impl Account {
             device_id: self.device_id.clone(),
         })
         .map_err(|_| Fault::local("无法保存登录"))?;
-        if self
-            .entry()
-            .and_then(|entry| {
-                entry
-                    .set_password(&saved)
-                    .map_err(|_| Fault::local("系统凭据库写入失败"))
-            })
-            .is_err()
-        {
+        if access(mode, || self.entry_raw()?.set_password(&saved)).is_err() {
             let _ = self
                 .request(Method::POST, "auth/logout")
                 .json(&json!({"refresh_token":tokens.refresh_token}))
@@ -193,11 +201,8 @@ impl Account {
                 .await;
             self.access.clear();
             self.refresh.clear();
-            let _ = self.entry().and_then(|e| {
-                e.delete_credential()
-                    .map_err(|_| Fault::local("无法清除登录"))
-            });
-            return Err(Fault::local("无法安全保存登录，请解锁系统凭据库后重试"));
+            let _ = access(Access::Background, || self.entry_raw()?.delete_credential());
+            return Err(Fault::local("无法安全保存登录，请解锁系统凭据库后重新登录"));
         }
         self.access = tokens.access_token;
         self.refresh = tokens.refresh_token;
@@ -210,7 +215,8 @@ impl Account {
             return Err(Fault::local("请先退出当前账号"));
         }
         let response=self.request(Method::POST,"auth/login").json(&json!({"email":email.trim(),"password":password,"device":{"device_id":self.device_id,"name":format!("卡皮巴拉 · {}",platform()),"platform":platform(),"architecture":architecture(),"app_version":VERSION}})).send().await.map_err(|_|Fault::local("暂时无法连接账户服务，请检查网络后重试"))?;
-        self.save_tokens(Self::decode(response).await?).await
+        self.save_tokens(Self::decode(response).await?, Access::UserInitiated)
+            .await
     }
     async fn renew(&mut self) -> Result<(), Fault> {
         if self.refresh.is_empty() {
@@ -228,9 +234,9 @@ impl Account {
         let status = response.status();
         let result = Self::decode(response).await;
         if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
-            self.clear()?;
+            self.clear(Access::Background)?;
         }
-        self.save_tokens(result?).await
+        self.save_tokens(result?, Access::Background).await
     }
     async fn authorized(&mut self, path: &str) -> Result<reqwest::Response, Fault> {
         if self.access.is_empty() || Instant::now() >= self.expires {
@@ -286,10 +292,10 @@ impl Account {
         }
         Ok(content)
     }
-    fn clear(&mut self) -> Result<(), Fault> {
+    fn clear(&mut self, mode: Access) -> Result<(), Fault> {
         self.access.clear();
         self.refresh.clear();
-        match self.entry()?.delete_credential() {
+        match access(mode, || self.entry_raw()?.delete_credential()) {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(_) => Err(Fault::local("无法清除系统登录记录，请解锁凭据库后重试")),
         }
@@ -305,7 +311,7 @@ impl Account {
                 .error_for_status()
                 .map_err(|_| Fault::local("服务器注销失败，请稍后重试"))?;
         }
-        self.clear()
+        self.clear(Access::UserInitiated)
     }
 }
 
@@ -359,12 +365,15 @@ mod tests {
     }
     #[tokio::test]
     async fn rotation_expiry_and_credential_failure_never_reuse_old_token() {
-        keyring::set_default_credential_builder(keyring::mock::default_credential_builder());
         let dir = std::env::temp_dir().join(format!("capybara-auth-test-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let mut a = Account::new(&dir).unwrap();
+        a.credential = Some(keyring::Entry::new_with_credential(Box::new(
+            keyring::mock::MockCredential::default(),
+        )));
         a.save_tokens(
             json!({"access_token":"old-access","refresh_token":"old-refresh","expires_in":0}),
+            Access::UserInitiated,
         )
         .await
         .unwrap();
@@ -405,7 +414,8 @@ mod tests {
         a.origin = origin;
         assert!(a
             .save_tokens(
-                json!({"access_token":"unpersisted","refresh_token":"rotated","expires_in":7200})
+                json!({"access_token":"unpersisted","refresh_token":"rotated","expires_in":7200}),
+                Access::Background
             )
             .await
             .is_err());
@@ -415,6 +425,50 @@ mod tests {
             server.join().unwrap(),
             vec!["POST /api/v1/auth/logout HTTP/1.1"]
         );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn resume_preserves_blocked_credentials_for_explicit_retry() {
+        let dir = std::env::temp_dir().join(format!("capybara-resume-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut a = Account::new(&dir).unwrap();
+        a.credential = Some(keyring::Entry::new_with_credential(Box::new(
+            keyring::mock::MockCredential::default(),
+        )));
+        assert!(!a.resume(Access::Background).unwrap());
+        let saved = json!({"refresh_token":"saved-refresh","device_id":a.device_id}).to_string();
+        a.entry().unwrap().set_password(&saved).unwrap();
+        let mock: &keyring::mock::MockCredential =
+            a.entry().unwrap().get_credential().downcast_ref().unwrap();
+        mock.set_error(keyring::Error::NoStorageAccess(Box::new(
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "locked"),
+        )));
+        assert_eq!(
+            a.resume(Access::Background).unwrap_err().code,
+            "CREDENTIALS_LOCKED"
+        );
+        assert!(!a.logged_in());
+        assert_eq!(a.entry().unwrap().get_password().unwrap(), saved);
+        assert!(a.resume(Access::UserInitiated).unwrap());
+        assert_eq!(a.refresh, "saved-refresh");
+        // A second restore must not roll an active session back to an old saved token.
+        a.refresh = "rotated-in-memory".into();
+        assert!(a.resume(Access::UserInitiated).unwrap());
+        assert_eq!(a.refresh, "rotated-in-memory");
+        a.refresh.clear();
+        a.entry().unwrap().set_password("{invalid").unwrap();
+        assert!(a.resume(Access::Background).is_err());
+        assert!(!a.logged_in());
+        a.entry()
+            .unwrap()
+            .set_password(
+                &json!({"refresh_token":"wrong-device","device_id":"another"}).to_string(),
+            )
+            .unwrap();
+        assert!(a.resume(Access::Background).is_err());
+        assert!(!a.logged_in());
+        a.entry().unwrap().set_password(&saved).unwrap();
+        assert!(a.resume(Access::Background).unwrap());
         std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]

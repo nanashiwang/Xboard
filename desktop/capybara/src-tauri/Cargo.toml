@@ -1,6 +1,6 @@
 [package]
 name = "capybara"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 description = "卡皮巴拉桌面客户端"
 authors = ["nanashiwang"]
 license = "GPL-3.0-only"
@@ -21,6 +21,8 @@ keyring = { version = "=3.6.3", default-features = false, features = ["apple-nat
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
 tauri-plugin-updater = "=2.14.0"
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "=3.7.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.55"
 windows-sys = { version = "0.61", features = ["Win32_Networking_WinInet"] }
