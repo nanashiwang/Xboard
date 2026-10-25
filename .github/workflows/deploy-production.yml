@@ -98,6 +98,12 @@ jobs:
               < .docker/dedicated/owned-production.json
             exit 0
           fi
+          if [ "$OPERATION" = deploy ]; then
+            # Online SQLite backup includes WAL; failure prevents migration/restart.
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/deploy' \
+              < .docker/production/backup-database.py
+          fi
           if [ "$OPERATION" = install-cli ] || [ "$OPERATION" = deploy ]; then
             bash -n .docker/production/xboard.sh
             remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'mktemp -d /tmp/xboard-cli.XXXXXX')

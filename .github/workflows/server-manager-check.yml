@@ -5,12 +5,14 @@ on:
     branches: [master]
     paths:
       - '.docker/production/xboard.sh'
+      - '.docker/production/backup-database.py'
       - 'tests/Operations/**'
       - '.github/workflows/server-manager-check.yml'
       - '.github/workflows/deploy-production.yml'
   pull_request:
     paths:
       - '.docker/production/xboard.sh'
+      - '.docker/production/backup-database.py'
       - 'tests/Operations/**'
       - '.github/workflows/server-manager-check.yml'
       - '.github/workflows/deploy-production.yml'

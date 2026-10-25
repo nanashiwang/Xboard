@@ -4,6 +4,12 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-25：修复账号登录提示服务端不支持
+
+用户点击“账号登录”仍见“账户服务尚未支持浏览器登录”。实际请求 `POST https://taige.us/api/v1/auth/browser/start` 返回 HTTP 404；[生产只读检查](https://github.com/nanashiwang/Xboard/actions/runs/40205367436)确认运行镜像仍为 `8ecbd733c3abd5ca6d8966fe128a56fbbd2fc67d`，而 alpha.7 对应的 `e278451f5643b398de86e5094d3d99d7e5ee4456` 镜像已构建成功。问题是桌面发布后服务端未上线，不是账号密码错误。用户本次要求解决实际登录失败，按此范围准备部署已实现的浏览器授权接口及新增授权表，既有客户端无需改协议或重装。
+
+复用 Production Deploy 并校对完整镜像 revision。新增部署前 SQLite 在线快照（包含 WAL）、0600 文件权限和完整性检查；失败阻止后续迁移与重启。两项备份测试覆盖 WAL 数据、重复备份不覆盖、权限、缺失/损坏数据库失败；既有管理脚本检查继续执行。当前提交仅包含部署保护与记录，不含并行商城或香港入口改动。实际部署、迁移与公网/原生验收结果将在完成后补记；未把准备工作写成成功。见[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+
 ## 2026-10-25：账号登录入口名称调整
 
 用户要求将“浏览器登录”改名为“账号登录”，功能不变。仅修改 App.tsx 的未登录主按钮文案（两处共用），继续调用 `begin_browser_login`，不改原生鉴权、网页授权、接口、凭据库或生产服务。版本按现有发布规范同步为 alpha.7；机械文案修改不新建决定，原[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)同步入口名称。
