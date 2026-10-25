@@ -52,7 +52,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.0-alpha.4",
+                  version: "0.1.0-alpha.6",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,
@@ -115,6 +115,17 @@ export async function command<T = View>(
                         : r,
                 ),
             };
+        if (name === "begin_browser_login")
+            demo = {
+                ...demo,
+                browser_login: {
+                    phase: "waiting",
+                    expires_at: Math.floor(Date.now() / 1000) + 300,
+                    error: null,
+                },
+            };
+        if (name === "cancel_browser_login")
+            demo = { ...demo, browser_login: null };
         if (name === "logout") demo = { ...emptyView };
         if (name === "restore_session")
             throw { message: "这是模拟预览，不会访问系统钥匙串。" };

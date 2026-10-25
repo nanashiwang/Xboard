@@ -104,16 +104,73 @@ describe("钥匙串授权由用户发起", () => {
             vi.mocked(command).mock.calls.some(([name]) => name === "connect"),
         ).toBe(false);
     });
-    it("授权受阻时仍可打开账号登录，并解释系统密码的用途", async () => {
+    it("点击账号登录会打开浏览器授权，不读取钥匙串或要求输入密码", async () => {
+        vi.mocked(command).mockImplementation(async (name) => {
+            if (name === "begin_browser_login")
+                state = {
+                    ...state,
+                    browser_login: {
+                        phase: "waiting",
+                        expires_at: 2000000000,
+                        error: null,
+                    },
+                };
+            if (name === "cancel_browser_login")
+                state = { ...state, browser_login: null };
+            return structuredClone(state) as never;
+        });
         render(<App />);
         await screen.findByText("登录记录等待授权");
         fireEvent.click(screen.getByRole("button", { name: "登录你的账号" }));
+        await screen.findByText("在浏览器中完成登录");
         expect(document.querySelector("dialog")?.open).toBe(true);
-        expect(screen.getByText(/系统密码只在 macOS 弹窗内输入/)).toBeTruthy();
+        expect(document.querySelector('input[type="password"]')).toBeNull();
         expect(
             vi
                 .mocked(command)
                 .mock.calls.some(([name]) => name === "restore_session"),
+        ).toBe(false);
+        fireEvent.click(screen.getByRole("button", { name: "重新打开浏览器" }));
+        await waitFor(() =>
+            expect(
+                vi
+                    .mocked(command)
+                    .mock.calls.some(
+                        ([name]) => name === "reopen_browser_login",
+                    ),
+            ).toBe(true),
+        );
+        fireEvent.click(
+            screen.getByRole("button", { name: "取消", exact: true }),
+        );
+        await waitFor(() =>
+            expect(document.querySelector("dialog")?.open).toBe(false),
+        );
+    });
+    it("授权失败可重新发起，成功后关闭等待页且不自动连接", async () => {
+        state = {
+            ...emptyView,
+            browser_login: {
+                phase: "error",
+                expires_at: null,
+                error: "连接超时",
+            },
+        };
+        vi.mocked(command).mockImplementation(async (name) => {
+            if (name === "begin_browser_login")
+                state = { ...emptyView, logged_in: true };
+            return structuredClone(state) as never;
+        });
+        render(<App />);
+        await screen.findByText("连接超时");
+        fireEvent.click(
+            screen.getByRole("button", { name: "重新登录", exact: true }),
+        );
+        await waitFor(() =>
+            expect(document.querySelector("dialog")?.open).toBe(false),
+        );
+        expect(
+            vi.mocked(command).mock.calls.some(([name]) => name === "connect"),
         ).toBe(false);
     });
 });

@@ -4,7 +4,7 @@ mod credentials;
 mod engine;
 mod proxy;
 mod updates;
-use account::{Account, Fault};
+use account::{Account, BrowserSession, Fault};
 use engine::{Engine, Route};
 use serde::Serialize;
 use serde_json::Value;
@@ -44,9 +44,16 @@ fn now() -> u64 {
         .as_secs()
 }
 #[derive(Clone, Serialize)]
+struct BrowserView {
+    phase: String,
+    expires_at: Option<u64>,
+    error: Option<String>,
+}
+#[derive(Clone, Serialize)]
 struct View {
     logged_in: bool,
     session_needs_unlock: bool,
+    browser_login: Option<BrowserView>,
     profile: Option<Value>,
     subscription: Option<Value>,
     synced_at: Option<u64>,
@@ -62,6 +69,7 @@ impl Default for View {
         Self {
             logged_in: false,
             session_needs_unlock: false,
+            browser_login: None,
             profile: None,
             subscription: None,
             synced_at: None,
@@ -76,6 +84,8 @@ impl Default for View {
 }
 struct Runtime {
     account: Account,
+    browser_attempt: Option<String>,
+    browser_session: Option<BrowserSession>,
     engine: Option<Engine>,
     dir: PathBuf,
     binary: PathBuf,
@@ -191,18 +201,156 @@ async fn snapshot(state: State<'_, AppState>) -> Result<View, Fault> {
     rt.check_process();
     Ok(rt.view.clone())
 }
+// Network waits stay outside Runtime's lock so cancel and UI snapshots remain responsive.
+async fn browser_login_job(
+    state: Arc<Mutex<Runtime>>,
+    attempt: String,
+    mut session: BrowserSession,
+) {
+    let result = session.start().await;
+    {
+        let mut rt = state.lock().await;
+        if rt.browser_attempt.as_deref() != Some(&attempt) {
+            drop(rt);
+            if result.is_ok() {
+                session.cancel().await;
+            }
+            return;
+        }
+        if let Err(error) = result {
+            rt.browser_attempt = None;
+            rt.view.browser_login = Some(BrowserView {
+                phase: "error".into(),
+                expires_at: None,
+                error: Some(error.message),
+            });
+            return;
+        }
+        rt.browser_session = Some(session.clone());
+        use tauri_plugin_opener::OpenerExt;
+        let error = rt
+            .app
+            .opener()
+            .open_url(session.url(), None::<&str>)
+            .err()
+            .map(|_| "浏览器未能打开，请点击“重新打开浏览器”".into());
+        rt.view.browser_login = Some(BrowserView {
+            phase: "waiting".into(),
+            expires_at: Some(now() + session.remaining()),
+            error,
+        });
+    }
+    loop {
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        if state.lock().await.browser_attempt.as_deref() != Some(&attempt) {
+            return;
+        }
+        let result = session.poll().await;
+        let mut rt = state.lock().await;
+        if rt.browser_attempt.as_deref() != Some(&attempt) {
+            drop(rt);
+            if let Ok(Some(tokens)) = result {
+                session.discard(&tokens).await;
+            }
+            return;
+        }
+        match result {
+            Ok(None) => continue,
+            Ok(Some(tokens)) => {
+                rt.browser_attempt = None;
+                rt.browser_session = None;
+                match rt
+                    .account
+                    .save_tokens(tokens, credentials::Access::UserInitiated)
+                    .await
+                {
+                    Ok(()) => {
+                        rt.view = View::default();
+                        rt.view.logged_in = true;
+                        let _ = rt.sync().await;
+                        if let Some(window) = rt.app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    Err(error) => {
+                        rt.view.browser_login = Some(BrowserView {
+                            phase: "error".into(),
+                            expires_at: None,
+                            error: Some(error.message),
+                        });
+                    }
+                }
+                return;
+            }
+            Err(error) => {
+                rt.browser_attempt = None;
+                rt.browser_session = None;
+                rt.view.browser_login = Some(BrowserView {
+                    phase: "error".into(),
+                    expires_at: None,
+                    error: Some(error.message),
+                });
+                drop(rt);
+                // Do not retry an ambiguous exchange: the server may have already consumed it.
+                session.cancel().await;
+                return;
+            }
+        }
+    }
+}
 #[tauri::command]
-async fn login(state: State<'_, AppState>, email: String, password: String) -> Result<View, Fault> {
+async fn begin_browser_login(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
-    rt.account.login(email, password).await?;
-    rt.view = View::default();
-    rt.view.logged_in = true;
-    let _ = rt.sync().await;
+    if rt.browser_attempt.is_some() {
+        return Ok(rt.view.clone());
+    }
+    let session = rt.account.browser_session()?;
+    let attempt = uuid::Uuid::new_v4().to_string();
+    rt.browser_attempt = Some(attempt.clone());
+    rt.view.browser_login = Some(BrowserView {
+        phase: "starting".into(),
+        expires_at: None,
+        error: None,
+    });
+    tauri::async_runtime::spawn(browser_login_job(state.0.clone(), attempt, session));
+    Ok(rt.view.clone())
+}
+#[tauri::command]
+async fn cancel_browser_login(state: State<'_, AppState>) -> Result<View, Fault> {
+    let mut rt = state.0.lock().await;
+    rt.browser_attempt = None;
+    rt.view.browser_login = None;
+    if let Some(session) = rt.browser_session.take() {
+        tauri::async_runtime::spawn(async move {
+            session.cancel().await;
+        });
+    }
+    Ok(rt.view.clone())
+}
+#[tauri::command]
+async fn reopen_browser_login(state: State<'_, AppState>) -> Result<View, Fault> {
+    use tauri_plugin_opener::OpenerExt;
+    let mut rt = state.0.lock().await;
+    let session = rt
+        .browser_session
+        .as_ref()
+        .ok_or_else(|| Fault::local("请重新发起登录"))?;
+    rt.app
+        .opener()
+        .open_url(session.url(), None::<&str>)
+        .map_err(|_| Fault::local("无法打开浏览器，请检查默认浏览器设置"))?;
+    if let Some(view) = rt.view.browser_login.as_mut() {
+        view.error = None;
+    }
     Ok(rt.view.clone())
 }
 #[tauri::command]
 async fn restore_session(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
+    if rt.browser_attempt.is_some() {
+        return Err(Fault::local("请先完成或取消浏览器登录"));
+    }
     match rt.account.resume(credentials::Access::UserInitiated) {
         Ok(saved) => {
             rt.view.session_needs_unlock = false;
@@ -397,6 +545,8 @@ fn main() {
             updates::start(app.handle(), &dir, installing.clone());
             let state = Arc::new(Mutex::new(Runtime {
                 account,
+                browser_attempt: None,
+                browser_session: None,
                 engine: None,
                 dir,
                 binary,
@@ -420,7 +570,9 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             snapshot,
-            login,
+            begin_browser_login,
+            cancel_browser_login,
+            reopen_browser_login,
             restore_session,
             refresh,
             logout,

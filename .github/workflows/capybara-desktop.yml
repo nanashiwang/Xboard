@@ -101,7 +101,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./desktop/capybara/package.json').version")
           TAG="capybara-v$VERSION"
-          git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md > "release-assets/Capybara_${VERSION}_source.zip"
+          git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md public/assets/desktop-login.js public/assets/desktop-login-return.js public/assets/desktop-login.css resources/views/client/browser-login.blade.php > "release-assets/Capybara_${VERSION}_source.zip"
           node desktop/capybara/scripts/update-manifest.mjs release-assets
           cd release-assets
           sha256sum --check SHA256SUMS-*.txt

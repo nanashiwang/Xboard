@@ -41,3 +41,5 @@ Status: implemented
 首版不含 TUN、KDE 系统代理、ARM Windows/Linux 安装矩阵和签名自动更新。测试版不具备 Developer ID 公证或 Windows 发行者签名。真实账号、系统代理权限、安装升级、休眠与网络切换仍需三系统验收，不把构建通过写为这些使用场景均已通过。没有生产部署。
 
 首版暂不提供签名更新的边界由 [alpha.3 更新决定](../feature/2026-10-24-capybara-updates.md)部分取代：每六小时检查，用户确认后验签安装；DEB 仍交由系统安装器。原有 TUN、发行者签名和公证边界继续成立。
+
+浏览器登录入口由 [alpha.6 授权决定](../feature/2026-10-25-capybara-browser-login.md)接管：新客户端不再收集官网密码，复用浏览器会话，系统凭据库约束继续成立。

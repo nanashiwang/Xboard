@@ -27,6 +27,7 @@
   @include('home.capybara')
   <div id="app"><noscript>登录和用户中心需要启用 JavaScript。<a href="/">返回首页</a></noscript></div>
   <script defer src="/assets/capybara-home/home.js?v={{$version}}" data-panel-src="/theme/{{$theme}}/assets/umi.js"></script>
+  <script defer src="/assets/desktop-login-return.js?v=1"></script>
   {!! $theme_config['custom_html'] ?? '' !!}
 </body>
 </html>

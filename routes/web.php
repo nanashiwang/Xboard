@@ -73,6 +73,18 @@ Route::get('/', function (Request $request) {
     }
 });
 
+Route::get('/desktop/login', function (Request $request) {
+    if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)
+        && $request->getHost() !== parse_url(admin_setting('app_url'), PHP_URL_HOST)) {
+        abort(403);
+    }
+    return response()->view('client.browser-login')
+        ->header('Cache-Control', 'no-store')
+        ->header('Referrer-Policy', 'no-referrer')
+        ->header('X-Frame-Options', 'DENY')
+        ->header('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+});
+
 Route::get('/clients', function (Request $request) {
     if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)
         && $request->getHost() !== parse_url(admin_setting('app_url'), PHP_URL_HOST)) {

@@ -48,11 +48,17 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 原 `/#/login`、`/#/register`、套餐/用户中心路由与 `/clients` 继续使用；公开首页不加载完整 Vue 面板，跨首页/面板的前进后退保持兼容。PHP 8.2 的首页与下载回归 15 项 / 91 断言、Blade 编译、JS/actionlint 和笔记检查通过；真实项目壳完成 320–1536px、菜单、FAQ、邀请码、登录保护、加载失败与无 JS 验收。首页保持浅色风景设计，不改变用户面板主题。方案见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)，发布与生产状态见[本次记录](./progress-log.md#2026-10-23卡皮巴拉官网首页设计)。慢加载导航竞态已修复，新增 5 项 Node 回归；最终 `16272a2` 的[首页 CI](https://github.com/nanashiwang/Xboard/actions/runs/39928577358)与 [GHCR 双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/39928577323)成功。用户授权后已[部署生产](https://github.com/nanashiwang/Xboard/actions/runs/39929108999)，容器 Healthy；两个域名回读版本 `20261023-16272a2`，正式站登录/注册往返、手机布局与延迟加载回归通过。复验期间有连接超时，完整重测通过，网络采样边界见进展记录。网站沿用 GHCR 镜像发布，没有独立的网站 GitHub Release/安装包流程。
 
+### 卡皮巴拉浏览器登录（2026-10-25）
+
+`0.1.0-alpha.6` 将客户端主登录入口改为浏览器授权：复用 `taige.us` 当前网页登录状态，确认账号后客户端领取一次性登录结果；未登录时沿用官网表单，完成后自动返回授权页。客户端不再要求输入网站密码，原钥匙串静默恢复与按构建隔离继续保留。授权可取消、五分钟过期，仍受设备数量和封禁限制。
+
+本地后端 Desktop 48 项 / 443 断言、前端 15 项、网页授权 7 项、发布校验 2 项、Rust 13 项通过；隔离浏览器完成官网登录返回、授权、一次性兑换与撤销。用户此前“无法连接账户服务”的真实原生账号路径仍未验收，本版补充超时/连接/权限分类提示。生产需部署新增接口与数据库迁移后才能使用；构建、Release、部署与真实账号验收分别记录。见[授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)与[进展](./progress-log.md#2026-10-25卡皮巴拉浏览器登录)。
+
 ### 卡皮巴拉钥匙串重复授权修复（2026-10-25）
 
 `0.1.0-alpha.4` 修复 macOS 启动及重新登录反复读取旧钥匙串项的问题：启动/后台操作静默执行，授权受阻只提示；登录记录按当前二进制构建隔离，重新登录不覆盖旧版受限记录。升级后需重新登录一次卡皮巴拉账号，同一构建后续启动自动恢复；钥匙串锁定仍受系统解锁要求约束，未降低存储保护。
 
-前端 14、Rust 11、发布校验 2 项与额外 1 项真实钥匙串跨进程读写测试通过。本机 App/DMG 已构建，/Applications 已更新并验证启动无钥匙串错误或授权弹窗；真实账号复启待用户试用，四目标发布待核实。GitHub Release 与官网生产更新索引分开处理，详情见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-25-capybara-keychain-prompts.md)及[进展](./progress-log.md#2026-10-25卡皮巴拉钥匙串重复授权修复)。
+前端 14、Rust 11、发布校验 2 项与额外 1 项真实钥匙串跨进程读写测试通过。本机 App/DMG 已构建，/Applications 已更新并验证启动无钥匙串错误或授权弹窗；[alpha.4 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.4) 四目标构建成功，18 附件摘要、四目标签名和源码提交已核实；真实账号试用遇到网络失败，复启恢复仍待验收。GitHub Release 与官网生产更新索引分开处理，详情见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-25-capybara-keychain-prompts.md)及[进展](./progress-log.md#2026-10-25卡皮巴拉钥匙串重复授权修复)。
 
 ### 卡皮巴拉应用更新（2026-10-24）
 

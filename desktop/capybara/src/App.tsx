@@ -1,5 +1,5 @@
 import Updates from "./Updates";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ArrowDownToLine,
     ArrowRight,
@@ -14,7 +14,6 @@ import {
     LifeBuoy,
     LoaderCircle,
     LogOut,
-    Mail,
     Monitor,
     Moon,
     Power,
@@ -26,8 +25,6 @@ import {
     X,
     TriangleAlert,
     Copy,
-    Eye,
-    EyeOff,
 } from "lucide-react";
 import { command, errorText, preview } from "./bridge";
 import {
@@ -49,14 +46,11 @@ export default function App() {
         [page, setPage] = useState("home"),
         [busy, setBusy] = useState(""),
         [error, setError] = useState(""),
-        [loginOpen, setLoginOpen] = useState(false),
         [dark, setDark] = useState(
             () => localStorage.getItem("capybara-theme") === "dark",
         ),
         [copied, setCopied] = useState(false);
-    const [email, setEmail] = useState(""),
-        [password, setPassword] = useState(""),
-        [visible, setVisible] = useState(false);
+    const loginOpen = !!view.browser_login;
     const loginRef = useRef<HTMLDialogElement>(null),
         polling = useRef(false),
         mounted = useRef(true);
@@ -96,10 +90,6 @@ export default function App() {
         try {
             const next = await command(name, args);
             if (next) setView(next);
-            if (name === "login") {
-                setPassword("");
-                setLoginOpen(false);
-            }
         } catch (e) {
             setError(errorText(e));
         } finally {
@@ -120,9 +110,7 @@ export default function App() {
     const primary = () =>
         view.logged_in
             ? void act(connected ? "disconnect" : "connect")
-            : view.session_needs_unlock
-              ? void act("restore_session")
-              : setLoginOpen(true);
+            : void act("begin_browser_login");
     const eligible =
         !view.logged_in ||
         connected ||
@@ -134,17 +122,11 @@ export default function App() {
               ? "正在断开"
               : busy === "restore_session"
                 ? "正在恢复登录"
-                : view.session_needs_unlock
-                  ? "恢复登录并继续"
-                  : !view.logged_in
-                    ? "登录并开始"
-                    : connected
-                      ? "断开连接"
-                      : "一键连接";
-    const submit = (event: FormEvent) => {
-        event.preventDefault();
-        void act("login", { email, password });
-    };
+                : !view.logged_in
+                  ? "浏览器登录"
+                  : connected
+                    ? "断开连接"
+                    : "一键连接";
     const syncLabel = view.synced_at
         ? `同步于 ${new Date(view.synced_at * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
         : "等待同步";
@@ -233,7 +215,9 @@ export default function App() {
                         view.logged_in ? "查看我的账户" : "登录你的账号"
                     }
                     onClick={() =>
-                        view.logged_in ? setPage("account") : setLoginOpen(true)
+                        view.logged_in
+                            ? setPage("account")
+                            : void act("begin_browser_login")
                     }
                 >
                     <span className="avatar">
@@ -644,7 +628,9 @@ export default function App() {
                                 <h3>给自己一个轻松的开始</h3>
                                 <button
                                     className="primary-button"
-                                    onClick={() => setLoginOpen(true)}
+                                    onClick={() =>
+                                        void act("begin_browser_login")
+                                    }
                                 >
                                     登录账号
                                     <ArrowRight size={18} />
@@ -748,27 +734,17 @@ export default function App() {
             <dialog
                 ref={loginRef}
                 className="login-dialog"
-                onCancel={() => {
-                    if (!busy) {
-                        setLoginOpen(false);
-                        setPassword("");
-                    }
-                }}
-                onClick={(e) => {
-                    if (e.target === e.currentTarget && !busy) {
-                        setLoginOpen(false);
-                        setPassword("");
-                    }
+                aria-labelledby="browser-login-title"
+                onCancel={(e) => {
+                    e.preventDefault();
+                    if (!busy) void act("cancel_browser_login");
                 }}
             >
                 <button
                     className="modal-close icon-button"
-                    aria-label="关闭登录"
+                    aria-label="取消登录"
                     disabled={!!busy}
-                    onClick={() => {
-                        setLoginOpen(false);
-                        setPassword("");
-                    }}
+                    onClick={() => void act("cancel_browser_login")}
                 >
                     <X size={20} />
                 </button>
@@ -778,91 +754,61 @@ export default function App() {
                     alt="卡皮巴拉"
                 />
                 <span className="eyebrow">WELCOME TO CAPYBARA</span>
-                <h2>欢迎回到卡皮巴拉</h2>
-                <p>登录账号，连接你的世界。</p>
-                {view.platform === "macos" && (
+                <h2 id="browser-login-title">
+                    {view.browser_login?.phase === "error"
+                        ? "登录尚未完成"
+                        : "在浏览器中完成登录"}
+                </h2>
+                <p>
+                    {view.browser_login?.phase === "starting"
+                        ? "正在准备授权页面…"
+                        : "使用官网已登录的账号，确认授权后即可回到这里。"}
+                </p>
+                {view.browser_login?.error && (
+                    <div className="login-error" role="alert">
+                        {view.browser_login.error}
+                    </div>
+                )}
+                {error && (
+                    <div className="login-error" role="alert">
+                        {error}
+                    </div>
+                )}
+                {view.browser_login?.phase !== "error" && (
                     <p className="credential-hint">
-                        登录记录保存在 macOS
-                        钥匙串中。保存时可能需要系统授权，系统密码只在 macOS
-                        弹窗内输入。
+                        <LoaderCircle size={16} className="spin" />{" "}
+                        正在等待浏览器授权，五分钟内有效。
                     </p>
                 )}
-                <form onSubmit={submit}>
-                    <label>
-                        邮箱地址
-                        <div className="input-wrap">
-                            <Mail size={17} />
-                            <input
-                                type="email"
-                                autoComplete="username"
-                                placeholder="你的邮箱地址"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                disabled={!!busy}
-                            />
-                        </div>
-                    </label>
-                    <label>
-                        密码
-                        <div className="input-wrap">
-                            <ShieldCheck size={17} />
-                            <input
-                                type={visible ? "text" : "password"}
-                                autoComplete="current-password"
-                                placeholder="输入账号密码"
-                                required
-                                maxLength={255}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                disabled={!!busy}
-                            />
-                            <button
-                                type="button"
-                                className="icon-button small"
-                                aria-label={visible ? "隐藏密码" : "显示密码"}
-                                onClick={() => setVisible(!visible)}
-                            >
-                                {visible ? (
-                                    <EyeOff size={16} />
-                                ) : (
-                                    <Eye size={16} />
-                                )}
-                            </button>
-                        </div>
-                    </label>
-                    {error && (
-                        <div className="login-error" role="alert">
-                            {error}
-                        </div>
-                    )}
+                {view.browser_login?.phase === "waiting" && (
                     <button
                         className="primary-button"
                         disabled={!!busy}
-                        type="submit"
+                        onClick={() => void act("reopen_browser_login")}
                     >
-                        {busy === "login" ? (
-                            <>
-                                <LoaderCircle size={17} className="spin" />
-                                正在登录
-                            </>
-                        ) : (
-                            <>
-                                登录并开始
-                                <ArrowRight size={17} />
-                            </>
-                        )}
+                        <ArrowUpRight size={17} />
+                        重新打开浏览器
                     </button>
-                </form>
-                <div className="login-footer">
-                    还没有账号？
-                    <button onClick={() => void link("register")}>
-                        前往注册
-                        <ArrowUpRight size={13} />
+                )}
+                {view.browser_login?.phase === "error" && (
+                    <button
+                        className="primary-button"
+                        disabled={!!busy}
+                        onClick={() => void act("begin_browser_login")}
+                    >
+                        重新登录
+                        <ArrowRight size={17} />
                     </button>
-                </div>
+                )}
+                <button
+                    className="secondary-button"
+                    disabled={!!busy}
+                    onClick={() => void act("cancel_browser_login")}
+                >
+                    取消
+                </button>
                 <small className="fine-print">
-                    登录凭据由操作系统安全保管。
+                    无需在客户端输入密码，登录记录由系统凭据库安全保管。
                 </small>
             </dialog>
         </div>

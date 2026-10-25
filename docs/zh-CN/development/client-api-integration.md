@@ -35,6 +35,18 @@
 
 特别说明：当前 `device_limit` 是代理节点上按 IP 统计的“在线设备数”，Redis TTL 为 300 秒；它不等于桌面客户端的“已注册安装设备数”。两者必须分开命名和实现，不能直接复用同一套计数。
 
+## 浏览器授权登录（alpha.6）
+
+新桌面端使用设备授权，不再收集网站密码；旧 `auth/login` 保留兼容。
+
+1. `POST auth/browser/start`：`device` 与原登录相同，另传原生生成的随机 `secret`（64 位十六进制）；返回 `request_id`、`expires_in:300`、`interval:3`。秘密仅驻留原生内存，服务端保存 SHA-256。
+2. 浏览器打开固定同源 `/desktop/login#request_id=<id>`，不带秘密、网页登录令牌或回调地址。页面复用 `VUE_NAIVE_ACCESS_TOKEN`；未登录走 `/#/login`，完成后由固定桥接脚本返回。
+3. `GET auth/browser/context?request_id=<id>` 返回设备名/平台/版本/期限。网页用户明确确认后，用现有全权限网页 Bearer 令牌 `POST auth/browser/approve`，正文 `{request_id, approved:true}`；桌面作用域令牌不能批准。`false` 取消。
+4. 原生每 3 秒 `POST auth/browser/poll`，正文 `{request_id, secret}`。待批准返回 `{phase:"pending"}`；批准后事务内消费一次并返回 `{phase:"complete", tokens:<原登录响应>}`，继续设备限额与封禁校验。网络结果不确定时不重放兑换，提示重新发起。
+5. 原生取消用 `POST auth/browser/cancel`，正文同 poll。过期/已消费返回 410 `AUTH_BROWSER_EXPIRED`，取消 410 `AUTH_BROWSER_CANCELLED`，秘密错误 401 `AUTH_BROWSER_INVALID`，跨账号重复处理 409 `AUTH_BROWSER_ACCOUNT_MISMATCH`。
+
+上线需先部署服务端并迁移新增表，再分发新客户端。授权页面禁止嵌入、不缓存；仅支持同源会话，`board.taige.us` 登录状态不会自动复制到 `taige.us`。数据库只清理过期超过一天的请求，不保存网页登录令牌或授权密码。真实发布/部署证据见根目录进展记录。
+
 ## 3. 统一协议约定
 
 ### 3.1 请求约定

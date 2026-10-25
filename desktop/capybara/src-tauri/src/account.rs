@@ -51,6 +51,44 @@ impl Fault {
         }
     }
 }
+fn network_fault(error: reqwest::Error) -> Fault {
+    // Never echo raw URLs, request bodies or server error text containing credentials.
+    use std::error::Error;
+    let mut source: Option<&(dyn Error + 'static)> = Some(&error);
+    let mut denied = false;
+    while let Some(cause) = source {
+        denied |= cause
+            .downcast_ref::<std::io::Error>()
+            .is_some_and(|e| e.kind() == std::io::ErrorKind::PermissionDenied);
+        source = cause.source();
+    }
+    let (code, message) = if denied {
+        (
+            "NETWORK_DENIED",
+            "系统阻止了账户连接，请允许卡皮巴拉访问网络（NETWORK_DENIED）",
+        )
+    } else if error.is_timeout() {
+        (
+            "NETWORK_TIMEOUT",
+            "连接 taige.us 超时，请检查网络后重试（NETWORK_TIMEOUT）",
+        )
+    } else if error.is_connect() {
+        (
+            "NETWORK_CONNECT",
+            "无法连接 taige.us，请检查网络或防火墙设置（NETWORK_CONNECT）",
+        )
+    } else {
+        (
+            "NETWORK_REQUEST",
+            "账户请求未完成，请重新发起登录（NETWORK_REQUEST）",
+        )
+    };
+    Fault {
+        code: code.into(),
+        message: message.into(),
+    }
+}
+
 impl From<String> for Fault {
     fn from(message: String) -> Self {
         Self::local(&message)
@@ -129,7 +167,9 @@ impl Account {
             Err(keyring::Error::NoEntry) => Ok(false),
             Err(_) => Err(Fault {
                 code: "CREDENTIALS_LOCKED".into(),
-                message: "登录记录暂时无法读取。点击“恢复登录”允许访问系统凭据库，或使用账号密码重新登录。".into(),
+                message:
+                    "登录记录暂时无法读取。点击“恢复登录”允许访问系统凭据库，或通过浏览器重新登录。"
+                        .into(),
             }),
         }
     }
@@ -176,6 +216,9 @@ impl Account {
             | "AUTH_UNAUTHENTICATED" => "登录已失效，请重新登录",
             "DEVICE_LIMIT_REACHED" => "已达到设备数量上限，请在账户中心解绑旧设备",
             "SUBSCRIPTION_UNAVAILABLE" => "套餐当前不可用，请检查流量和到期时间",
+            "AUTH_BROWSER_EXPIRED" => "浏览器授权已过期，请重新登录",
+            "AUTH_BROWSER_CANCELLED" => "已在浏览器取消授权，请重新登录",
+            "AUTH_BROWSER_INVALID" => "授权请求无效，请重新登录",
             "RATE_LIMITED" => "操作过于频繁，请稍后重试",
             _ if status == StatusCode::UNAUTHORIZED => "登录已失效，请重新登录",
             _ => "服务暂时不可用，请稍后重试",
@@ -185,7 +228,7 @@ impl Account {
             message: message.into(),
         }
     }
-    async fn save_tokens(&mut self, value: Value, mode: Access) -> Result<(), Fault> {
+    pub async fn save_tokens(&mut self, value: Value, mode: Access) -> Result<(), Fault> {
         let tokens: Tokens =
             serde_json::from_value(value).map_err(|_| Fault::local("登录响应不完整"))?;
         let saved = serde_json::to_string(&Saved {
@@ -209,14 +252,19 @@ impl Account {
         self.expires = Instant::now() + Duration::from_secs(tokens.expires_in.saturating_sub(30));
         Ok(())
     }
-    pub async fn login(&mut self, email: String, password: String) -> Result<(), Fault> {
+    pub fn browser_session(&self) -> Result<BrowserSession, Fault> {
         self.entry()?;
         if self.logged_in() {
             return Err(Fault::local("请先退出当前账号"));
         }
-        let response=self.request(Method::POST,"auth/login").json(&json!({"email":email.trim(),"password":password,"device":{"device_id":self.device_id,"name":format!("卡皮巴拉 · {}",platform()),"platform":platform(),"architecture":architecture(),"app_version":VERSION}})).send().await.map_err(|_|Fault::local("暂时无法连接账户服务，请检查网络后重试"))?;
-        self.save_tokens(Self::decode(response).await?, Access::UserInitiated)
-            .await
+        Ok(BrowserSession {
+            client: self.client.clone(),
+            origin: self.origin.clone(),
+            device_id: self.device_id.clone(),
+            id: String::new(),
+            secret: format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple()),
+            deadline: Instant::now() + Duration::from_secs(300),
+        })
     }
     async fn renew(&mut self) -> Result<(), Fault> {
         if self.refresh.is_empty() {
@@ -230,7 +278,7 @@ impl Account {
             .json(&json!({"refresh_token":self.refresh,"device_id":self.device_id}))
             .send()
             .await
-            .map_err(|_| Fault::local("无法同步账号，请检查网络后重试"))?;
+            .map_err(network_fault)?;
         let status = response.status();
         let result = Self::decode(response).await;
         if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
@@ -247,7 +295,7 @@ impl Account {
             .bearer_auth(&self.access)
             .send()
             .await
-            .map_err(|_| Fault::local("账号同步失败，当前数据可能已过期"))?;
+            .map_err(network_fault)?;
         if response.status() == StatusCode::UNAUTHORIZED {
             self.renew().await?;
             response = self
@@ -255,7 +303,7 @@ impl Account {
                 .bearer_auth(&self.access)
                 .send()
                 .await
-                .map_err(|_| Fault::local("账号同步失败，请稍后重试"))?;
+                .map_err(network_fault)?;
         }
         Ok(response)
     }
@@ -312,6 +360,86 @@ impl Account {
                 .map_err(|_| Fault::local("服务器注销失败，请稍后重试"))?;
         }
         self.clear(Access::UserInitiated)
+    }
+}
+
+#[derive(Clone)]
+pub struct BrowserSession {
+    client: Client,
+    origin: String,
+    device_id: String,
+    id: String,
+    secret: String,
+    deadline: Instant,
+}
+impl BrowserSession {
+    fn request(&self, action: &str) -> reqwest::RequestBuilder {
+        self.client
+            .post(format!("{}/api/v1/auth/browser/{action}", self.origin))
+            .timeout(Duration::from_secs(12))
+            .header("Accept", "application/json")
+            .json(&json!({"request_id": self.id, "secret": self.secret}))
+    }
+    pub async fn start(&mut self) -> Result<(), Fault> {
+        let response = self
+            .request("start")
+            .json(&json!({"secret": self.secret, "device": {
+                "device_id": self.device_id, "name": format!("卡皮巴拉 · {}", platform()),
+                "platform": platform(), "architecture": architecture(), "app_version": VERSION
+            }}))
+            .send()
+            .await
+            .map_err(network_fault)?;
+        if response.status() == StatusCode::NOT_FOUND {
+            return Err(Fault::local("账户服务尚未支持浏览器登录，请稍后再试"));
+        }
+        let value = Account::decode(response).await?;
+        let id = value["request_id"].as_str().unwrap_or("");
+        if id.len() != 26
+            || !id
+                .bytes()
+                .all(|b| b"0123456789ABCDEFGHJKMNPQRSTVWXYZ".contains(&b))
+        {
+            return Err(Fault::local("授权响应不完整，请重新登录"));
+        }
+        self.id = id.into();
+        self.deadline = Instant::now()
+            + Duration::from_secs(value["expires_in"].as_u64().unwrap_or(0).min(300));
+        Ok(())
+    }
+    pub fn url(&self) -> String {
+        format!("{}/desktop/login#request_id={}", self.origin, self.id)
+    }
+    pub fn remaining(&self) -> u64 {
+        self.deadline
+            .saturating_duration_since(Instant::now())
+            .as_secs()
+    }
+    pub async fn poll(&self) -> Result<Option<Value>, Fault> {
+        if self.remaining() == 0 {
+            return Err(Fault::local("浏览器授权已过期，请重新登录"));
+        }
+        let response = self.request("poll").send().await.map_err(network_fault)?;
+        let value = Account::decode(response).await?;
+        match value["phase"].as_str() {
+            Some("pending") => Ok(None),
+            Some("complete") if value["tokens"].is_object() => Ok(Some(value["tokens"].clone())),
+            _ => Err(Fault::local("授权响应不完整，请重新登录")),
+        }
+    }
+    pub async fn cancel(&self) {
+        let _ = self.request("cancel").send().await;
+    }
+    pub async fn discard(&self, tokens: &Value) {
+        if let Some(refresh) = tokens["refresh_token"].as_str() {
+            let _ = self
+                .client
+                .post(format!("{}/api/v1/auth/logout", self.origin))
+                .timeout(Duration::from_secs(12))
+                .json(&json!({"refresh_token": refresh}))
+                .send()
+                .await;
+        }
     }
 }
 
@@ -478,5 +606,85 @@ mod tests {
             &json!({"message":"secret-token","code":"SERVER_ERROR"}),
         );
         assert!(!f.message.contains("secret-token"));
+    }
+
+    #[tokio::test]
+    async fn browser_flow_keeps_secrets_native_and_saves_only_completed_authorization() {
+        let dir = std::env::temp_dir().join(format!("capybara-browser-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.credential = Some(keyring::Entry::new_with_credential(Box::new(
+            keyring::mock::MockCredential::default(),
+        )));
+        let (origin, server) = server(vec![
+            (
+                200,
+                json!({"data":{"request_id":"01K8ABCDEFGHJKMNPQRSTVWXYZ", "expires_in":300}}),
+            ),
+            (200, json!({"data":{"phase":"pending"}})),
+            (
+                200,
+                json!({"data":{"phase":"complete","tokens":{"access_token":"new-access","refresh_token":"new-refresh","expires_in":7200}}}),
+            ),
+        ]);
+        account.origin = origin.clone();
+        let mut session = account.browser_session().unwrap();
+        let other = account.browser_session().unwrap();
+        assert_eq!(session.secret.len(), 64);
+        assert_ne!(session.secret, other.secret);
+        session.start().await.unwrap();
+        assert_eq!(
+            session.url(),
+            format!("{origin}/desktop/login#request_id=01K8ABCDEFGHJKMNPQRSTVWXYZ")
+        );
+        assert!(!session.url().contains(&session.secret));
+        assert!(session.poll().await.unwrap().is_none());
+        assert!(account.entry().unwrap().get_password().is_err());
+        let tokens = session.poll().await.unwrap().unwrap();
+        account
+            .save_tokens(tokens, Access::UserInitiated)
+            .await
+            .unwrap();
+        assert!(account.logged_in());
+        assert!(account.browser_session().is_err());
+        assert_eq!(server.join().unwrap().len(), 3);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn browser_expiry_cancellation_and_late_tokens_do_not_log_in() {
+        let (origin, server) = server(vec![
+            (
+                410,
+                json!({"code":"AUTH_BROWSER_CANCELLED", "message":"private-value"}),
+            ),
+            (200, json!({"data":true})),
+            (200, json!({"data":true})),
+        ]);
+        let mut session = BrowserSession {
+            client: http().unwrap(),
+            origin,
+            device_id: Uuid::new_v4().to_string(),
+            id: "01K8ABCDEFGHJKMNPQRSTVWXYZ".into(),
+            secret: "a".repeat(64),
+            deadline: Instant::now(),
+        };
+        assert!(session.poll().await.unwrap_err().message.contains("过期"));
+        session.deadline = Instant::now() + Duration::from_secs(60);
+        let fault = session.poll().await.unwrap_err();
+        assert_eq!(fault.code, "AUTH_BROWSER_CANCELLED");
+        assert!(!fault.message.contains("private-value"));
+        session.cancel().await;
+        session
+            .discard(&json!({"refresh_token":"late-refresh"}))
+            .await;
+        assert_eq!(
+            server.join().unwrap(),
+            vec![
+                "POST /api/v1/auth/browser/poll HTTP/1.1",
+                "POST /api/v1/auth/browser/cancel HTTP/1.1",
+                "POST /api/v1/auth/logout HTTP/1.1",
+            ]
+        );
     }
 }

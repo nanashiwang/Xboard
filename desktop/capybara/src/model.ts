@@ -14,6 +14,11 @@ export type Subscription = {
 export type View = {
     logged_in: boolean;
     session_needs_unlock: boolean;
+    browser_login: {
+        phase: "starting" | "waiting" | "error";
+        expires_at: number | null;
+        error: string | null;
+    } | null;
     profile: { name: string; email: string } | null;
     subscription: Subscription | null;
     synced_at: number | null;
@@ -27,6 +32,7 @@ export type View = {
 export const emptyView: View = {
     logged_in: false,
     session_needs_unlock: false,
+    browser_login: null,
     profile: null,
     subscription: null,
     synced_at: null,
@@ -34,7 +40,7 @@ export const emptyView: View = {
     connection: "disconnected",
     connection_error: null,
     routes: [],
-    version: "0.1.0-alpha.4",
+    version: "0.1.0-alpha.6",
     platform: "",
 };
 export function quotaPercent(s: Subscription | null) {
@@ -74,8 +80,8 @@ export function statusMessage(view: View) {
             title: "登录记录等待授权",
             text:
                 view.platform === "macos"
-                    ? "打开应用不会自动请求钥匙串密码。点击“恢复登录”后，macOS 可能请你授权读取已保存的登录记录；也可以重新登录账号。"
-                    : "点击“恢复登录”允许访问系统凭据库，或使用账号密码重新登录。",
+                    ? "打开应用不会自动请求钥匙串密码。点击“恢复登录”后，macOS 可能请你授权读取已保存的登录记录；也可以通过浏览器重新登录。"
+                    : "点击“恢复登录”允许访问系统凭据库，或通过浏览器重新登录。",
         };
     if (!view.logged_in && view.sync_error)
         return {

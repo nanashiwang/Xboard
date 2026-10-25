@@ -3,6 +3,7 @@
 namespace App\Http\Routes\V1;
 
 use App\Http\Controllers\V1\Desktop\AuthController;
+use App\Http\Controllers\V1\Desktop\BrowserLoginController;
 use App\Http\Controllers\V1\Desktop\ClientController;
 use App\Http\Controllers\V1\Desktop\DeviceController;
 use App\Http\Controllers\V1\Desktop\NoticeController;
@@ -14,6 +15,11 @@ class DesktopRoute
     public function map(Registrar $router): void
     {
         $router->group(['prefix' => 'auth'], function ($router): void {
+            $router->post('/browser/approve', [BrowserLoginController::class, 'approve'])->middleware('throttle:20,1,desktop-browser-approve:');
+            $router->post('/browser/start', [BrowserLoginController::class, 'start'])->middleware('throttle:10,1,desktop-browser-start:');
+            $router->get('/browser/context', [BrowserLoginController::class, 'context'])->middleware('throttle:60,1,desktop-browser-context:');
+            $router->post('/browser/poll', [BrowserLoginController::class, 'poll'])->middleware('throttle:60,1,desktop-browser-poll:');
+            $router->post('/browser/cancel', [BrowserLoginController::class, 'cancel'])->middleware('throttle:30,1,desktop-browser-cancel:');
             $router->post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
             $router->post('/refresh', [AuthController::class, 'refresh'])->middleware('throttle:30,1');
             $router->post('/logout', [AuthController::class, 'logout'])->middleware('throttle:30,1');
