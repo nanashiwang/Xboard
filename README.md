@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.9` 在未登录首页和登录弹窗提供“注册账号”。点击后进入官网注册，沿用邮箱验证码、邀请码、注册限制与密码规则；注册成功自动返回授权页，确认账号后登录客户端。官网已登录其他账号时先展示该账号，不自动退出或静默切换；超过五分钟可用已注册账号重新发起登录。
 
-本地前端 25 项、网页授权 10 项、发布校验 2 项、Rust 15 项及 Desktop API 57 项 / 524 断言通过。真实浏览器完成入口、取消、明暗/760px 窄窗口及隔离官网注册表单自动跳转；隔离数据库验证新注册无套餐账号授权和一次性兑换。正式账号注册、服务器更新、四平台发布和本机安装分别记录于[进展](./progress-log.md#2026-10-25卡皮巴拉客户端注册账号)，不以模拟页面代替生产完成。沿用[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+本地前端 25 项、网页授权 10 项、发布校验 2 项、Rust 15 项及 Desktop API 57 项 / 524 断言通过。真实浏览器完成入口、取消、明暗/760px 窄窗口及隔离官网注册表单自动跳转；隔离数据库验证新注册无套餐账号授权和一次性兑换。[alpha.9 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.9) 四目标构建及 18 附件核验完成；生产已部署 `1c60394`，本机已安装并从真实注册入口打开官网。未登录浏览器自动进入正式注册表单，已有会话显示账号确认；未新建真实生产账号或发送验证码。证据见[进展](./progress-log.md#2026-10-25卡皮巴拉客户端注册账号)。沿用[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
 
 ### 卡皮巴拉客户端套餐购买（2026-10-25）
 

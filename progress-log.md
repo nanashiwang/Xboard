@@ -10,7 +10,14 @@
 
 前端 25 项、网页授权 10 项、发布校验 2 项、Rust 15 项通过（原真实钥匙串手动测试继续默认忽略）。Docker PHP 8.2 在 SQLite 内存库运行 Desktop API 57 项 / 524 断言通过，新增注册账号 → 官网会话授权 → 一次性客户端令牌兑换验证，新账号无套餐也能登录。类型检查、生产前端与本机 App 构建通过；最终安装使用独立提交快照，避免混入并行套餐文案。CUA 浏览器检查首页注册入口、等待/取消、暗色和 760px 窄窗口；独立 SQLite 预览实际从注册意图跳到官网注册表单，未创建真实用户账号或读取用户密码。预览最初绝对数据库路径被配置拼接导致启动失败，改用容器独立 storage 临时库后成功。
 
-本次前后端契约保持原接口与迁移，官网需同步授权页面 JS 和模板。四目标 Release、服务器部署、正式跳转及本机安装的完成状态在后续验收补记；官网分发索引属于独立流程。保留香港入口/TUN 及并行套餐显示文案的归属，不纳入本轮提交。
+本次前后端契约保持原接口与迁移，官网需同步授权页面 JS 和模板。代码 `1c6039454285881e665089db7686b216f2555be3` 已中文提交并推送 master，README/progress-log 按 SHA 从 GitHub 回读一致；官网分发索引本轮未改。保留香港入口/TUN 及并行套餐显示文案的归属，不纳入本轮提交。
+
+### 注册功能发布与上线验收（2026-10-26）
+
+- [四目标构建与发布 40208628482](https://github.com/nanashiwang/Xboard/actions/runs/40208628482)全部 success；[alpha.9 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.9) 标签指向完整提交 `1c6039454285881e665089db7686b216f2555be3`。18 附件均 uploaded，全部 GitHub SHA-256 与平台/总清单匹配；四目标更新索引签名与附件一致，发布 CI 验证包体签名。11 份清单、签名、索引和源码全量下载/摘要通过，源码中的注册前端、原生、网页脚本与提交一致；不将服务端摘要/CI 验签表述为全部安装包均本地全量下载。下载有 TLS/时限重试，最终成功；重复 push 桌面构建主动取消。
+- [网站 CI 40208566703](https://github.com/nanashiwang/Xboard/actions/runs/40208566703)、笔记检查及[双架构镜像 40208566696](https://github.com/nanashiwang/Xboard/actions/runs/40208566696)成功。[生产部署 40209180388](https://github.com/nanashiwang/Xboard/actions/runs/40209180388)于 2026-10-25 23:55:57 完成，数据库在线备份 `/root/xboard-backups/deploy/before-deploy-0upn3ljx.sqlite` 校验通过、Nothing to migrate、容器 Healthy，运行 revision 完整匹配 1c60394。主备域授权页面均含注册按钮；实际加载的 `desktop-login.js?v=2` 与提交一致。备用域无版本参数旧资源仍有缓存，实际页面 v2 地址已验证更新，不混淆两者。
+- 从提交独立导出桌面源码构建 App，通过 codesign 深度校验；正常关闭未登录/未连接的 alpha.8 后备份并安装 alpha.9。备份 `/tmp/capybara-register/Capybara-alpha8-backup.app`；真实原生窗口确认版本和注册按钮。点击注册实际打开默认 Chrome，已有官网会话时展示账号保护提示；独立未登录浏览器用同一请求自动进入正式 `/#/register`，显示邮箱验证码、密码确认、邀请码等原有字段。未在生产发送验证码或创建测试用户，注册后的账号授权/一次性兑换由隔离数据库及网页脚本测试验证。验证请求已取消，测试标签页/本地预览容器已清理，客户端保留首页；未操作支付或代理连接。
+- 最终记录经本地回读、链接、笔记门禁与差异检查，以独立中文 `[skip ci]` 提交推送并按提交 SHA 从 GitHub 回读 README/progress-log。既有香港入口/TUN 内容继续保留。
 
 ## 2026-10-25：卡皮巴拉客户端套餐购买
 
