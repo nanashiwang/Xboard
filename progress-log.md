@@ -11,7 +11,12 @@
 - 金额以服务器为准：余额/折扣/原套餐折抵、支付手续费、零元开通；待支付订单可恢复，浏览器付款和二维码均支持，只有服务器已开通才刷新权益。原生只打开服务器返回的 HTTP(S) 支付链接，不执行支付 HTML；网络异常不自动重试写请求。
 - 检查：Desktop API 56 项 / 512 断言（含新增购买 8 项 / 69 断言）、前端 23 项、网页/发布脚本 9 项、Rust 15 项（另 1 项原生钥匙串手动测试跳过）及前端构建通过；生产依赖 npm audit 为 0 漏洞。浏览器模拟数据验收：游客目录、周期切换、创建订单、二维码、760×620 无横向溢出、明暗主题与错误/空列表。模拟数据不进入生产构建。
 - 决策：[客户端套餐购买](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。服务端新增接口无额外表迁移；alpha.6 登录迁移仍为前置条件。服务器上线、真实用户付款、官网更新源与本机安装另验，不把公开目录或浏览器返回当作支付成功。
-- 发布：版本 0.1.0-alpha.8；提交/四目标构建/Release 验收待补充。保留并行香港入口和 Clash 排查文档改动，未混入本次提交。
+- 提交：`d4cbfd1`（购买功能）、`5d161e6`（会话变化修复）已推送 master。保留并行香港入口、Clash 排查与注册入口改动，未混入本次提交。
+
+- 现场验收：本机 alpha.8 已安装并通过 codesign；原生窗口读取正式 5 个套餐并展示真实周期/价格；公开目录 HTTP 200，未登录商店 HTTP 401。真实扣款未执行。
+- 正式上线：用户明确授权“一并上线套餐购买接口”。镜像构建 [40206266559](https://github.com/nanashiwang/Xboard/actions/runs/40206266559) 成功；[部署 40206794983](https://github.com/nanashiwang/Xboard/actions/runs/40206794983) 在 SQLite 一致性备份通过后更新，容器 Healthy，运行 revision `5d161e6674c15b6f56948fdfa8b41f4b605fc0ee`。
+- [alpha.8 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.8) 四目标与发布均 success；18 附件 uploaded、GitHub SHA-256 与全部摘要清单一致，四目标签名与更新索引一致且 CI 验签通过。12 个附件（含源码和 Apple Silicon 更新包）本地完整下载校验；其他大包以 GitHub digest 与 CI 验签验证，不声称全量本地下载。README/progress 已按提交回读，最终补充记录另推送回读。
+- 正式数据发现 `device_limit` 实为同时在线 IP 数，现已修正界面名称，并清理套餐说明中的 Markdown 标记；属于展示修正，不改变后台额度。该修正随下个客户端版本发布，已发布 alpha.8 保持不可变。官网静态下载副本和更新源尚未同步本版。
 
 ## 2026-10-25：修复账号登录提示服务端不支持
 

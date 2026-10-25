@@ -56,6 +56,11 @@ export const orderStatuses = [
     "已开通",
     "已折抵",
 ];
+export const planDescription = (text: string) =>
+    text
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/^\s*[-*+]\s+/gm, "• ")
+        .replace(/\*\*(.+?)\*\*/g, "$1");
 export const money = (amount: number) =>
     new Intl.NumberFormat("zh-CN", {
         style: "currency",

@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.8` 将侧栏“我的账户”改为“套餐”。用户可在客户端浏览套餐、选择周期与优惠码、创建订单并确认金额，支持浏览器支付、二维码、零元开通、待支付订单恢复/取消和开通后同步。账户资料保留在左下角；价格、余额、折扣和续费资格均沿用网站服务。
 
-本地前端、Rust、Desktop API 回归和浏览器明暗/760px 窄窗口通过；新增接口需要部署服务器。GitHub Release、官网分发、服务端部署与真实付款状态分别记录，不以客户端构建代替上线验收。见[购买决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)、[API 说明](./docs/zh-CN/development/client-api-integration.md#客户端套餐与订单)及[进展](./progress-log.md#2026-10-25卡皮巴拉客户端套餐购买)。
+本地检查、四平台构建与 [alpha.8 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.8) 已通过，配套接口经用户授权上线，运行 `5d161e6`、容器 Healthy。本机已安装并读取正式 5 个套餐；实际扣款未执行，官网静态分发独立维护。见[购买决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)、[API 说明](./docs/zh-CN/development/client-api-integration.md#客户端套餐与订单)及[进展](./progress-log.md#2026-10-25卡皮巴拉客户端套餐购买)。
 
 ### 卡皮巴拉蓝绿色桌面图标（2026-10-25）
 

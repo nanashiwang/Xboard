@@ -15,6 +15,7 @@ import {
     money,
     orderStatuses,
     periods,
+    planDescription,
     type Checkout,
     type Order,
     type Plan,
@@ -308,13 +309,13 @@ export default function Plans({
                                     <li>
                                         <CheckCircle2 size={16} />
                                         {item.device_limit
-                                            ? `${item.device_limit} 台设备同时在线`
-                                            : "不限同时在线设备"}
+                                            ? `${item.device_limit} 个 IP 同时在线`
+                                            : "不限同时在线 IP"}
                                     </li>
                                 </ul>
                                 {item.description && (
                                     <p className="plan-description">
-                                        {item.description}
+                                        {planDescription(item.description)}
                                     </p>
                                 )}
                                 <button
