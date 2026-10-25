@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.11` 按用户参考图更新蓝色山水、旅行水豚和大连接按钮。用户确认保留首页节点列表：移除侧栏独立“线路”页面，节点搜索、地区筛选、多分流组切换放在首页右侧，流量、规则分流说明和连接检测集中展示。未连接时不展示假节点，不填入未测的延迟/速率或无效模式开关。
 
-前端 29 项、网页/发布脚本 12 项、Rust 15 项与生产构建通过；明暗、760px 窄窗口、模拟切换和耗尽状态验收通过。本机安装、四目标发布和附件验证独立记录于[进展](./progress-log.md#2026-10-26卡皮巴拉山水首页与节点入口合并)。此次无需服务端部署，官网分发源仍独立维护。取舍见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
+前端 29 项、网页/发布脚本 12 项、Rust 15 项与生产构建通过；明暗、760px 窄窗口、模拟切换和耗尽状态验收通过。[alpha.11 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.11) 四目标及 18 附件验证通过，本地 Mac App 构建和签名检查通过；电脑锁屏导致替换安装及原生验收待解锁，详见[进展](./progress-log.md#2026-10-26卡皮巴拉山水首页与节点入口合并)。此次无需服务端部署，官网分发源仍独立维护。取舍见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
 
 ### 卡皮巴拉登录弹窗简化（2026-10-26）
 
