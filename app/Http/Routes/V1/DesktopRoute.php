@@ -8,6 +8,7 @@ use App\Http\Controllers\V1\Desktop\ClientController;
 use App\Http\Controllers\V1\Desktop\DeviceController;
 use App\Http\Controllers\V1\Desktop\NoticeController;
 use App\Http\Controllers\V1\Desktop\UserController;
+use App\Http\Controllers\V1\Desktop\StoreController;
 use Illuminate\Contracts\Routing\Registrar;
 
 class DesktopRoute
@@ -26,6 +27,7 @@ class DesktopRoute
         });
 
         $router->get('/client/version', [ClientController::class, 'version'])->middleware('throttle:60,1');
+        $router->get('/client/plans', [StoreController::class, 'catalog'])->middleware('throttle:60,1');
         $router->get('/client/config/download/{grant}', [ClientController::class, 'download'])
             ->middleware('throttle:60,1')
             ->name('desktop.client.config.download');
@@ -36,6 +38,11 @@ class DesktopRoute
                 ->middleware('throttle:20,1');
 
             $router->group(['middleware' => 'client.device'], function ($router): void {
+                $router->get('/client/store', [StoreController::class, 'index'])->middleware('throttle:60,1');
+                $router->get('/client/store/order', [StoreController::class, 'detail'])->middleware('throttle:60,1');
+                foreach (['save', 'checkout', 'cancel'] as $action) {
+                    $router->post('/client/store/' . $action, [StoreController::class, $action])->middleware('throttle:15,1');
+                }
                 $router->get('/user/profile', [UserController::class, 'profile']);
                 $router->get('/user/subscription', [UserController::class, 'subscription']);
                 $router->get('/client/config', [ClientController::class, 'config'])->middleware('throttle:30,1');

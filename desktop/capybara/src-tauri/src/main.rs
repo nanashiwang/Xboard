@@ -461,6 +461,7 @@ fn open_link(app: tauri::AppHandle, target: String) -> Result<(), Fault> {
     use tauri_plugin_opener::OpenerExt;
     let url = match target.as_str() {
         "account" => "https://taige.us/#/dashboard",
+        "plans" => "https://taige.us/#/plan",
         "support" => "https://taige.us/#/ticket",
         "register" => "https://taige.us/#/register",
         "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara",
@@ -470,6 +471,8 @@ fn open_link(app: tauri::AppHandle, target: String) -> Result<(), Fault> {
         .open_url(url, None::<&str>)
         .map_err(|_| Fault::local("无法打开浏览器，请访问 taige.us"))
 }
+mod store;
+
 fn main() {
     if std::env::args().nth(1).as_deref() == Some("--capybara-engine") {
         std::process::exit(engine::worker_main())
@@ -581,6 +584,7 @@ fn main() {
             select_route,
             check_connection,
             open_link,
+            store::store_request,
             updates::update_snapshot,
             updates::check_updates,
             updates::dismiss_update,

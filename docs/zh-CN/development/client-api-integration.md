@@ -17,7 +17,7 @@
 6. 检查客户端版本、校验安装包并执行更新。
 7. 对客户端安装设备进行数量限制和基础风控。
 
-首期不建议把支付、工单、邀请、节点测速、日志上传并入本协议，避免扩大联调范围。
+首期不包含支付、工单、邀请、节点测速与日志上传。alpha.8 按用户要求增加限定的套餐/订单购买接口，见[客户端套餐与订单](#客户端套餐与订单)；工单、邀请等边界保持不变。
 
 ## 2. 当前实现状态
 
@@ -783,3 +783,23 @@ php artisan migrate --force
 本项目不宜只“改几个路由名称”后直接交付客户端。最关键的新增能力是：Refresh Token 轮换、客户端设备持久化、Token 与设备绑定、配置安全下载、更新包签名校验，以及区分“在线 IP 限制”和“注册客户端设备限制”。
 
 建议先以本文 P0 作为双方冻结的 API Contract，再补充 OpenAPI 3.1 文件和 Postman/Bruno 联调集合；接口字段冻结后，前后端即可并行开发。
+
+
+## 客户端套餐与订单
+
+alpha.8 通过独立的 Desktop 商店接口复用网站套餐与订单服务；不把网站用户令牌交给 WebView。金额单位为人民币分，展示价格来自 PlanResource，最终支付以服务器订单金额和手续费为准。
+
+| 方法与路径（`/api/v1` 下） | 权限与用途 |
+| --- | --- |
+| `GET client/plans` | 公开在售且有容量套餐；返回 id/name/纯文本 description、transfer_gb/speed_mbps/device_limit、periods（旧周期 id 与 amount） |
+| `GET client/store` | 客户端令牌及绑定设备；目录增加当前可续费套餐、账户 balance、待支付/开通中 order、启用 methods（id/name/手续费） |
+| `POST client/store/save` | plan_id、period、可选 coupon_code；服务器验证资格和未完成订单并复用 OrderService；返回订单 |
+| `GET client/store/order?trade_no=...` | 仅当前用户订单；返回订单号/套餐/周期/status、应付/余额/折扣/原套餐折抵/退款余额/手续费及当前 account_balance |
+| `POST client/store/checkout` | trade_no、method；复用既有支付服务；返回 kind=url/qr/submitted、data 与最新 order。submitted 不等于已开通 |
+| `POST client/store/cancel` | trade_no；仅待支付订单，沿用余额返还流程，返回更新订单 |
+
+状态 0 待支付、1 开通中、2 已取消、3 已完成、4 已折抵。客户端只在 3 时报告开通并同步账户；支付页面返回不作为成功依据。写操作按用户串行，未完成订单阻止重复下单；响应不确定时读取订单恢复，不自动重放写请求。网站原有订单渠道保持现状。
+
+错误使用 ClientApiResponse 与稳定 STORE_* 代码，不透传支付插件异常。拒绝跨用户订单、错误设备、封禁账户、不可购买套餐和无效周期。支付 URL 限制 HTTP(S)、无凭据与控制字符；不执行 HTML/自定义协议。二维码数据由本地 qrcode 生成图片，无第三方图片请求。Unsupported 支付方式可到网站继续原订单。
+
+新增商店接口无需表迁移；浏览器登录依赖 alpha.6 迁移。必须分别验证服务器部署、客户端 Release 和实际付款。回归见 `tests/Feature/Desktop/StoreTest.php` 与 `desktop/capybara/tests/store.test.tsx`；决定见[套餐购买](../../../.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。

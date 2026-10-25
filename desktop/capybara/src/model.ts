@@ -40,7 +40,7 @@ export const emptyView: View = {
     connection: "disconnected",
     connection_error: null,
     routes: [],
-    version: "0.1.0-alpha.7",
+    version: "0.1.0-alpha.8",
     platform: "",
 };
 export function quotaPercent(s: Subscription | null) {

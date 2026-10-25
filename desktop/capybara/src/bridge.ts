@@ -43,6 +43,7 @@ if (preview === "exhausted")
 if (preview === "offline") demo = { ...demo, sync_error: "账号服务连接失败" };
 if (preview === "keychain")
     demo = { ...emptyView, platform: "macos", session_needs_unlock: true };
+if (preview === "store-guest") demo = { ...emptyView, platform: "macos" };
 let demoUpdate: UpdateView = {
     phase:
         preview === "update" || preview === "update-deb"
@@ -52,7 +53,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.0-alpha.7",
+                  version: "0.1.0-alpha.8",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,
@@ -68,6 +69,14 @@ export async function command<T = View>(
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (name === "store_request") {
+            const { storePreview } = await import("./store-preview");
+            return (await storePreview(
+                preview,
+                String(args?.action),
+                args?.payload as Record<string, unknown>,
+            )) as T;
+        }
         if (
             [
                 "update_snapshot",
@@ -136,6 +145,7 @@ export async function command<T = View>(
     if (name === "open_link") {
         const urls: Record<string, string> = {
             account: "https://taige.us/#/dashboard",
+            plans: "https://taige.us/#/plan",
             support: "https://taige.us/#/ticket",
             register: "https://taige.us/#/register",
             releases:

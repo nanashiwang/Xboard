@@ -1,8 +1,10 @@
 # 卡皮巴拉桌面客户端
 
-蓝围巾旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.0-alpha.7**。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
+蓝围巾旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.0-alpha.8**。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
 
 ## 已实现
+
+- 套餐页：公开浏览套餐、登录后选择周期/优惠码并下单，沿用网站余额/折扣/换购计算；恢复待支付订单、选择支付方式、浏览器支付或客户端二维码、取消和完成后同步。账户资料从左下角进入。需要服务器部署 `client/plans` 与 `client/store/*`；支持零元开通，支付平台返回不代表开通成功。见[购买决定](../../.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。
 
 - 账号登录（浏览器授权）：复用 taige.us 已登录账号，确认后返回客户端；未登录先走官网，支持取消/重开和五分钟过期。客户端不收集网站密码，网页令牌不离开浏览器；桌面令牌只经原生一次性兑换，设备 UUID、系统凭据库、串行续期和退出登录保留。见[授权决定](../../.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
 - macOS 启动和后台同步静默访问钥匙串；需要权限时显示“登录记录等待授权”，用户点击“恢复登录”后才请求系统授权。macOS 凭据按当前二进制摘要隔离，升级后需重新登录一次账号，同一构建后续启动自动恢复；拒绝后不自动重试，也可重新登录；不会放宽钥匙串权限或明文保存令牌。见[授权决定](../../.agents/notes/implemented/bug-fix/2026-10-25-capybara-keychain-prompts.md)。
@@ -43,7 +45,7 @@ npm run desktop:dev
 
 `core-assets.json` 固定 Mihomo v1.19.33 的官方资产及 SHA-256。`core:prepare` 校验压缩包后解压，不在用户首次连接时下载内核。可通过 `CAPYBARA_CORE_ARCHIVE` 提供预下载的同一官方压缩包，摘要不符即失败。内置 `geoip.metadb` 同样验证固定摘要，避免首次启动依赖远端规则下载。
 
-开发界面：`npm run dev` 后访问 `http://127.0.0.1:1420/`。只有开发服务器支持 `?preview=active`、`?preview=exhausted`、`?preview=offline`，明确标注模拟数据；生产构建关闭模拟桥接，普通浏览器不能登录或修改系统代理。
+开发界面：`npm run dev` 后访问 `http://127.0.0.1:1420/`。套餐预览支持 `?preview=store-guest`、`store-pending`、`store-qr`、`store-processing`、`store-empty`、`store-error`。只有开发服务器支持 `?preview=active`、`?preview=exhausted`、`?preview=offline`，明确标注模拟数据；生产构建关闭模拟桥接，普通浏览器不能登录或修改系统代理。
 
 ## 构建与发布
 

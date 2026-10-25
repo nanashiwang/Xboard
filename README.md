@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉客户端套餐购买（2026-10-25）
+
+`0.1.0-alpha.8` 将侧栏“我的账户”改为“套餐”。用户可在客户端浏览套餐、选择周期与优惠码、创建订单并确认金额，支持浏览器支付、二维码、零元开通、待支付订单恢复/取消和开通后同步。账户资料保留在左下角；价格、余额、折扣和续费资格均沿用网站服务。
+
+本地前端、Rust、Desktop API 回归和浏览器明暗/760px 窄窗口通过；新增接口需要部署服务器。GitHub Release、官网分发、服务端部署与真实付款状态分别记录，不以客户端构建代替上线验收。见[购买决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)、[API 说明](./docs/zh-CN/development/client-api-integration.md#客户端套餐与订单)及[进展](./progress-log.md#2026-10-25卡皮巴拉客户端套餐购买)。
+
 ### 卡皮巴拉蓝绿色桌面图标（2026-10-25）
 
 `0.1.0-alpha.5` 将应用图标改为蓝绿色地球背景，保留金色水豚、蓝围巾与锁扣。原图的透明边距和预切圆角在 macOS 26.5 Finder 中触发灰色底板；改用满幅不透明正方形后，系统预览已确认灰框消失。三平台图标与应用内头像同步，官网图片副本保持独立。

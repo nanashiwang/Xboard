@@ -1,4 +1,5 @@
 import Updates from "./Updates";
+import Plans from "./Plans";
 import { useEffect, useRef, useState } from "react";
 import {
     ArrowDownToLine,
@@ -25,6 +26,7 @@ import {
     X,
     TriangleAlert,
     Copy,
+    ShoppingBag,
 } from "lucide-react";
 import { command, errorText, preview } from "./bridge";
 import {
@@ -38,7 +40,7 @@ import {
 const pages = [
     { id: "home", name: "首页", icon: House },
     { id: "routes", name: "线路", icon: Globe2 },
-    { id: "account", name: "我的账户", icon: UserRound },
+    { id: "plans", name: "套餐", icon: ShoppingBag },
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
 ];
 export default function App() {
@@ -153,9 +155,9 @@ export default function App() {
                     <ShieldCheck size={16} />
                 </button>
             ) : view.logged_in && (s?.status !== "active" || percent >= 90) ? (
-                <button onClick={() => void link("account")}>
-                    账户中心
-                    <ArrowUpRight size={16} />
+                <button onClick={() => setPage("plans")}>
+                    查看套餐
+                    <ArrowRight size={16} />
                 </button>
             ) : (
                 <span className="status-decoration">Take it easy.</span>
@@ -247,7 +249,9 @@ export default function App() {
             </aside>
             <main>
                 <h1 className="sr-only">
-                    {pages.find((p) => p.id === page)?.name}
+                    {page === "account"
+                        ? "我的账户"
+                        : pages.find((p) => p.id === page)?.name}
                 </h1>
                 {preview && (
                     <div className="preview-label">
@@ -537,6 +541,13 @@ export default function App() {
                         )}
                     </section>
                 )}
+                {page === "plans" && (
+                    <Plans
+                        view={view}
+                        onLogin={() => void act("begin_browser_login")}
+                        onRefresh={() => void act("refresh")}
+                    />
+                )}
                 {page === "account" && (
                     <section className="card page-card">
                         <div className="section-heading">
@@ -613,13 +624,13 @@ export default function App() {
                                 </div>
                                 <button
                                     className="primary-button fit"
-                                    onClick={() => void link("account")}
+                                    onClick={() => setPage("plans")}
                                 >
                                     续费与管理套餐
                                     <ArrowUpRight size={17} />
                                 </button>
                                 <p className="fine-print">
-                                    在浏览器中打开账户中心，设备管理和订单以网站记录为准。
+                                    在套餐页选择周期并购买；设备管理仍可从帮助与设置打开网站账户中心。
                                 </p>
                             </>
                         ) : (

@@ -220,6 +220,16 @@ impl Account {
             "AUTH_BROWSER_CANCELLED" => "已在浏览器取消授权，请重新登录",
             "AUTH_BROWSER_INVALID" => "授权请求无效，请重新登录",
             "RATE_LIMITED" => "操作过于频繁，请稍后重试",
+            "STORE_BUSY" => "订单正在处理，请稍后刷新",
+            "STORE_PENDING_ORDER" => "请先支付或取消未完成订单",
+            "STORE_PLAN_UNAVAILABLE" => "套餐暂不可购买，请刷新列表",
+            "STORE_ORDER_REJECTED" => "下单未完成，请检查周期、优惠码或换购规则",
+            "STORE_ORDER_CHANGED" => "订单状态已变化，请刷新",
+            "STORE_PAYMENT_FAILED" => "支付请求未完成，请刷新订单后重试",
+            "STORE_PAYMENT_UNSUPPORTED" => "此支付方式请在网站订单中心继续",
+            "STORE_ORDER_NOT_FOUND" => "找不到订单，请刷新列表",
+            "STORE_INVALID_INPUT" => "请选择有效套餐、周期和订单",
+            _ if status == StatusCode::NOT_FOUND => "服务正在准备中，请稍后重试或前往网站购买",
             _ if status == StatusCode::UNAUTHORIZED => "登录已失效，请重新登录",
             _ => "服务暂时不可用，请稍后重试",
         };
@@ -309,6 +319,30 @@ impl Account {
     }
     pub async fn get(&mut self, path: &str) -> Result<Value, Fault> {
         Self::decode(self.authorized(path).await?).await
+    }
+    pub async fn public_get(&self, path: &str) -> Result<Value, Fault> {
+        Self::decode(
+            self.request(Method::GET, path)
+                .send()
+                .await
+                .map_err(network_fault)?,
+        )
+        .await
+    }
+    pub async fn post(&mut self, path: &str, body: &Value) -> Result<Value, Fault> {
+        if self.access.is_empty() || Instant::now() >= self.expires {
+            self.renew().await?;
+        }
+        // Mutations are never retried automatically, including ambiguous network failures.
+        Self::decode(
+            self.request(Method::POST, path)
+                .bearer_auth(&self.access)
+                .json(body)
+                .send()
+                .await
+                .map_err(network_fault)?,
+        )
+        .await
     }
     pub async fn config(&mut self) -> Result<String, Fault> {
         let response = self
@@ -490,6 +524,30 @@ mod tests {
             paths
         });
         (origin, handle)
+    }
+    #[tokio::test]
+    async fn store_mutation_is_not_retried_on_server_failure() {
+        let dir = std::env::temp_dir().join(format!("capybara-store-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.access = "test-access".into();
+        account.expires = Instant::now() + Duration::from_secs(60);
+        let (origin, server) = server(vec![(
+            500,
+            json!({"code":"SERVER_ERROR", "message":"secret"}),
+        )]);
+        account.origin = origin;
+        assert!(!account
+            .post("client/store/save", &json!({"plan_id":1}))
+            .await
+            .unwrap_err()
+            .message
+            .contains("secret"));
+        assert_eq!(
+            server.join().unwrap(),
+            vec!["POST /api/v1/client/store/save HTTP/1.1"]
+        );
+        std::fs::remove_dir_all(dir).unwrap();
     }
     #[tokio::test]
     async fn rotation_expiry_and_credential_failure_never_reuse_old_token() {

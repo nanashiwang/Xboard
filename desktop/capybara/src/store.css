@@ -1,0 +1,238 @@
+.store-page {
+    min-width: 0;
+}
+.store-toolbar,
+.order-heading,
+.plan-name,
+.store-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.store-toolbar {
+    justify-content: space-between;
+    margin: 24px 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+.store-balance {
+    display: inline-block;
+    margin-left: 20px;
+}
+.plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: 20px;
+}
+.plan-card {
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+}
+.plan-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.plan-name {
+    gap: 10px;
+    color: var(--accent);
+}
+.plan-name h3 {
+    font-size: 19px;
+    margin: 0;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+.plan-name > span {
+    font-size: 11px;
+    padding: 4px 7px;
+    border-radius: 6px;
+    background: var(--soft);
+}
+.plan-price {
+    margin: 25px 0 20px;
+    display: flex;
+    gap: 7px;
+    align-items: baseline;
+}
+.plan-price strong {
+    font-size: 30px;
+    font-weight: 650;
+    letter-spacing: -1px;
+}
+.plan-price > span {
+    font-size: 13px;
+    color: var(--muted);
+}
+.plan-facts {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+    display: grid;
+    gap: 12px;
+    font-size: 14px;
+}
+.plan-facts li {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+}
+.plan-facts svg {
+    color: var(--accent);
+    flex-shrink: 0;
+}
+.plan-description {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin: 0 0 24px;
+}
+.plan-card > button {
+    margin-top: auto;
+    width: 100%;
+    min-width: 0;
+    padding: 13px 16px;
+    font-size: 14px;
+}
+.store-checkout {
+    margin-top: 28px;
+    padding: 26px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    scroll-margin: 30px;
+}
+.store-checkout h3 {
+    margin: 5px 0 14px;
+    font-size: 21px;
+    overflow-wrap: anywhere;
+}
+.store-options {
+    border: 0;
+    padding: 0;
+    margin: 22px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.store-options legend {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 12px;
+}
+.store-options label {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 15px;
+    background: var(--panel);
+    cursor: pointer;
+    font-size: 14px;
+}
+.store-options label:has(input:checked) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.store-options input {
+    accent-color: var(--accent);
+}
+.coupon-label {
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.coupon-label input {
+    max-width: 380px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    background: var(--panel);
+}
+.store-checkout .fine-print {
+    line-height: 1.7;
+    margin: 18px 0;
+    overflow-wrap: anywhere;
+}
+.order-heading {
+    justify-content: space-between;
+}
+.order-heading .fine-print {
+    margin: 0;
+}
+.order-heading > b {
+    color: var(--accent);
+}
+.order-heading .order-complete {
+    color: #25816c;
+}
+.order-breakdown {
+    max-width: 460px;
+    margin: 22px 0;
+}
+.order-breakdown p {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 14px;
+    margin: 10px 0;
+}
+.order-breakdown .order-total {
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    color: var(--ink);
+    align-items: center;
+}
+.order-total strong {
+    font-size: 27px;
+    color: var(--accent);
+}
+.store-alert {
+    background: var(--soft);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    color: var(--warn);
+}
+.store-alert p {
+    margin: 0 0 10px;
+}
+.store-empty {
+    text-align: center;
+    padding: 50px 0;
+    color: var(--muted);
+}
+.payment-qr {
+    display: block;
+    width: 256px;
+    max-width: 100%;
+    margin: 22px 0;
+    border-radius: 10px;
+}
+.store-message {
+    color: var(--accent);
+    line-height: 1.7;
+    font-size: 14px;
+}
+@media (max-width: 850px) {
+    .plan-card {
+        padding: 20px;
+    }
+    .store-checkout {
+        padding: 20px;
+    }
+    .store-balance {
+        display: block;
+        margin: 8px 0 0;
+    }
+}
