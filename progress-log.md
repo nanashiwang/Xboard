@@ -27,6 +27,12 @@
 - 本地 PHP 8.2 Desktop 48 项 / 443 断言，前端 15 项、网页脚本 7 项、发布签名 2 项、Rust 13 项通过（真实钥匙串测试默认忽略，本轮沿用 alpha.4 单独验收）。前端类型/生产构建、Rust 格式、App/DMG 构建通过。浏览器和 PHP 使用隔离本地 SQLite 与虚构测试账号，没有读取真实账号密码。首次预览数据库路径修正后重建隔离实例，最终测试显式指定 `DB_DATABASE=:memory:`。
 - 版本为 alpha.6，包含已发布 alpha.5 图标；后端须执行新增表迁移，生产部署与官网分发独立于 Release。目前尚未部署；真实用户登录、重启恢复和 Windows/Linux 真机仍待验收。代码与发布终态随后回读补记，既有香港入口/TUN 内容不纳入本次提交。
 
+代码 `5cc614e516cfc8ca6fa802f81ef0f594298a3c48` 已中文提交推送 master，README/progress-log 按 SHA 从 GitHub 回读逐字节一致。[网站 CI](https://github.com/nanashiwang/Xboard/actions/runs/40184160704)、[Docker 双架构构建](https://github.com/nanashiwang/Xboard/actions/runs/40184160706)、邮件/订单/节点/笔记检查均 success。[桌面发布 40184211269](https://github.com/nanashiwang/Xboard/actions/runs/40184211269) 四目标及 publish 全部 success，[alpha.6 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.6) 指向该代码提交；18 附件全部完整下载，大小和 SHA-256 匹配 GitHub 元数据与各摘要清单，四目标更新签名、索引和源码中的原生/UI/网页授权文件匹配。重复 push 桌面构建主动取消。
+
+本机复查 /Applications/Capybara.app 已为 alpha.6，其二进制 SHA-256 与最终本地构建一致，codesign 深度校验通过；点击登录实际到达生产服务，正确显示接口尚未上线（HTTP 404），不能当作真实账号登录通过。一次重复 DMG 打包失败后详细日志重跑成功，随后卸载本次 alpha.4/alpha.6 构建遗留的两个临时读写卷；保留用户已挂载的下载镜像。GitHub 下载中一次 TLS 超时经重试恢复，未降低校验要求。隔离测试浏览器和容器已关闭。
+
+生产部署确认仍待用户回复，未执行迁移、重启面板或同步官网静态下载/更新索引；因此正式浏览器授权、真实账号复启和三系统使用验收仍未完成。最终验收文档以独立 `[skip ci]` 提交推送并按 SHA 回读，不创建额外版本。
+
 ## 2026-10-25：卡皮巴拉钥匙串重复授权修复
 
 用户反馈打开应用需要 macOS 钥匙串密码，进一步提供截图指出重新登录仍反复读取密码。本机最初运行 /Applications/Capybara.app alpha.1，界面提示凭据库读取失败，签名为 ad-hoc、无 Team ID。第一轮仅将启动读取改为静默，试用反馈说明仍不足；进一步核对 keyring/security-framework 发现写入旧条目前同样读取旧秘密。
