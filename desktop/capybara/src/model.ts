@@ -1,3 +1,5 @@
+import { version } from "../package.json";
+
 export type Subscription = {
     status: "active" | "traffic_exhausted" | "expired" | "no_plan" | "banned";
     plan_name: string | null;
@@ -41,7 +43,7 @@ export const emptyView: View = {
     connection: "disconnected",
     connection_error: null,
     routes: [],
-    version: "0.1.0-alpha.11",
+    version,
     platform: "",
 };
 export function quotaPercent(s: Subscription | null) {
