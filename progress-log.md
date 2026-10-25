@@ -17,7 +17,13 @@
 
 用户点击“账号登录”仍见“账户服务尚未支持浏览器登录”。实际请求 `POST https://taige.us/api/v1/auth/browser/start` 返回 HTTP 404；[生产只读检查](https://github.com/nanashiwang/Xboard/actions/runs/40205367436)确认运行镜像仍为 `8ecbd733c3abd5ca6d8966fe128a56fbbd2fc67d`，而 alpha.7 对应的 `e278451f5643b398de86e5094d3d99d7e5ee4456` 镜像已构建成功。问题是桌面发布后服务端未上线，不是账号密码错误。用户本次要求解决实际登录失败，按此范围准备部署已实现的浏览器授权接口及新增授权表，既有客户端无需改协议或重装。
 
-复用 Production Deploy 并校对完整镜像 revision。新增部署前 SQLite 在线快照（包含 WAL）、0600 文件权限和完整性检查；失败阻止后续迁移与重启。两项备份测试覆盖 WAL 数据、重复备份不覆盖、权限、缺失/损坏数据库失败；既有管理脚本检查继续执行。当前提交仅包含部署保护与记录，不含并行商城或香港入口改动。实际部署、迁移与公网/原生验收结果将在完成后补记；未把准备工作写成成功。见[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+复用 Production Deploy 并校对完整镜像 revision。新增部署前 SQLite 在线快照（包含 WAL）、0600 文件权限和完整性检查；失败阻止后续迁移与重启。本地两项备份测试、18 项管理脚本测试、7 项网页授权回归、actionlint、笔记与差异检查通过；[管理脚本 CI 40205792787](https://github.com/nanashiwang/Xboard/actions/runs/40205792787) 40 项通过。代码 `cfd33e05b89e48aeb793b6dc313f0171c6e97018` 已中文提交推送 master，README/progress-log 从 GitHub 按 SHA 回读一致。首次 push 出现 TLS 错误，HTTP/1.1 重试成功。该提交使用 `[skip ci]` 避免为运维文件重复构建应用，检查工作流单独触发并验证成功。见[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+
+[生产部署 40205891305](https://github.com/nanashiwang/Xboard/actions/runs/40205891305) 于北京时间 23:14:39 成功：在线快照 `/root/xboard-backups/deploy/before-deploy-dc81itwc.sqlite` 完整性通过；`2026_10_25_000001_create_client_browser_logins` 迁移 DONE；运行镜像完整 revision 为 `e278451f5643b398de86e5094d3d99d7e5ee4456`、容器 Healthy。派发时并行商城提交已将工作流 ref 推进到 d4cbfd1，已核对部署脚本无差异；部署输入及运行检查固定 e278451，实际未带入商城功能。
+
+主域 `taige.us` 与备用域 `board.taige.us` 均完成 start/context/pending/cancel、未登录批准拒绝（401）和取消后轮询拒绝（410）；探测未批准账号且已取消请求，不发放真实账号令牌。两域授权页、主题返回桥接和三个静态资源与 e278451 匹配；备用域 CSS 首次 TLS 超时，限定 GET 重试后通过。通过 CUA 点击本机 alpha.7 的“账号登录”，实际打开 Chrome `/desktop/login`，不再显示原来的 404 文案；当前 Chrome 未登录官网，点击“登录官网并继续”进入现有登录页，并留给用户完成登录。随后用户确认“已授权，客户端已登录”。CUA 复核 alpha.7 首页已出现账户入口、流量数据与“一键连接”；保持未连接状态正常 Cmd+Q 退出，确认应用已不运行，再重新启动，账号与流量自动恢复，没有再次输入密码或出现钥匙串弹窗。此次重启验收针对同一 alpha.7 二进制；不扩展为跨版本凭据迁移、系统钥匙串被锁定或三平台真机验证。
+
+本轮没有修改客户端协议或重发安装包，沿用 [alpha.7 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.7)；官网分发索引未改。最终验收记录独立中文提交并回读，不纳入香港入口未提交内容。
 
 ## 2026-10-25：账号登录入口名称调整
 
