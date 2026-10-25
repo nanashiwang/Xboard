@@ -14,7 +14,11 @@
 
 版本统一为 alpha.11，提交 `328466f` 已推送 master。[四目标构建与发布 40215190458](https://github.com/nanashiwang/Xboard/actions/runs/40215190458) 全部 success，[alpha.11 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.11) 的 18 附件均 uploaded；全部摘要清单与 GitHub digest 一致、四目标签名与索引一致且 CI 验签通过，源码中的首页组件、CSS、插画和入口与提交精确匹配。11 个源码/小附件完整下载核对；其他大包以 GitHub digest 与 CI 验签覆盖。三个 TLS 连接超时经限定重试后完成。
 
-本地 macOS App 打包完成，版本 0.1.0-alpha.11，codesign --verify --deep --strict 通过；尝试原生界面验收时工具报告 Mac 锁屏且无法自动解锁，已请求用户手动解锁。本轮尚未替换 /Applications 中的应用，也未执行真实连接/切换节点；页面截图是带明确提示的开发模拟预览。328466f 的 README/progress 已从 GitHub 按提交回读一致，本收尾记录提交后继续回读。无后端改动、无需生产部署；官网静态下载和更新源没有自动随 GitHub Release 同步。保留并行登录弹窗提交与香港入口/TUN 脏改动，不混入本轮提交。
+本地 macOS App 打包完成，版本 0.1.0-alpha.11，codesign --verify --deep --strict 通过；尝试原生界面验收时工具报告 Mac 锁屏且无法自动解锁，已请求用户手动解锁。首次锁屏验收未替换 /Applications 中的应用，也未执行真实连接/切换节点；当时页面截图是带明确提示的开发模拟预览。328466f 的 README/progress 已从 GitHub 按提交回读一致，本收尾记录提交后继续回读。无后端改动、无需生产部署；官网静态下载和更新源没有自动随 GitHub Release 同步。保留并行登录弹窗提交与香港入口/TUN 脏改动，不混入本轮提交。
+
+用户回复“已解锁”后，确认 alpha.10 为已登录但未连接状态，经 Cmd+Q 正常退出、进程退出核对和旧包保留，替换 /Applications/Capybara.app 为 alpha.11。版本与 codesign --verify --deep --strict 通过。CUA 原生窗口确认蓝色山水首页、连接按钮、侧栏无独立线路入口、右侧节点列表，以及点击当前节点卡后聚焦搜索框；已保存无模拟标记的原生截图并停留首页。新版因临时签名构建的凭据隔离显示未登录，未读取旧凭据、未执行真实连接/切换节点或购买。
+
+套餐目录原生三次请求返回 NETWORK_TIMEOUT；只读直连 GET 一次 HTTP 200、OK、5 个套餐，另一次 curl 在 TLS 握手超时（HTTP 000），并确认此轮 account.rs/store.rs 无改动。只记录当前网络超时，不将原生套餐读取或支付全流程记为通过；系统代理配置未修改。此轮更新安装结果与网络边界说明，文档推送后按提交回读。
 
 ## 2026-10-26：卡皮巴拉登录弹窗简化
 
