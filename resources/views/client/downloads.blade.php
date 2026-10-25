@@ -12,7 +12,7 @@
 <body>
     <header class="topbar"><a class="brand" href="/"><img src="/assets/capybara-home/icon.webp" width="36" height="36" alt="">卡皮巴拉</a><a href="/#/dashboard">用户中心 <span aria-hidden="true">↗</span></a></header>
     <main>
-        <div class="intro"><span class="eyebrow">CAPYBARA FOR DESKTOP</span><h1>把卡皮巴拉带到你的电脑</h1><p>安装后登录本站账号，就能查看流量、选择线路并连接。</p><p class="mobile-note">Windows、macOS、Linux 已提供测试版；手机暂使用下方第三方客户端。</p></div>
+        <div class="intro"><span class="eyebrow">CAPYBARA FOR DESKTOP</span><h1>把卡皮巴拉带到你的电脑</h1><p>安装后登录本站账号，就能查看流量、选择线路并连接。</p><p class="mobile-note">Windows、macOS、Linux 已提供正式版；手机暂使用下方第三方客户端。</p></div>
         <nav class="platforms" aria-label="设备类型">
             @foreach($clients as $platform => $client)
                 @if($platform !== 'clash-verge')
@@ -25,7 +25,7 @@
         <section class="client" id="{{ $platform }}" data-client="{{ $client['id'] }}" data-flow="{{ $client['flow'] }}" aria-labelledby="name-{{ $platform }}">
             <div class="install panel">
                 <div class="section-label">{{ $client['flow'] === 'account' ? '卡皮巴拉官方桌面客户端' : '第三方开源客户端 · 订阅导入' }}</div>
-                <div class="client-heading">@if($client['flow'] === 'account')<img class="client-icon" src="/assets/capybara-home/icon.webp" width="56" height="56" alt="">@else<span class="client-icon" aria-hidden="true">{{ $platform === 'ios' ? 'S' : 'C' }}</span>@endif<div><h2 id="name-{{ $platform }}">{{ $client['name'] }}</h2><p>{{ $client['version'] }} <span class="dot">·</span> {{ $client['flow'] === 'account' ? 'Alpha 测试版' : '由第三方项目维护' }}</p></div></div>
+                <div class="client-heading">@if($client['flow'] === 'account')<img class="client-icon" src="/assets/capybara-home/icon.webp" width="56" height="56" alt="">@else<span class="client-icon" aria-hidden="true">{{ $platform === 'ios' ? 'S' : 'C' }}</span>@endif<div><h2 id="name-{{ $platform }}">{{ $client['name'] }}</h2><p>{{ $client['version'] }} <span class="dot">·</span> {{ $client['flow'] === 'account' ? '正式版' : '由第三方项目维护' }}</p></div></div>
                 <p class="requirement">{{ $client['requirement'] }}</p>
                 <div class="packages">
                     @foreach($client['packages'] as $package)

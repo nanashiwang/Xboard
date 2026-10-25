@@ -934,5 +934,8 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 修复：授权服务最多五次完整事务重试，确认数据库事务已回滚后按 25–100ms 退避；预算用尽返回 AUTH_BROWSER_BUSY，原生仅对这一明确未提交的响应继续等待，其余通用 5xx / 网络故障不重放。版本升至 0.1.0，正式 Release 按版本后缀分类，帮助页保留已发现版本的“查看更新”入口。
 - 验证：旧代码在真实文件 SQLite WAL 双连接回归中复现 HTTP 500 / database is locked；修复后 3 项并发测试 / 24 断言通过，覆盖唯一令牌、持续竞争回滚、批准保留及非并发错误。Desktop 全套 60 项 / 548 断言、前端 30 项、脚本 12 项、Rust 16 项（1 项手工钥匙串测试忽略）、前端构建与 cargo fmt 通过。没有生产下单或付款。
 - 首屏复验发现开发预览仍固定旧版本，已改为读取 package.json，避免原生快照到达前短暂显示 Alpha；预览更新示例改为 0.1.1。前端 30 + 脚本 12 项与构建再次通过，浏览器正式版标记、稍后关闭、帮助页查看更新再打开确认通过。初次发布构建 40221515676 在发布前取消，待修正后的提交重新构建。
-- 当前阶段：代码已完成本地验证；四目标 Release、后端生产升级、官网安装包和更新索引同步、本机正式版授权验收尚待完成。
+- 正式发布：源提交 `992dee3`，构建 [40221863894](https://github.com/nanashiwang/Xboard/actions/runs/40221863894) 四目标及 publish 全部 success，[Release 0.1.0](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0) 的 prerelease=false，18 附件均 uploaded；发布摘要与 GitHub SHA-256 全部对应，四目标签名与索引一致（CI 已验证签名包体）。首屏修正提交 README/progress-log 从 GitHub 回读一致。
+- 后端部署：[40222006066](https://github.com/nanashiwang/Xboard/actions/runs/40222006066) 成功；在线备份 `/root/xboard-backups/deploy/before-deploy-o2keop3_.sqlite`，容器 Healthy，运行 revision 确认为 `dfb7cc887ceda1edfa2225fea980d56f6703ab5d`。
+- 原生真实授权：02:42 官网显示授权完成，当前已安装 alpha.11 的弹窗自动关闭，首页显示已登录并同步真实套餐流量；此前锁竞争错误已修复。未连接系统代理或创建订单。期间另有直连 TLS 偶发超时，区分于数据库故障。
+- 分发准备：正式下载清单使用已发布附件的实际大小与摘要，索引仍置于最后；下载页版本与标签、教程更新为正式版。修改后 Desktop 60 项 / 548 断言及下载/教程同步 8 项通过。官网分发同步、下载页上线与本机升级验收尚待完成。
 - 依据：[浏览器授权决定](.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)、[更新决定](.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
