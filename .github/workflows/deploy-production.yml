@@ -11,6 +11,7 @@ on:
         options:
           - inspect
           - inspect-mail
+          - inspect-browser-login
           - inspect-dedicated
           - preview-owned-dedicated
           - attach-owned-dedicated
@@ -58,6 +59,11 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [ "$OPERATION" = inspect-browser-login ]; then
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker compose exec -T xboard php' < .docker/production/inspect-browser-login.php
+            exit 0
+          fi
           if [ "$OPERATION" = sync-downloads ]; then
             remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'test -d /srv/xboard-downloads && mktemp -d /tmp/xboard-downloads.XXXXXX')
             trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/sync.py $remote_dir/manifest.json; rmdir -- $remote_dir"' EXIT

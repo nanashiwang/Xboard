@@ -334,3 +334,7 @@ Issues and Pull Requests are welcome to help improve the project.
 ## 📈 Star History
 
 [![Stargazers over time](https://starchart.cc/cedar2025/Xboard.svg)](https://starchart.cc/cedar2025/Xboard)
+
+### 卡皮巴拉正式版准备与授权故障（2026-10-26）
+
+用户反馈网页确认后客户端仍提示服务暂时不可用；当前正在核对生产授权记录，尚未确认根因。新增只读、脱敏的授权诊断入口，后续修复和正式版发布状态见 [进展记录](progress-log.md#2026-10-26卡皮巴拉授权修复与正式版)。更新机制为应用运行时每六小时检查、发现新版后确认安装；官网更新源当前仍为 alpha.3，正式版需同步分发后才能被旧客户端发现。
