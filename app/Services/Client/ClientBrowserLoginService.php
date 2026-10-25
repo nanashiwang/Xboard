@@ -4,6 +4,8 @@ namespace App\Services\Client;
 
 use App\Exceptions\ClientApiException;
 use App\Models\User;
+use Closure;
+use Illuminate\Database\ConcurrencyErrorDetector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,6 +15,27 @@ class ClientBrowserLoginService
     private const TABLE = 'client_browser_logins';
 
     public function __construct(private readonly ClientAuthService $auth) {}
+
+    private function transaction(Closure $callback): mixed
+    {
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            try {
+                return DB::transaction($callback);
+            } catch (\Throwable $error) {
+                // A stale SQLite WAL snapshot needs a fresh transaction, not another query.
+                // Never retry inside a caller's transaction or after an ambiguous commit.
+                if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()
+                    || !(new ConcurrencyErrorDetector)->causedByConcurrencyError($error)) {
+                    throw $error;
+                }
+                if ($attempt === 5) {
+                    throw new ClientApiException('AUTH_BROWSER_BUSY', '授权服务繁忙，客户端将继续等待', 503);
+                }
+                usleep($attempt * 25000);
+            }
+        }
+        throw new \LogicException('Unreachable transaction state');
+    }
 
     public function start(array $device, string $secret): array
     {
@@ -66,7 +89,7 @@ class ClientBrowserLoginService
         if (!in_array('*', $abilities, true) || in_array('client', $abilities, true)) {
             throw new ClientApiException('AUTH_TOKEN_INVALID', '请使用官网账号登录后授权', 403);
         }
-        DB::transaction(function () use ($id, $user, $approved): void {
+        $this->transaction(function () use ($id, $user, $approved): void {
             $row = $this->current($id, true);
             if ($row->user_id !== null && (int) $row->user_id !== $user->id) {
                 throw new ClientApiException('AUTH_BROWSER_ACCOUNT_MISMATCH', '本次请求已由其他账号处理，请重新发起', 409);
@@ -79,7 +102,7 @@ class ClientBrowserLoginService
 
     public function poll(string $id, string $secret, ?string $ip): array
     {
-        return DB::transaction(function () use ($id, $secret, $ip): array {
+        return $this->transaction(function () use ($id, $secret, $ip): array {
             $row = $this->current($id, true);
             $this->verifySecret($row, $secret);
             if ($row->state === 'pending') {
@@ -97,7 +120,7 @@ class ClientBrowserLoginService
 
     public function cancel(string $id, string $secret): void
     {
-        DB::transaction(function () use ($id, $secret): void {
+        $this->transaction(function () use ($id, $secret): void {
             $row = $this->current($id, true);
             $this->verifySecret($row, $secret);
             DB::table(self::TABLE)->where('id', $id)->update(['state' => 'cancelled', 'updated_at' => now()]);

@@ -38,6 +38,7 @@ beforeEach(() => {
         .mockReset()
         .mockImplementation(async (name) => {
             if (name === "dismiss_update") state = { ...state, prompt: false };
+            if (name === "show_update") state = { ...state, prompt: true };
             if (name === "install_update")
                 state = {
                     ...state,
@@ -49,6 +50,27 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe("更新需用户确认", () => {
+    it("稍后关闭后帮助页保留更新入口，打开提示不下载", async () => {
+        state.prompt = false;
+        render(
+            <Updates
+                version="0.1.0-alpha.11"
+                settings={true}
+                blocked={false}
+            />,
+        );
+        fireEvent.click(
+            await screen.findByRole("button", { name: "查看更新" }),
+        );
+        await waitFor(() =>
+            expect(document.querySelector("dialog")?.open).toBe(true),
+        );
+        expect(
+            vi
+                .mocked(command)
+                .mock.calls.some(([name]) => name === "install_update"),
+        ).toBe(false);
+    });
     it("自动发现只展示提示；稍后不下载且关闭弹窗", async () => {
         render(
             <Updates

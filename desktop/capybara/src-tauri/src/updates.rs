@@ -192,6 +192,14 @@ pub async fn check_updates(
     Ok(state.0.view())
 }
 #[tauri::command]
+pub fn show_update(state: State<'_, UpdateState>) -> UpdateView {
+    let mut data = state.0.data.lock().unwrap();
+    if data.update.is_some() && !state.0.installing.load(Ordering::SeqCst) {
+        data.view.prompt = true;
+    }
+    data.view.clone()
+}
+#[tauri::command]
 pub fn dismiss_update(state: State<'_, UpdateState>) -> UpdateView {
     let mut data = state.0.data.lock().unwrap();
     if !state.0.installing.load(Ordering::SeqCst) {

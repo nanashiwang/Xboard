@@ -227,7 +227,10 @@ export default function App() {
                 </button>
                 <div className="sidebar-footer">
                     <div className="sidebar-version">
-                        v{view.version} <span>测试版</span>
+                        v{view.version}{" "}
+                        <span>
+                            {view.version.includes("-") ? "预览版" : "正式版"}
+                        </span>
                     </div>
                     <button
                         className="icon-button"
@@ -424,7 +427,7 @@ export default function App() {
                                 <h3>关于卡皮巴拉</h3>
                                 <p>
                                     v{view.version} · 使用 Mihomo
-                                    内核。当前为测试版本，安装签名及更多系统兼容性仍在完善。
+                                    内核。支持官网账号登录、套餐购买与安全更新。
                                 </p>
                             </article>
                         </div>

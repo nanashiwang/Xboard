@@ -16,6 +16,8 @@ Status: implemented
 
 授权请求过期、取消、重复兑换、错误秘密和不同网页账号重复批准均拒绝；浏览器批准不能由已有 desktop/client 作用域令牌发起。网络重试不重放已经兑换的续期令牌。未批准的轮询不生成登录令牌。
 
+授权事务遇到数据库并发竞争时，仅在完整回滚后最多尝试五次；耗尽后返回专用 `AUTH_BROWSER_BUSY`，客户端继续等待原请求的批准，不要求重新在网页确认。通用 5xx 和网络丢失响应仍不重放。生产 SQLite 根因、回滚边界及真实双连接测试见 [写竞争修复](../bug-fix/2026-10-26-capybara-browser-sqlite-contention.md)。
+
 ## History audit
 
 - [桌面架构](../../implemented/architecture/2026-10-23-capybara-desktop.md)部分重叠：复用 Desktop API、设备与令牌，仅替换新客户端获取登录授权的入口。

@@ -219,6 +219,7 @@ impl Account {
             "AUTH_BROWSER_EXPIRED" => "浏览器授权已过期，请重新登录",
             "AUTH_BROWSER_CANCELLED" => "已在浏览器取消授权，请重新登录",
             "AUTH_BROWSER_INVALID" => "授权请求无效，请重新登录",
+            "AUTH_BROWSER_BUSY" => "授权服务繁忙，请稍后重试",
             "RATE_LIMITED" => "操作过于频繁，请稍后重试",
             "STORE_BUSY" => "订单正在处理，请稍后刷新",
             "STORE_PENDING_ORDER" => "请先支付或取消未完成订单",
@@ -465,7 +466,17 @@ impl BrowserSession {
             return Err(Fault::local("浏览器授权已过期，请重新登录"));
         }
         let response = self.request("poll").send().await.map_err(network_fault)?;
-        let value = Account::decode(response).await?;
+        let status = response.status();
+        let value = match Account::decode(response).await {
+            // The server guarantees this error only after a complete transaction rollback.
+            Err(error)
+                if status == StatusCode::SERVICE_UNAVAILABLE
+                    && error.code == "AUTH_BROWSER_BUSY" =>
+            {
+                return Ok(None)
+            }
+            result => result?,
+        };
         match value["phase"].as_str() {
             Some("pending") => Ok(None),
             Some("complete") if value["tokens"].is_object() => Ok(Some(value["tokens"].clone())),
@@ -675,6 +686,33 @@ mod tests {
             &json!({"message":"secret-token","code":"SERVER_ERROR"}),
         );
         assert!(!f.message.contains("secret-token"));
+    }
+
+    #[tokio::test]
+    async fn browser_waits_only_for_explicit_rolled_back_busy_response() {
+        let dir = std::env::temp_dir().join(format!("capybara-busy-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        let (origin, server) = server(vec![
+            (
+                200,
+                json!({"data":{"request_id":"01K8ABCDEFGHJKMNPQRSTVWXYZ", "expires_in":300}}),
+            ),
+            (503, json!({"code":"AUTH_BROWSER_BUSY"})),
+            (503, json!({"code":"SERVICE_UNAVAILABLE"})),
+            (500, json!({"code":"AUTH_BROWSER_BUSY"})),
+        ]);
+        account.origin = origin;
+        let mut session = account.browser_session().unwrap();
+        session.start().await.unwrap();
+        assert!(session.poll().await.unwrap().is_none());
+        assert_eq!(
+            session.poll().await.unwrap_err().code,
+            "SERVICE_UNAVAILABLE"
+        );
+        assert_eq!(session.poll().await.unwrap_err().code, "AUTH_BROWSER_BUSY");
+        assert_eq!(server.join().unwrap().len(), 4);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[tokio::test]

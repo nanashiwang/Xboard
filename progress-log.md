@@ -930,5 +930,8 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 
 - 用户反馈：网页已确认授权，alpha.11 原生仍显示服务暂时不可用；要求下次为正式版，并核实六小时更新提醒。
 - 已确认：现有 updater 持久化六小时周期，发现新版显示“更新并重启”；帮助页可立即检查。2026-10-26 读取正式更新源 HTTP 200，仍为 `0.1.0-alpha.3`，发布 GitHub Release 不代表官网分发已同步。
-- 排查准备：新增 Production Deploy `inspect-browser-login` 只读脱敏诊断，限定近期状态与错误类别；不输出用户、秘密、令牌或原始 SQL。PHP 语法与笔记校验通过；生产诊断、根因修复、正式构建和分发尚待完成。
+- 诊断提交 `b6e5240` 已推送 master，README / progress-log 已从该提交回读一致。只读运行 [40220840231](https://github.com/nanashiwang/Xboard/actions/runs/40220840231) 成功：02:06:41，alpha.11 请求在授权服务第 92 行发生 HY000 / database is locked，随即取消。错误来自兑换事务，不是钥匙串或缺少网页确认。
+- 修复：授权服务最多五次完整事务重试，确认数据库事务已回滚后按 25–100ms 退避；预算用尽返回 AUTH_BROWSER_BUSY，原生仅对这一明确未提交的响应继续等待，其余通用 5xx / 网络故障不重放。版本升至 0.1.0，正式 Release 按版本后缀分类，帮助页保留已发现版本的“查看更新”入口。
+- 验证：旧代码在真实文件 SQLite WAL 双连接回归中复现 HTTP 500 / database is locked；修复后 3 项并发测试 / 24 断言通过，覆盖唯一令牌、持续竞争回滚、批准保留及非并发错误。Desktop 全套 60 项 / 548 断言、前端 30 项、脚本 12 项、Rust 16 项（1 项手工钥匙串测试忽略）、前端构建与 cargo fmt 通过。没有生产下单或付款。
+- 当前阶段：代码已完成本地验证；四目标 Release、后端生产升级、官网安装包和更新索引同步、本机正式版授权验收尚待完成。
 - 依据：[浏览器授权决定](.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)、[更新决定](.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。

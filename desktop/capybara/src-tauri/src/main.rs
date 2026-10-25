@@ -610,6 +610,7 @@ fn main() {
             updates::update_snapshot,
             updates::check_updates,
             updates::dismiss_update,
+            updates::show_update,
             updates::install_update
         ]);
     let app = builder

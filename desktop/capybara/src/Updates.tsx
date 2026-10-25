@@ -130,6 +130,18 @@ export default function Updates({
                                 ` 上次检查：${new Date(state.last_checked * 1000).toLocaleString("zh-CN")}`}
                         </small>
                     </div>
+                    {state.release && (
+                        <button
+                            className="primary-button"
+                            disabled={
+                                action || running || state.phase === "checking"
+                            }
+                            onClick={() => void run("show_update")}
+                        >
+                            <ArrowDownToLine size={17} />
+                            查看更新
+                        </button>
+                    )}
                     <button
                         className="secondary-button"
                         disabled={

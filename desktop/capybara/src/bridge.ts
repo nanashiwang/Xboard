@@ -82,11 +82,12 @@ export async function command<T = View>(
                 "update_snapshot",
                 "check_updates",
                 "dismiss_update",
+                "show_update",
                 "install_update",
             ].includes(name)
         ) {
             if (name === "dismiss_update") demoUpdate.prompt = false;
-            if (name === "check_updates")
+            if (name === "check_updates" || name === "show_update")
                 demoUpdate.prompt = !!demoUpdate.release;
             if (name === "install_update")
                 demoUpdate = {
