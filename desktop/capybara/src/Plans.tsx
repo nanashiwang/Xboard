@@ -87,6 +87,8 @@ export default function Plans({
     }
     useEffect(() => {
         generation.current++;
+        pending.current = false;
+        setBusy(false);
         setStore({ plans: [], balance: 0, methods: [], order: null });
         setQr("");
         setMessage("");
@@ -123,7 +125,7 @@ export default function Plans({
         } catch (e) {
             if (run === generation.current) setError(errorText(e));
         } finally {
-            pending.current = false;
+            if (run === generation.current) pending.current = false;
         }
     }
     useEffect(() => {
@@ -192,8 +194,10 @@ export default function Plans({
             }
             if (run === generation.current) setError(errorText(e));
         } finally {
-            pending.current = false;
-            if (run === generation.current) setBusy(false);
+            if (run === generation.current) {
+                pending.current = false;
+                setBusy(false);
+            }
         }
     }
     const activeOrder = order && [0, 1].includes(order.status);

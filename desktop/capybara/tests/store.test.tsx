@@ -207,3 +207,27 @@ it("空套餐和加载失败有明确状态；退出后不展示旧订单", asyn
     fireEvent.click(await screen.findByRole("button", { name: "刷新套餐" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
 });
+
+it("账号状态变化后丢弃迟到订单，并恢复新会话的购买按钮", async () => {
+    let resolveSave: (value: unknown) => void = () => {};
+    vi.mocked(command).mockImplementation(async (_, args) => {
+        if (args?.action === "save")
+            return new Promise((resolve) => {
+                resolveSave = resolve;
+            }) as never;
+        if (args?.action === "catalog")
+            return structuredClone(data.plans) as never;
+        return structuredClone(data) as never;
+    });
+    const ui = mount();
+    fireEvent.click(await screen.findByRole("button", { name: "选择套餐" }));
+    fireEvent.click(screen.getByRole("button", { name: "创建订单" }));
+    ui.rerender(<Plans view={emptyView} onLogin={login} onRefresh={refresh} />);
+    const loginButton = await screen.findByRole("button", {
+        name: "账号登录后购买",
+    });
+    expect((loginButton as HTMLButtonElement).disabled).toBe(false);
+    await act(async () => resolveSave(order));
+    expect(screen.queryByText("订单号 123456")).toBeNull();
+    expect((loginButton as HTMLButtonElement).disabled).toBe(false);
+});
