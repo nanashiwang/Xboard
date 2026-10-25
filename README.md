@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉山水首页（2026-10-26）
+
+`0.1.0-alpha.11` 按用户参考图更新蓝色山水、旅行水豚和大连接按钮。用户确认保留首页节点列表：移除侧栏独立“线路”页面，节点搜索、地区筛选、多分流组切换放在首页右侧，流量、规则分流说明和连接检测集中展示。未连接时不展示假节点，不填入未测的延迟/速率或无效模式开关。
+
+前端 29 项、网页/发布脚本 12 项、Rust 15 项与生产构建通过；明暗、760px 窄窗口、模拟切换和耗尽状态验收通过。本机安装、四目标发布和附件验证独立记录于[进展](./progress-log.md#2026-10-26卡皮巴拉山水首页与节点入口合并)。此次无需服务端部署，官网分发源仍独立维护。取舍见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
+
 ### 卡皮巴拉登录弹窗简化（2026-10-26）
 
 `0.1.0-alpha.10` 按用户反馈移除登录及注册弹窗底部重复的“取消”按钮，保留右上角关闭和 Esc 取消。账号登录、注册及授权返回功能不变。本地前端 25 项、网页授权 10 项、发布校验 2 项和生产前端构建通过；真实浏览器预览确认两个弹窗布局、关闭与 Esc，macOS App 已构建且签名检查通过。[alpha.10 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.10) 四目标构建与发布完成，18 附件及源码版本核验通过；本机已更新、授权登录成功，并恢复“美国01”连接。证据见[进展](./progress-log.md#2026-10-26卡皮巴拉登录弹窗简化)。

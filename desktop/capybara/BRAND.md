@@ -25,3 +25,11 @@ macOS 26.5 Finder 实测会将旧透明圆角图缩小置于灰色底板。新�
 > Use case: precise-object-edit. Edit the provided Capybara app icon. Keep this exact golden furry capybara face, upward gaze, blue scarf, white padlock shield, and subtle globe/network illustration. Replace the rounded blue tile with a FULL-BLEED OPAQUE SQUARE background, edge to edge, in vivid turquoise/teal-blue, a smooth gradient from #23BBD0 at top to #087EA4 at bottom. Extend the globe background to all four canvas edges. No rounded tile, no inset rounded rectangle, no border, no frame, no transparent margins, no external shadow, no gray or white plate behind it. The entire square canvas including corners must be colored and opaque; macOS will apply the rounded corners itself. Preserve character identity and premium 3D rendering. Keep the full face and ears inside a centered safe area, scarf cropped at bottom. Increase character prominence to occupy about 78% of the canvas. Do not add text, badges, objects or watermark. Output one 1024x1024 square opaque PNG desktop application icon.
 
 实际输出保持参考图 1254 × 1254，PNG 无 alpha 通道；Tauri 生成的各尺寸仍可带全不透明 alpha 通道。应用安装包与发布验收见[进展记录](../../progress-log.md#2026-10-25卡皮巴拉蓝绿色桌面图标)。
+
+## 山水首页插画（2026-10-26）
+
+`public/capybara-journey.png` 为内置 Imagegen 生成的 1536 × 1024 无文字背景，参考用户提供的新首页图及既有官网海岸图，保持金色水豚、蓝围巾与旅行背包。源码资产约 2.1 MiB，随客户端打包，不依赖临时目录或外部图片请求；旧透明水豚继续用于账户等空状态，桌面图标保持原版。
+
+提示词核心：Create a landscape background illustration for the working Capybara desktop app homepage. Output only scenery and capybara art, absolutely no UI, text, labels, signs, arrows, panels or buttons. Soft blue alpine lake, mountains, sunny white clouds and adorable large golden capybara with cobalt blue scarf, shield lock charm and blue travel backpack. Full seated body in the right half, center about 75 percent x and paws at 91 percent y, facing slightly left. Left 45 percent quiet luminous sky and pale lake for dark navy live interface text. Low rock and tiny meadow flowers at the bottom, polished soft 3D illustration, serene and spacious. Keep the full character inside canvas, no signposts.
+
+连接状态、按钮、节点和流量由 React 单独绘制，插画不包含业务数据。暗色主题用 CSS 调整亮度和文字对比，遵循减少动画偏好。

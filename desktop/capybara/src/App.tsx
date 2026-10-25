@@ -1,15 +1,12 @@
 import Updates from "./Updates";
 import Plans from "./Plans";
+import Home from "./Home";
 import { useEffect, useRef, useState } from "react";
 import {
-    ArrowDownToLine,
     ArrowRight,
     ArrowUpRight,
     Check,
-    CheckCircle2,
     ChevronRight,
-    Clock3,
-    Globe2,
     House,
     Compass,
     LifeBuoy,
@@ -17,12 +14,10 @@ import {
     LogOut,
     Monitor,
     Moon,
-    Power,
     RefreshCw,
     ShieldCheck,
     Sun,
     UserRound,
-    Wifi,
     X,
     TriangleAlert,
     Copy,
@@ -39,7 +34,6 @@ import {
 } from "./model";
 const pages = [
     { id: "home", name: "首页", icon: House },
-    { id: "routes", name: "线路", icon: Globe2 },
     { id: "plans", name: "套餐", icon: ShoppingBag },
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
 ];
@@ -130,9 +124,6 @@ export default function App() {
                   : connected
                     ? "断开连接"
                     : "一键连接";
-    const syncLabel = view.synced_at
-        ? `同步于 ${new Date(view.synced_at * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-        : "等待同步";
     const attention = status.tone === "warning" || status.tone === "danger";
     const statusCard = (
         <section className={"status-card " + status.tone} aria-live="polite">
@@ -166,7 +157,7 @@ export default function App() {
         </section>
     );
     return (
-        <div className="app-shell">
+        <div className={"app-shell" + (page === "home" ? " scenic-shell" : "")}>
             <aside className="sidebar">
                 <a
                     className="brand"
@@ -272,292 +263,16 @@ export default function App() {
                     </div>
                 )}
                 {page === "home" && (
-                    <>
-                        {attention && statusCard}
-                        <section className="hero">
-                            <div className="hero-copy">
-                                <span className="tag">
-                                    <Compass size={13} />{" "}
-                                    和卡皮巴拉一起，探索世界
-                                </span>
-                                <h2>
-                                    世界很大，
-                                    <br />
-                                    慢慢连接。
-                                </h2>
-                                <p>
-                                    把连接的事交给我。
-                                    <br />
-                                    你只管享受自己的节奏。
-                                </p>
-                                <span className="hero-signature">
-                                    Your calm connection to the world.
-                                </span>
-                            </div>
-                            <div className="mascot-scene">
-                                <div className="orbit orbit-one" />
-                                <div className="orbit orbit-two" />
-                                <div className="sun-disc" />
-                                <span className="spark spark-one">✦</span>
-                                <span className="spark spark-two">✧</span>
-                                <img
-                                    className="mascot"
-                                    src="/capybara.png"
-                                    alt="戴蓝围巾、背旅行包的卡皮巴拉水豚"
-                                />
-                                <span className="mascot-caption">
-                                    <span /> 今天，也要松弛一点。
-                                </span>
-                            </div>
-                        </section>
-                        <div className="main-grid">
-                            <section className="card connect-card">
-                                <div className="card-label">
-                                    <span>
-                                        <Wifi size={17} /> 我的连接
-                                    </span>
-                                    <span className="subtle">系统代理</span>
-                                </div>
-                                <div className="connect-body">
-                                    <button
-                                        className={
-                                            "power-button " +
-                                            (connected ? "on" : "")
-                                        }
-                                        onClick={primary}
-                                        disabled={!!busy || !eligible}
-                                        aria-label={primaryText}
-                                    >
-                                        {busy === "connect" ||
-                                        busy === "disconnect" ? (
-                                            <LoaderCircle
-                                                className="spin"
-                                                size={32}
-                                            />
-                                        ) : (
-                                            <Power size={32} />
-                                        )}
-                                    </button>
-                                    <div>
-                                        <h3>
-                                            {connected
-                                                ? "已连接"
-                                                : view.logged_in
-                                                  ? "准备连接"
-                                                  : "从这里开始"}
-                                        </h3>
-                                        <p>
-                                            {connected
-                                                ? view.routes[0]?.selected ||
-                                                  "按规则自动分流"
-                                                : view.logged_in
-                                                  ? "选择轻松，连接世界。"
-                                                  : "登录后，开启你的第一段连接。"}
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    className={
-                                        "primary-button " +
-                                        (connected ? "quiet" : "")
-                                    }
-                                    disabled={!!busy || !eligible}
-                                    onClick={primary}
-                                >
-                                    {primaryText}
-                                    <ArrowRight size={18} />
-                                </button>
-                                {!view.logged_in && (
-                                    <div className="register-entry">
-                                        <span>还没有账号？</span>
-                                        <button
-                                            disabled={!!busy}
-                                            onClick={() =>
-                                                void act(
-                                                    "begin_browser_login",
-                                                    { registration: true },
-                                                )
-                                            }
-                                        >
-                                            注册账号
-                                            <ArrowUpRight size={15} />
-                                        </button>
-                                    </div>
-                                )}
-                                <div className="connect-foot">
-                                    <ShieldCheck size={14} />
-                                    <span>连接前自动检查套餐状态</span>
-                                    {connected && (
-                                        <button
-                                            onClick={() => setPage("routes")}
-                                        >
-                                            切换线路
-                                        </button>
-                                    )}
-                                </div>
-                            </section>
-                            <section className="card quota-card">
-                                <div className="card-label">
-                                    <span>
-                                        <ArrowDownToLine size={17} /> 本期流量
-                                    </span>
-                                    <button
-                                        className="icon-button small"
-                                        disabled={!view.logged_in || !!busy}
-                                        onClick={() => void act("refresh")}
-                                        aria-label="立即同步流量"
-                                    >
-                                        <RefreshCw
-                                            size={15}
-                                            className={
-                                                busy === "refresh" ? "spin" : ""
-                                            }
-                                        />
-                                    </button>
-                                </div>
-                                <div className="quota-value">
-                                    {
-                                        bytes(s?.traffic.remaining_bytes).split(
-                                            " ",
-                                        )[0]
-                                    }
-                                    <span>{s ? "GB 可用" : "登录后查看"}</span>
-                                </div>
-                                <div
-                                    className={
-                                        "progress-track " +
-                                        (percent >= 90 ? "low" : "")
-                                    }
-                                    role="progressbar"
-                                    aria-label="本期流量已使用"
-                                    aria-valuenow={Math.round(percent)}
-                                    aria-valuemin={0}
-                                    aria-valuemax={100}
-                                >
-                                    <div style={{ width: `${percent}%` }} />
-                                </div>
-                                <div className="quota-detail">
-                                    <span>
-                                        已用 {bytes(s?.traffic.used_bytes)}
-                                    </span>
-                                    <span>
-                                        共 {bytes(s?.traffic.total_bytes)}
-                                    </span>
-                                </div>
-                                <div className="quota-bottom">
-                                    <span>
-                                        <Clock3 size={14} />
-                                        {s?.traffic.reset_at
-                                            ? `${date(s.traffic.reset_at)} 重置`
-                                            : "重置日期以套餐为准"}
-                                    </span>
-                                    <small>
-                                        {view.logged_in
-                                            ? syncLabel
-                                            : "自动同步，无需刷新订阅"}
-                                    </small>
-                                </div>
-                            </section>
-                        </div>
-                        {!attention && statusCard}
-                        <div className="bottom-links">
-                            <span>
-                                <ShieldCheck size={14} /> 账号状态每 30
-                                秒自动同步
-                            </span>
-                            <button onClick={() => setPage("help")}>
-                                遇到问题？我们陪你解决{" "}
-                                <ArrowUpRight size={14} />
-                            </button>
-                        </div>
-                    </>
-                )}
-                {page === "routes" && (
-                    <section className="card page-card">
-                        <div className="section-heading">
-                            <div>
-                                <span className="eyebrow">FIND YOUR WAY</span>
-                                <h2>选一条喜欢的线路</h2>
-                                <p>系统根据规则分流，切换后会重新检查连接。</p>
-                            </div>
-                            <Globe2 size={35} />
-                        </div>
-                        {!connected ? (
-                            <div className="empty-state">
-                                <img src="/capybara.png" alt="等待连接的水豚" />
-                                <h3>先连接，再挑一条路</h3>
-                                <p>连接后会显示当前套餐的实际线路。</p>
-                                <button
-                                    className="primary-button"
-                                    disabled={!!busy || !eligible}
-                                    onClick={primary}
-                                >
-                                    {primaryText}
-                                    <ArrowRight size={18} />
-                                </button>
-                            </div>
-                        ) : view.routes.length === 0 ? (
-                            <p className="empty-text">
-                                当前配置没有可手动选择的线路组，正在按服务器规则运行。
-                            </p>
-                        ) : (
-                            view.routes.map((route) => (
-                                <div className="route-group" key={route.group}>
-                                    <h3>
-                                        {route.group}
-                                        <span>
-                                            {route.choices.length} 个选项
-                                        </span>
-                                    </h3>
-                                    {route.choices.map((name) => (
-                                        <button
-                                            className={
-                                                "route-item " +
-                                                (route.selected === name
-                                                    ? "selected"
-                                                    : "")
-                                            }
-                                            key={name}
-                                            disabled={!!busy}
-                                            onClick={() =>
-                                                void act("select_route", {
-                                                    group: route.group,
-                                                    name,
-                                                })
-                                            }
-                                        >
-                                            <span className="route-symbol">
-                                                <Globe2 size={18} />
-                                            </span>
-                                            <span>{name}</span>
-                                            {route.selected === name ? (
-                                                <CheckCircle2 size={20} />
-                                            ) : (
-                                                <ChevronRight size={17} />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            ))
-                        )}
-                        {connected && (
-                            <button
-                                className="text-button"
-                                disabled={!!busy}
-                                onClick={() => void act("check_connection")}
-                            >
-                                <RefreshCw
-                                    size={16}
-                                    className={
-                                        busy === "check_connection"
-                                            ? "spin"
-                                            : ""
-                                    }
-                                />
-                                检测当前连接
-                            </button>
-                        )}
-                    </section>
+                    <Home
+                        view={view}
+                        busy={busy}
+                        eligible={eligible}
+                        primaryText={primaryText}
+                        onPrimary={primary}
+                        onAction={act}
+                        onPlans={() => setPage("plans")}
+                        notice={attention ? statusCard : null}
+                    />
                 )}
                 {page === "plans" && (
                     <Plans
