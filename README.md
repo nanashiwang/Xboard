@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉登录弹窗简化（2026-10-26）
+
+`0.1.0-alpha.10` 按用户反馈移除登录及注册弹窗底部重复的“取消”按钮，保留右上角关闭和 Esc 取消。账号登录、注册及授权返回功能不变。本地前端 25 项、网页授权 10 项、发布校验 2 项和生产前端构建通过；真实浏览器预览确认两个弹窗布局、关闭与 Esc，macOS App 已构建且签名检查通过。四目标 Release 与本机安装待验，状态见[进展](./progress-log.md#2026-10-26卡皮巴拉登录弹窗简化)。
+
 ### 卡皮巴拉客户端注册账号（2026-10-25）
 
 `0.1.0-alpha.9` 在未登录首页和登录弹窗提供“注册账号”。点击后进入官网注册，沿用邮箱验证码、邀请码、注册限制与密码规则；注册成功自动返回授权页，确认账号后登录客户端。官网已登录其他账号时先展示该账号，不自动退出或静默切换；超过五分钟可用已注册账号重新发起登录。

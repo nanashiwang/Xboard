@@ -858,13 +858,6 @@ export default function App() {
                         若注册超过五分钟，完成后回到客户端重新点“账号登录”即可。
                     </p>
                 )}
-                <button
-                    className="secondary-button"
-                    disabled={!!busy}
-                    onClick={() => void act("cancel_browser_login")}
-                >
-                    取消
-                </button>
                 <small className="fine-print">
                     无需在客户端输入密码，登录记录由系统凭据库安全保管。
                 </small>

@@ -1,6 +1,6 @@
 [package]
 name = "capybara"
-version = "0.1.0-alpha.9"
+version = "0.1.0-alpha.10"
 description = "卡皮巴拉桌面客户端"
 authors = ["nanashiwang"]
 license = "GPL-3.0-only"

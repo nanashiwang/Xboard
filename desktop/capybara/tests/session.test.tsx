@@ -141,7 +141,7 @@ describe("钥匙串授权由用户发起", () => {
             ).toBe(true),
         );
         fireEvent.click(
-            screen.getByRole("button", { name: "取消", exact: true }),
+            screen.getByRole("button", { name: "取消登录", exact: true }),
         );
         await waitFor(() =>
             expect(document.querySelector("dialog")?.open).toBe(false),
