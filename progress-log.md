@@ -8,7 +8,7 @@
 
 用户要求将“浏览器登录”改名为“账号登录”，功能不变。仅修改 App.tsx 的未登录主按钮文案（两处共用），继续调用 `begin_browser_login`，不改原生鉴权、网页授权、接口、凭据库或生产服务。版本按现有发布规范同步为 alpha.7；机械文案修改不新建决定，原[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)同步入口名称。
 
-前端 15 项、网页授权 7 项、发布校验 2 项、Rust 13 项通过，类型检查、生产前端、本机 App 构建与笔记门禁通过。备份 alpha.6 后已安装 alpha.7，codesign 深度校验和原生窗口确认版本及首页两处“账号登录”按钮；正常退出后仍有未登录且无连接工作进程的残留进程，精确 SIGTERM 退出再替换。四目标 Release 终态随后记录。本轮不将名称修改当作服务端部署授权；alpha.6 所需生产接口迁移仍待确认。仅提交本轮改动，既有香港入口/TUN 内容保持原归属。
+前端 15 项、网页授权 7 项、发布校验 2 项、Rust 13 项通过，类型检查、生产前端、本机 App 构建与笔记门禁通过。备份 alpha.6 后已安装 alpha.7，codesign 深度校验和原生窗口确认版本及首页两处“账号登录”按钮；正常退出后仍有未登录且无连接工作进程的残留进程，精确 SIGTERM 退出再替换。[发布构建 40202840022](https://github.com/nanashiwang/Xboard/actions/runs/40202840022) 四个目标与 publish 全部 success，[alpha.7 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.7) 指向 `e278451f5643b398de86e5094d3d99d7e5ee4456`；18 个附件均 uploaded，GitHub 服务端 SHA-256 与总/平台摘要清单逐项一致，四目标索引签名与签名附件一致，发布 CI 完成四个包体验签；源码与提交匹配。另有 16 个附件完成本地全量下载/摘要检查，Intel DMG 与 Linux AppImage 因网络慢停止额外全量下载，保留服务端摘要及 CI 验签证据，不声称 18 个均在本地完成全量验证。重复 push 桌面构建主动取消，笔记检查及 Docker 构建成功；本轮没有生产部署或官网分发更新。代码提交后 README/progress-log 已按 SHA 回读逐字节一致；本段验收以独立中文 `[skip ci]` 文档提交推送并回读。本轮不将名称修改当作服务端部署授权；alpha.6 所需生产接口迁移仍待确认。仅提交本轮改动，既有香港入口/TUN 内容保持原归属。
 
 ## 2026-10-25：卡皮巴拉蓝绿色桌面图标
 
