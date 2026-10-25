@@ -30,11 +30,15 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉 0.1.0 正式版（2026-10-26）
+
+生产诊断确认浏览器批准后的令牌兑换遭遇 SQLite WAL 写竞争。修复在完整回滚后有限重试，耗尽时保留批准等待；真实双连接回归覆盖一次兑换、持续竞争和非并发错误。客户端及首屏默认版本统一读取构建版本 **0.1.0 正式版**，每六小时检查更新，发现新版弹出确认，帮助页保留“查看更新”。本地 60 项 Desktop API、30 项前端、12 项脚本和 16 项 Rust 检查通过；[0.1.0 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0) 四目标和 18 附件已完成，生产已升级至 2ebf328 并 Healthy，官网正式下载页、12 个分发文件和签名更新索引已同步；本机已实测 alpha.11 应用内升级到 0.1.0、正式版网页授权登录、退出重开自动恢复和五个套餐加载，见 [进展记录](progress-log.md#2026-10-26卡皮巴拉授权修复与正式版) 和 [修复决定](.agents/notes/implemented/bug-fix/2026-10-26-capybara-browser-sqlite-contention.md)。
+
 ### 卡皮巴拉山水首页（2026-10-26）
 
 `0.1.0-alpha.11` 按用户参考图更新蓝色山水、旅行水豚和大连接按钮。用户确认保留首页节点列表：移除侧栏独立“线路”页面，节点搜索、地区筛选、多分流组切换放在首页右侧，流量、规则分流说明和连接检测集中展示。未连接时不展示假节点，不填入未测的延迟/速率或无效模式开关。
 
-前端 29 项、网页/发布脚本 12 项、Rust 15 项与生产构建通过；明暗、760px 窄窗口、模拟切换和耗尽状态验收通过。[alpha.11 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.11) 四目标及 18 附件验证通过，本机已由 alpha.10 升级至 alpha.11，签名与原生首页验收通过；新版需要重新授权登录，套餐请求网络超时单列于进展，详见[进展](./progress-log.md#2026-10-26卡皮巴拉山水首页与节点入口合并)。此次无需服务端部署，官网分发源仍独立维护。取舍见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
+前端 29 项、网页/发布脚本 12 项、Rust 15 项与生产构建通过；明暗、760px 窄窗口、模拟切换和耗尽状态验收通过。[alpha.11 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.11) 四目标及 18 附件验证通过，本机当时由 alpha.10 升级至 alpha.11，签名与原生首页验收通过；后续授权故障修复与升级 0.1.0 的当前结论见[正式版](#卡皮巴拉-010-正式版2026-10-26)，详见[进展](./progress-log.md#2026-10-26卡皮巴拉山水首页与节点入口合并)。此次无需服务端部署，官网分发源仍独立维护。取舍见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
 
 ### 卡皮巴拉登录弹窗简化（2026-10-26）
 
@@ -334,7 +338,3 @@ Issues and Pull Requests are welcome to help improve the project.
 ## 📈 Star History
 
 [![Stargazers over time](https://starchart.cc/cedar2025/Xboard.svg)](https://starchart.cc/cedar2025/Xboard)
-
-### 卡皮巴拉正式版准备与授权故障（2026-10-26）
-
-生产诊断确认浏览器批准后的令牌兑换遭遇 SQLite WAL 写竞争。修复在完整回滚后有限重试，耗尽时保留批准等待；真实双连接回归覆盖一次兑换、持续竞争和非并发错误。客户端及首屏默认版本统一读取构建版本 **0.1.0 正式版**，每六小时检查更新，发现新版弹出确认，帮助页保留“查看更新”。本地 60 项 Desktop API、30 项前端、12 项脚本和 16 项 Rust 检查通过；[0.1.0 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0) 四目标和 18 附件已完成，服务端 dfb7cc8 已部署 Healthy，官网批准后本机已成功登录并同步套餐；官网正式分发正在同步，见 [进展记录](progress-log.md#2026-10-26卡皮巴拉授权修复与正式版) 和 [修复决定](.agents/notes/implemented/bug-fix/2026-10-26-capybara-browser-sqlite-contention.md)。

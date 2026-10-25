@@ -937,5 +937,10 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 正式发布：源提交 `992dee3`，构建 [40221863894](https://github.com/nanashiwang/Xboard/actions/runs/40221863894) 四目标及 publish 全部 success，[Release 0.1.0](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0) 的 prerelease=false，18 附件均 uploaded；发布摘要与 GitHub SHA-256 全部对应，四目标签名与索引一致（CI 已验证签名包体）。首屏修正提交 README/progress-log 从 GitHub 回读一致。
 - 后端部署：[40222006066](https://github.com/nanashiwang/Xboard/actions/runs/40222006066) 成功；在线备份 `/root/xboard-backups/deploy/before-deploy-o2keop3_.sqlite`，容器 Healthy，运行 revision 确认为 `dfb7cc887ceda1edfa2225fea980d56f6703ab5d`。
 - 原生真实授权：02:42 官网显示授权完成，当前已安装 alpha.11 的弹窗自动关闭，首页显示已登录并同步真实套餐流量；此前锁竞争错误已修复。未连接系统代理或创建订单。期间另有直连 TLS 偶发超时，区分于数据库故障。
-- 分发准备：正式下载清单使用已发布附件的实际大小与摘要，索引仍置于最后；下载页版本与标签、教程更新为正式版。修改后 Desktop 60 项 / 548 断言及下载/教程同步 8 项通过。官网分发同步、下载页上线与本机升级验收尚待完成。
+- 分发准备：正式下载清单使用已发布附件的实际大小与摘要，索引仍置于最后；下载页版本与标签、教程更新为正式版。修改后 Desktop 60 项 / 548 断言及下载/教程同步 8 项通过。后续官网分发同步、下载页上线与本机升级均已完成，证据如下。
+- 分发上线：[40222704172](https://github.com/nanashiwang/Xboard/actions/runs/40222704172) 完整校验 12 个正式版文件，最后原子替换索引；客户端源站索引实际返回 0.1.0，字节 SHA-256 与发布附件相同。5 种安装包均 HTTP 206 / 128 字节 Range / 总大小正确；四目标签名索引对应，11 个源码及小附件本地完整下载校验，源码及标签精确对应 992dee3。
+- 教程：[40222817161](https://github.com/nanashiwang/Xboard/actions/runs/40222817161) 仅更新文章 5，保留其他字段与文章，并生成原文备份。下载页服务部署 [40223215645](https://github.com/nanashiwang/Xboard/actions/runs/40223215645) 使用在线 SQLite 备份 `/root/xboard-backups/deploy/before-deploy-0p6g7qa6.sqlite`，生产最终 revision `2ebf3281b0bb085f2e2e025ace3bc4779b851ebd`、容器 Healthy；官网浏览器显示 0.1.0 正式版和正确五包入口，Blade 编译通过。
+- 本机更新：已登录、未连接的 alpha.11 点击立即检查，真实弹窗显示 alpha.11 → 0.1.0；点击更新并重启完成下载/验签/安装/重启。/Applications/Capybara.app 的 CFBundleShortVersionString=0.1.0，codesign --verify --deep --strict 通过。旧应用副本保留在 /tmp/capybara-stable-20261026/Capybara-alpha11-before-update.app。原六小时持久化时钟保留；0.1.0 手动检查返回已是最新版本。
+- 正式版账号验收：网页显式授权后客户端完成登录并同步套餐流量；正常退出重开自动恢复账号，无钥匙串密码框。套餐页真实加载 5 个套餐及当前套餐/余额；未下单、未付款、未建立代理连接。客户端停留已登录首页。正式/浅色/深色 760px 更新入口模拟验收通过，模拟画面不冒充真实更新。
+- 最终发布与上线代码为客户端 `992dee3`、官网及后端 `2ebf328`，均已推送 master；其 README/progress-log 已按提交从 GitHub 回读一致。此次收尾记录仅补充验证，不新建版本；香港入口/TUN 的既有脏改动未混入。
 - 依据：[浏览器授权决定](.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)、[更新决定](.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
