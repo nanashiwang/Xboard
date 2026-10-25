@@ -414,7 +414,7 @@ dependencies = [
 
 [[package]]
 name = "capybara"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "keyring",
  "reqwest 0.12.28",

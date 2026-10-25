@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉蓝绿色桌面图标（2026-10-25）
+
+`0.1.0-alpha.5` 将应用图标改为蓝绿色地球背景，保留金色水豚、蓝围巾与锁扣。原图的透明边距和预切圆角在 macOS 26.5 Finder 中触发灰色底板；改用满幅不透明正方形后，系统预览已确认灰框消失。三平台图标与应用内头像同步，官网图片副本保持独立。
+
+素材与完整提示词见 [BRAND](./desktop/capybara/BRAND.md)，检查、安装和发布状态见[本次记录](./progress-log.md#2026-10-25卡皮巴拉蓝绿色桌面图标)。本地前端 14 项、发布校验 2 项与生产前端构建通过；macOS App/DMG 已构建并安装 alpha.5，Finder 实际图标无灰框，深浅主题头像通过。四目标 Release 待核实，尚未更新官网分发。
+
 ### 官网下载卡皮巴拉（2026-10-24）
 
 官网首页继续使用 `/clients`，电脑端现默认提供自有卡皮巴拉 **0.1.0-alpha.3**，覆盖 Windows x64、macOS Apple Silicon/Intel、Linux x64 DEB/AppImage。安装后直接登录本站账号；自动同步流量与到期状态，无需复制订阅。手机明确标为第三方方案，Clash Verge 保留独立兼容入口。页面提供测试版、系统要求、签名限制、校验值及官方备用下载。
