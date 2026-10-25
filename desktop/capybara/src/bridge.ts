@@ -52,7 +52,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.0-alpha.6",
+                  version: "0.1.0-alpha.7",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,

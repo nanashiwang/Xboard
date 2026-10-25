@@ -123,7 +123,7 @@ export default function App() {
               : busy === "restore_session"
                 ? "正在恢复登录"
                 : !view.logged_in
-                  ? "浏览器登录"
+                  ? "账号登录"
                   : connected
                     ? "断开连接"
                     : "一键连接";
