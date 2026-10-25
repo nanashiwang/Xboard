@@ -13,6 +13,10 @@
 - 版本同步为 0.1.0-alpha.5，包含已提交 alpha.4 的钥匙串修复。本地前端 14 项与发布校验 2 项、类型检查和生产前端构建通过；21 篇笔记与差异空白检查通过。macOS App/DMG 构建与 codesign 深度校验通过；已备份 alpha.4 并安装 alpha.5，启动版本与图标摘要匹配，Finder 中实际图标无灰框，深浅主题头像可见。前台重新打开后首页水豚正常；系统代理与替换前一致。旧窗口正常退出操作未结束进程，确认未登录、无连接工作进程后使用 SIGTERM 退出再替换；没有操作真实账号登录。四目标 Actions 与 Release 后续记录；没有把本机安装当作发布成功。
 - 本轮不部署网站、不更新官网静态分发索引，不将本机样式验证当作代理、真实账号或三系统业务验收；既有香港入口/TUN 记录保持原归属。GitHub 附件首次下载 TLS 握手超时，主站同一 alpha.3 归档重试成功并通过摘要，但发现本机已更新 alpha.4 后未安装旧包。
 
+代码 `1792b019627a9e0ab6725b9dbc751a029b462f65` 已中文提交并推送 master，README/progress-log 按该 SHA 从 GitHub 回读且逐字节一致。[发布构建 40181599657](https://github.com/nanashiwang/Xboard/actions/runs/40181599657) 的四个目标及 publish 全部 success；[alpha.5 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.5) 指向该提交，5 个安装包、2 个 macOS 更新归档、4 个签名、源码、4 份平台摘要、总摘要和更新索引共 18 个附件均完整下载，大小与 SHA-256 同时匹配 GitHub 元数据和总清单。四目标包体/可信注释及索引签名验证通过；源码中的图标、CSS 和版本文件、两架构 macOS 更新包里的 ICNS 均与提交一致。重复 push 桌面构建已取消，笔记检查和 Docker 构建成功；本轮没有生产部署或更新官网索引。
+
+最终验收记录以独立中文 `[skip ci]` 文档提交推送，并按精确 SHA 回读 README/progress-log；本机备份位于 `/tmp/capybara-blue-icon-20261025/backup/Capybara.app`，既有及并行任务的其他改动继续保留。
+
 ## 2026-10-25：卡皮巴拉钥匙串重复授权修复
 
 用户反馈打开应用需要 macOS 钥匙串密码，进一步提供截图指出重新登录仍反复读取密码。本机最初运行 /Applications/Capybara.app alpha.1，界面提示凭据库读取失败，签名为 ad-hoc、无 Team ID。第一轮仅将启动读取改为静默，试用反馈说明仍不足；进一步核对 keyring/security-framework 发现写入旧条目前同样读取旧秘密。

@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 `0.1.0-alpha.5` 将应用图标改为蓝绿色地球背景，保留金色水豚、蓝围巾与锁扣。原图的透明边距和预切圆角在 macOS 26.5 Finder 中触发灰色底板；改用满幅不透明正方形后，系统预览已确认灰框消失。三平台图标与应用内头像同步，官网图片副本保持独立。
 
-素材与完整提示词见 [BRAND](./desktop/capybara/BRAND.md)，检查、安装和发布状态见[本次记录](./progress-log.md#2026-10-25卡皮巴拉蓝绿色桌面图标)。本地前端 14 项、发布校验 2 项与生产前端构建通过；macOS App/DMG 已构建并安装 alpha.5，Finder 实际图标无灰框，深浅主题头像通过。四目标 Release 待核实，尚未更新官网分发。
+素材与完整提示词见 [BRAND](./desktop/capybara/BRAND.md)，检查、安装和发布状态见[本次记录](./progress-log.md#2026-10-25卡皮巴拉蓝绿色桌面图标)。本地前端 14 项、发布校验 2 项与生产前端构建通过；macOS App/DMG 已构建并安装 alpha.5，Finder 实际图标无灰框，深浅主题头像通过。[四目标构建与发布](https://github.com/nanashiwang/Xboard/actions/runs/40181599657)全部通过，[alpha.5 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.5) 的 18 个附件已完整下载核对 SHA-256，四目标更新签名和两架构 Mac 包内图标通过；官网分发本轮未更新。
 
 ### 官网下载卡皮巴拉（2026-10-24）
 
