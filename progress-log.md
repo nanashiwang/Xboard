@@ -24,7 +24,10 @@
 - 现场验收：本机 alpha.8 已安装并通过 codesign；原生窗口读取正式 5 个套餐并展示真实周期/价格；公开目录 HTTP 200，未登录商店 HTTP 401。真实扣款未执行。
 - 正式上线：用户明确授权“一并上线套餐购买接口”。镜像构建 [40206266559](https://github.com/nanashiwang/Xboard/actions/runs/40206266559) 成功；[部署 40206794983](https://github.com/nanashiwang/Xboard/actions/runs/40206794983) 在 SQLite 一致性备份通过后更新，容器 Healthy，运行 revision `5d161e6674c15b6f56948fdfa8b41f4b605fc0ee`。
 - [alpha.8 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.8) 四目标与发布均 success；18 附件 uploaded、GitHub SHA-256 与全部摘要清单一致，四目标签名与更新索引一致且 CI 验签通过。12 个附件（含源码和 Apple Silicon 更新包）本地完整下载校验；其他大包以 GitHub digest 与 CI 验签验证，不声称全量本地下载。README/progress 已按提交回读，最终补充记录另推送回读。
-- 正式数据发现 `device_limit` 实为同时在线 IP 数，现已修正界面名称，并清理套餐说明中的 Markdown 标记；属于展示修正，不改变后台额度。该修正随下个客户端版本发布，已发布 alpha.8 保持不可变。官网静态下载副本和更新源尚未同步本版。
+- 正式数据发现 `device_limit` 实为同时在线 IP 数，现已修正界面名称，并清理套餐说明中的 Markdown 标记；属于展示修正，不改变后台额度。该修正提交 `b765162` 已推送 master，并包含于后续 `1c60394` 的 [alpha.9 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.9)，已发布 alpha.8 保持不可变。官网静态下载副本和更新源尚未同步本版。
+- 2026-10-26 收尾复验：alpha.9 [四目标构建与发布 40208628482](https://github.com/nanashiwang/Xboard/actions/runs/40208628482) 全部 success，18 附件 uploaded；全部清单与 GitHub digest 一致、四个更新签名与索引一致，源码中的套餐页和格式化逻辑与 `1c60394` 精确相同。11 个源码/小附件已完整下载核对，其他大包依据 GitHub digest 与 CI 验签；一次 TLS 超时重试后通过。
+- 原生 alpha.9 正式界面已复核：五个真实套餐、同时在线 IP 文案、无 Markdown 标记，轻量版月/季/半年/年价格分别为 9.90/27/50/96 元；仅查看和选择周期，未创建订单或扣款。购买前端 8 项回归及生产构建再次通过，笔记校验通过。
+- 后续注册更新的 [部署 40209180388](https://github.com/nanashiwang/Xboard/actions/runs/40209180388) 保留本次购买接口，一致性备份后实际运行 `1c6039454285881e665089db7686b216f2555be3`、容器 Healthy；部署后正式目录仍返回 OK / 5 个套餐。`b765162` 的 README/progress 已从 GitHub 按提交回读一致；本收尾记录提交后另做相同回读。
 
 ## 2026-10-25：修复账号登录提示服务端不支持
 
