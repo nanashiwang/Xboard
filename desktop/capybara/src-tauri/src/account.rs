@@ -268,6 +268,7 @@ impl Account {
             return Err(Fault::local("请先退出当前账号"));
         }
         Ok(BrowserSession {
+            registration: false,
             client: self.client.clone(),
             origin: self.origin.clone(),
             device_id: self.device_id.clone(),
@@ -399,6 +400,7 @@ impl Account {
 
 #[derive(Clone)]
 pub struct BrowserSession {
+    pub registration: bool,
     client: Client,
     origin: String,
     device_id: String,
@@ -442,7 +444,16 @@ impl BrowserSession {
         Ok(())
     }
     pub fn url(&self) -> String {
-        format!("{}/desktop/login#request_id={}", self.origin, self.id)
+        format!(
+            "{}/desktop/login#request_id={}{}",
+            self.origin,
+            self.id,
+            if self.registration {
+                "&flow=register"
+            } else {
+                ""
+            }
+        )
     }
     pub fn remaining(&self) -> u64 {
         self.deadline
@@ -696,6 +707,12 @@ mod tests {
             format!("{origin}/desktop/login#request_id=01K8ABCDEFGHJKMNPQRSTVWXYZ")
         );
         assert!(!session.url().contains(&session.secret));
+        session.registration = true;
+        assert_eq!(
+            session.url(),
+            format!("{origin}/desktop/login#request_id=01K8ABCDEFGHJKMNPQRSTVWXYZ&flow=register")
+        );
+        assert!(!session.url().contains(&session.secret));
         assert!(session.poll().await.unwrap().is_none());
         assert!(account.entry().unwrap().get_password().is_err());
         let tokens = session.poll().await.unwrap().unwrap();
@@ -720,6 +737,7 @@ mod tests {
             (200, json!({"data":true})),
         ]);
         let mut session = BrowserSession {
+            registration: false,
             client: http().unwrap(),
             origin,
             device_id: Uuid::new_v4().to_string(),

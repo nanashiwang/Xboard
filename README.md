@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉客户端注册账号（2026-10-25）
+
+`0.1.0-alpha.9` 在未登录首页和登录弹窗提供“注册账号”。点击后进入官网注册，沿用邮箱验证码、邀请码、注册限制与密码规则；注册成功自动返回授权页，确认账号后登录客户端。官网已登录其他账号时先展示该账号，不自动退出或静默切换；超过五分钟可用已注册账号重新发起登录。
+
+本地前端 25 项、网页授权 10 项、发布校验 2 项、Rust 15 项及 Desktop API 57 项 / 524 断言通过。真实浏览器完成入口、取消、明暗/760px 窄窗口及隔离官网注册表单自动跳转；隔离数据库验证新注册无套餐账号授权和一次性兑换。正式账号注册、服务器更新、四平台发布和本机安装分别记录于[进展](./progress-log.md#2026-10-25卡皮巴拉客户端注册账号)，不以模拟页面代替生产完成。沿用[浏览器授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+
 ### 卡皮巴拉客户端套餐购买（2026-10-25）
 
 `0.1.0-alpha.8` 将侧栏“我的账户”改为“套餐”。用户可在客户端浏览套餐、选择周期与优惠码、创建订单并确认金额，支持浏览器支付、二维码、零元开通、待支付订单恢复/取消和开通后同步。账户资料保留在左下角；价格、余额、折扣和续费资格均沿用网站服务。

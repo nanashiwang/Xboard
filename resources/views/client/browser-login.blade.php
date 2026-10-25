@@ -6,7 +6,7 @@
   <title>登录卡皮巴拉客户端</title>
   <link rel="icon" href="/assets/capybara-home/icon.webp">
   <link rel="stylesheet" href="/assets/desktop-login.css?v=1">
-  <script defer src="/assets/desktop-login.js?v=1"></script>
+  <script defer src="/assets/desktop-login.js?v=2"></script>
 </head>
 <body>
   <main>
@@ -23,6 +23,7 @@
     <div id="actions">
       <button id="approve" hidden>授权并返回客户端</button>
       <button id="login" hidden>登录官网并继续</button>
+      <button id="register" class="secondary" hidden>注册账号并继续</button>
       <button id="reject" class="secondary" hidden>取消授权</button>
       <button id="retry" class="secondary" hidden>重试</button>
     </div>

@@ -15,6 +15,7 @@ export type View = {
     logged_in: boolean;
     session_needs_unlock: boolean;
     browser_login: {
+        registration?: boolean;
         phase: "starting" | "waiting" | "error";
         expires_at: number | null;
         error: string | null;
@@ -40,7 +41,7 @@ export const emptyView: View = {
     connection: "disconnected",
     connection_error: null,
     routes: [],
-    version: "0.1.0-alpha.8",
+    version: "0.1.0-alpha.9",
     platform: "",
 };
 export function quotaPercent(s: Subscription | null) {

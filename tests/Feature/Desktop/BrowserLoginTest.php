@@ -122,4 +122,29 @@ class BrowserLoginTest extends TestCase
         admin_setting(['app_url' => 'https://trusted.example', 'safe_mode_enable' => 1]);
         $this->get('/desktop/login')->assertStatus(403);
     }
+
+    public function test_newly_registered_website_account_can_authorize_desktop_without_a_plan(): void
+    {
+        admin_setting(['stop_register' => 0, 'email_verify' => 0, 'invite_force' => 0,
+            'email_whitelist_enable' => 0, 'register_limit_by_ip_enable' => 0]);
+        $this->mock(\App\Services\CaptchaService::class, function ($mock): void {
+            $mock->shouldReceive('verify')->once()->andReturn([true, null]);
+        });
+        $id = $this->start()['request_id'];
+        $email = Str::uuid() . '@example.com';
+        $session = $this->postJson('/api/v1/passport/auth/register', [
+            'email' => $email, 'password' => 'isolated-test-password',
+        ])->assertOk()->json('data.auth_data');
+        $this->assertIsString($session);
+        $this->app['auth']->forgetGuards();
+        $this->withToken($session)->postJson('/api/v1/auth/browser/approve', [
+            'request_id' => $id, 'approved' => true,
+        ])->assertOk();
+        $tokens = $this->poll($id)->assertOk()->assertJsonPath('data.phase', 'complete')->json('data.tokens');
+        $user = User::where('email', $email)->firstOrFail();
+        $this->assertSame($user->id, $tokens['user']['id']);
+        $this->assertNull($user->plan_id);
+        $this->assertDatabaseCount('client_devices', 1);
+        $this->poll($id)->assertStatus(410);
+    }
 }

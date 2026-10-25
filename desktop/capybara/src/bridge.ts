@@ -128,6 +128,7 @@ export async function command<T = View>(
             demo = {
                 ...demo,
                 browser_login: {
+                    registration: args?.registration === true,
                     phase: "waiting",
                     expires_at: Math.floor(Date.now() / 1000) + 300,
                     error: null,

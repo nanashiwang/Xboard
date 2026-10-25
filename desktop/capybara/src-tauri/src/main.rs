@@ -45,6 +45,7 @@ fn now() -> u64 {
 }
 #[derive(Clone, Serialize)]
 struct BrowserView {
+    registration: bool,
     phase: String,
     expires_at: Option<u64>,
     error: Option<String>,
@@ -220,6 +221,7 @@ async fn browser_login_job(
         if let Err(error) = result {
             rt.browser_attempt = None;
             rt.view.browser_login = Some(BrowserView {
+                registration: session.registration,
                 phase: "error".into(),
                 expires_at: None,
                 error: Some(error.message),
@@ -235,6 +237,7 @@ async fn browser_login_job(
             .err()
             .map(|_| "浏览器未能打开，请点击“重新打开浏览器”".into());
         rt.view.browser_login = Some(BrowserView {
+            registration: session.registration,
             phase: "waiting".into(),
             expires_at: Some(now() + session.remaining()),
             error,
@@ -275,6 +278,7 @@ async fn browser_login_job(
                     }
                     Err(error) => {
                         rt.view.browser_login = Some(BrowserView {
+                            registration: session.registration,
                             phase: "error".into(),
                             expires_at: None,
                             error: Some(error.message),
@@ -287,6 +291,7 @@ async fn browser_login_job(
                 rt.browser_attempt = None;
                 rt.browser_session = None;
                 rt.view.browser_login = Some(BrowserView {
+                    registration: session.registration,
                     phase: "error".into(),
                     expires_at: None,
                     error: Some(error.message),
@@ -300,15 +305,32 @@ async fn browser_login_job(
     }
 }
 #[tauri::command]
-async fn begin_browser_login(state: State<'_, AppState>) -> Result<View, Fault> {
+async fn begin_browser_login(
+    state: State<'_, AppState>,
+    registration: Option<bool>,
+) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
-    if rt.browser_attempt.is_some() {
+    let registration = registration.unwrap_or(false);
+    if rt.browser_attempt.is_some()
+        && rt
+            .view
+            .browser_login
+            .as_ref()
+            .is_some_and(|view| view.registration == registration)
+    {
         return Ok(rt.view.clone());
     }
-    let session = rt.account.browser_session()?;
+    let mut session = rt.account.browser_session()?;
+    session.registration = registration;
+    if let Some(previous) = rt.browser_session.take() {
+        tauri::async_runtime::spawn(async move {
+            previous.cancel().await;
+        });
+    }
     let attempt = uuid::Uuid::new_v4().to_string();
     rt.browser_attempt = Some(attempt.clone());
     rt.view.browser_login = Some(BrowserView {
+        registration,
         phase: "starting".into(),
         expires_at: None,
         error: None,

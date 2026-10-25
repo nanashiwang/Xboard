@@ -1,6 +1,8 @@
 (function () {
   'use strict';
-  var id = new URLSearchParams(location.hash.slice(1)).get('request_id') || '';
+  var params = new URLSearchParams(location.hash.slice(1));
+  var id = params.get('request_id') || '';
+  var registration = params.get('flow') === 'register';
   var valid = /^[0-9A-HJKMNP-TV-Z]{26}$/.test(id);
   // Browsers may reuse an existing tab and only change the fragment for a new attempt.
   addEventListener('hashchange', function () { location.reload(); });
@@ -15,7 +17,7 @@
   }
   function show(message, buttons) {
     el('message').textContent = message;
-    ['approve', 'login', 'reject', 'retry'].forEach(function (name) { el(name).hidden = buttons.indexOf(name) === -1; });
+    ['approve', 'login', 'register', 'reject', 'retry'].forEach(function (name) { el(name).hidden = buttons.indexOf(name) === -1; });
   }
   async function api(path, auth, body) {
     var headers = { Accept: 'application/json' };
@@ -52,27 +54,32 @@
       if (!valid) { show('授权链接无效，请从卡皮巴拉客户端点击登录。', []); return; }
       context = await api('auth/browser/context?request_id=' + id);
       selectedToken = token();
-      if (!selectedToken) { show('登录官网后即可授权客户端使用你的账号。', ['login']); return; }
+      if (!selectedToken) {
+        if (registration) { enterWebsite('register'); return; }
+        show('登录或注册官网账号后，即可授权客户端。', ['login', 'register']); return;
+      }
       var user;
       try { user = await api('user/info', selectedToken); }
       catch (e) {
-        if (e.status === 401 || e.status === 403) { show(e.message, ['login']); return; }
+        if (e.status === 401 || e.status === 403) { show(e.message, ['login', 'register']); return; }
         throw e;
       }
       if (!user || typeof user.email !== 'string') throw new Error('无法确认当前账号，请重新登录官网。');
       el('account').textContent = user.email;
       el('device').textContent = context.device_name + ' · ' + context.platform;
       el('details').hidden = false;
-      show('确认使用以下账号登录你刚刚打开的客户端。', ['approve', 'reject']);
+      show(registration ? '官网已登录以下账号，可直接授权客户端。如需注册新账号，请先在官网退出当前账号后重新注册。' : '确认使用以下账号登录你刚刚打开的客户端。', ['approve', 'reject']);
     } catch (e) { show(e.message, e.status === 410 || e.status === 409 ? [] : ['retry']); }
     finally { running = false; }
   }
-  el('login').onclick = function () {
+  function enterWebsite(page) {
     try {
       sessionStorage.setItem(pendingKey, JSON.stringify({ request_id: id, expires_at: Date.parse(context.expires_at) }));
-      location.assign('/#/login');
+      location.assign(page === 'register' ? '/#/register' : '/#/login');
     } catch (_) { show('浏览器存储不可用，请允许本站存储后重试。', ['retry']); }
-  };
+  }
+  el('login').onclick = function () { enterWebsite('login'); };
+  el('register').onclick = function () { enterWebsite('register'); };
   async function decide(approved) {
     if (running) return;
     // Never silently approve with a different account than the one displayed.

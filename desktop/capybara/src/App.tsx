@@ -53,6 +53,7 @@ export default function App() {
         ),
         [copied, setCopied] = useState(false);
     const loginOpen = !!view.browser_login;
+    const registering = view.browser_login?.registration === true;
     const loginRef = useRef<HTMLDialogElement>(null),
         polling = useRef(false),
         mounted = useRef(true);
@@ -366,6 +367,23 @@ export default function App() {
                                     {primaryText}
                                     <ArrowRight size={18} />
                                 </button>
+                                {!view.logged_in && (
+                                    <div className="register-entry">
+                                        <span>还没有账号？</span>
+                                        <button
+                                            disabled={!!busy}
+                                            onClick={() =>
+                                                void act(
+                                                    "begin_browser_login",
+                                                    { registration: true },
+                                                )
+                                            }
+                                        >
+                                            注册账号
+                                            <ArrowUpRight size={15} />
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="connect-foot">
                                     <ShieldCheck size={14} />
                                     <span>连接前自动检查套餐状态</span>
@@ -768,12 +786,16 @@ export default function App() {
                 <h2 id="browser-login-title">
                     {view.browser_login?.phase === "error"
                         ? "登录尚未完成"
-                        : "在浏览器中完成登录"}
+                        : registering
+                          ? "在浏览器中注册账号"
+                          : "在浏览器中完成登录"}
                 </h2>
                 <p>
                     {view.browser_login?.phase === "starting"
                         ? "正在准备授权页面…"
-                        : "使用官网已登录的账号，确认授权后即可回到这里。"}
+                        : registering
+                          ? "在官网完成注册后，确认授权即可回到客户端。"
+                          : "使用官网已登录的账号，确认授权后即可回到这里。"}
                 </p>
                 {view.browser_login?.error && (
                     <div className="login-error" role="alert">
@@ -805,11 +827,36 @@ export default function App() {
                     <button
                         className="primary-button"
                         disabled={!!busy}
-                        onClick={() => void act("begin_browser_login")}
+                        onClick={() =>
+                            void act("begin_browser_login", {
+                                registration: registering,
+                            })
+                        }
                     >
-                        重新登录
+                        {registering ? "继续注册" : "重新登录"}
                         <ArrowRight size={17} />
                     </button>
+                )}
+                {!registering && (
+                    <div className="register-entry">
+                        <span>还没有账号？</span>
+                        <button
+                            disabled={!!busy}
+                            onClick={() =>
+                                void act("begin_browser_login", {
+                                    registration: true,
+                                })
+                            }
+                        >
+                            注册账号
+                            <ArrowUpRight size={15} />
+                        </button>
+                    </div>
+                )}
+                {registering && (
+                    <p className="fine-print">
+                        若注册超过五分钟，完成后回到客户端重新点“账号登录”即可。
+                    </p>
                 )}
                 <button
                     className="secondary-button"

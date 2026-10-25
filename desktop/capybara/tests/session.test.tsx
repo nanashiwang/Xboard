@@ -173,4 +173,99 @@ describe("钥匙串授权由用户发起", () => {
             vi.mocked(command).mock.calls.some(([name]) => name === "connect"),
         ).toBe(false);
     });
+    it("未登录首页可发起注册，注册重试保留意图且成功后不自动连接", async () => {
+        state = { ...emptyView };
+        vi.mocked(command).mockImplementation(async (name, args) => {
+            if (name === "begin_browser_login")
+                state = {
+                    ...state,
+                    browser_login: {
+                        phase: "error",
+                        registration: args?.registration === true,
+                        expires_at: null,
+                        error: "网络暂时不可用",
+                    },
+                };
+            return structuredClone(state) as never;
+        });
+        render(<App />);
+        fireEvent.click(
+            await screen.findByRole("button", {
+                name: "注册账号",
+                exact: true,
+            }),
+        );
+        await screen.findByText("网络暂时不可用");
+        expect(
+            vi
+                .mocked(command)
+                .mock.calls.some(
+                    ([name, args]) =>
+                        name === "begin_browser_login" &&
+                        args?.registration === true,
+                ),
+        ).toBe(true);
+        expect(document.querySelector('input[type="password"]')).toBeNull();
+        vi.mocked(command).mockImplementation(async (name) => {
+            if (name === "begin_browser_login")
+                state = { ...emptyView, logged_in: true };
+            return structuredClone(state) as never;
+        });
+        fireEvent.click(
+            screen.getByRole("button", { name: "继续注册", exact: true }),
+        );
+        await waitFor(() =>
+            expect(document.querySelector("dialog")?.open).toBe(false),
+        );
+        expect(
+            screen.queryByRole("button", { name: "注册账号", exact: true }),
+        ).toBeNull();
+        expect(
+            vi.mocked(command).mock.calls.some(([name]) => name === "connect"),
+        ).toBe(false);
+    });
+    it("登录等待页可切换为注册，并显示注册完成后的返回提示", async () => {
+        state = {
+            ...emptyView,
+            browser_login: {
+                phase: "waiting",
+                expires_at: 2000000000,
+                error: null,
+            },
+        };
+        vi.mocked(command).mockImplementation(async (name, args) => {
+            if (name === "begin_browser_login")
+                state = {
+                    ...state,
+                    browser_login: {
+                        phase: "waiting",
+                        registration: args?.registration === true,
+                        expires_at: 2000000000,
+                        error: null,
+                    },
+                };
+            return structuredClone(state) as never;
+        });
+        render(<App />);
+        await screen.findByText("在浏览器中完成登录");
+        const dialog = document.querySelector("dialog")!;
+        fireEvent.click(
+            Array.from(dialog.querySelectorAll("button")).find((button) =>
+                button.textContent?.includes("注册账号"),
+            )!,
+        );
+        await screen.findByText("在浏览器中注册账号");
+        expect(
+            screen.getByText("在官网完成注册后，确认授权即可回到客户端。"),
+        ).toBeTruthy();
+        expect(
+            vi
+                .mocked(command)
+                .mock.calls.some(
+                    ([name, args]) =>
+                        name === "begin_browser_login" &&
+                        args?.registration === true,
+                ),
+        ).toBe(true);
+    });
 });

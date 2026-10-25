@@ -96,3 +96,37 @@ test('reusing a browser tab for another request resets the previous authorizatio
   h.events.hashchange();
   assert.deepEqual(h.redirects, ['reload']);
 });
+
+
+test('registration intent opens the official registration form with the same bounded return marker', async () => {
+  const h = harness('desktop-login.js', [pending()]);
+  h.location.hash += '&flow=register&redirect=https://evil.invalid';
+  h.run(); await settle();
+  assert.deepEqual(h.redirects, ['/#/register']);
+  const marker = JSON.parse(h.sessionStorage.getItem('capybara-desktop-login'));
+  assert.deepEqual(Object.keys(marker).sort(), ['expires_at', 'request_id']);
+  assert.equal(marker.request_id, id);
+  assert.equal(h.calls.filter(call => call.options.method === 'POST').length, 0);
+});
+test('website authorization offers registration and never silently replaces an existing web account', async () => {
+  const h = harness('desktop-login.js', [pending()]); h.run(); await settle();
+  assert.equal(h.el('register').hidden, false);
+  h.el('register').click();
+  assert.deepEqual(h.redirects, ['/#/register']);
+  const logged = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'existing@example.invalid' } }], 'existing-web-token');
+  logged.location.hash += '&flow=register'; logged.run(); await settle();
+  assert.deepEqual(logged.redirects, []);
+  assert.equal(logged.el('approve').hidden, false);
+  assert.match(logged.el('message').textContent, /官网已登录/);
+  assert.equal(logged.calls.filter(call => call.options.method === 'POST').length, 0);
+});
+test('newly registered website session returns to explicit authorization without exposing its token', async () => {
+  const h = harness('desktop-login-return.js', [{ status: 200, data: { is_login: true } }]);
+  h.location.hash = '#/register';
+  h.sessionStorage.setItem('capybara-desktop-login', JSON.stringify({ request_id: id, expires_at: Date.now() + 240000 }));
+  h.run(); await settle(); assert.equal(h.calls.length, 0);
+  h.localStorage.setItem('VUE_NAIVE_ACCESS_TOKEN', JSON.stringify({ value: 'new-registration-session' }));
+  await h.intervals[0]();
+  assert.deepEqual(h.redirects, ['/desktop/login#request_id=' + id]);
+  assert.equal(h.sessionStorage.getItem('capybara-desktop-login'), null);
+});
