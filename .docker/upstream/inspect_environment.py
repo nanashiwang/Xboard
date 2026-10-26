@@ -14,6 +14,7 @@ import sys
 import urllib.parse
 
 AGENT = Path('/etc/xboard-extension-probe/agent.json')
+GUARD_STATE = Path('/root/Xboard/backups/upstream-20261022/guard-state.json')
 BINARY_PATHS = ('/usr/local/bin/sing-box', '/usr/bin/sing-box', '/opt/xboard-node-probe/sing-box',
                 '/root/Xboard/backups/fleet-20261017/sing-box')
 UNITS = ('xboard-upstream-guard.timer', 'xboard-upstream-guard.service')
@@ -136,6 +137,71 @@ def agent_metadata():
     except Exception:
         report['classification'] = 'agent_inspection_failed'
         return report
+
+
+def guard_state_metadata():
+    # The reviewed installed metadata-only guard writes these four facts to
+    # this fixed file after each completed run. Never expose usage/errors/raw.
+    report = {'classification': 'missing', 'checked_at': None, 'last_success_at': None,
+              'fetch_ok': None, 'withdraw_count': None}
+
+    def signature(info):
+        if (not stat.S_ISREG(info.st_mode) or not root_owned(info) or stat.S_IMODE(info.st_mode) != 0o600
+                or not 0 < info.st_size <= 65536):
+            return None
+        return tuple(getattr(info, field) for field in
+                     ('st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
+    try:
+        initial = signature(GUARD_STATE.lstat())
+        if initial is None:
+            report['classification'] = 'unsafe_guard_state_file'
+            return report
+        fd = os.open(GUARD_STATE, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            if signature(os.fstat(fd)) != initial:
+                report['classification'] = 'guard_state_changed'
+                return report
+            with os.fdopen(fd, 'rb', closefd=False) as source:
+                raw = source.read(65537)
+                source.seek(0)
+                if source.read(65537) != raw:
+                    report['classification'] = 'guard_state_changed'
+                    return report
+            if (len(raw) != initial[5] or signature(os.fstat(fd)) != initial
+                    or signature(GUARD_STATE.lstat()) != initial):
+                report['classification'] = 'guard_state_changed'
+                return report
+        finally:
+            os.close(fd)
+        try:
+            value = parse_json(raw)
+        except Exception:
+            report['classification'] = 'guard_state_json_invalid'
+            return report
+        if not isinstance(value, dict):
+            report['classification'] = 'guard_state_contract_invalid'
+            return report
+        checked, success, fetched, withdrawn = (value.get(key) for key in ('checked_at', 'last_success_at', 'fetch_ok', 'withdraw'))
+        valid = (type(checked) is int and type(success) is int and 0 <= success <= checked <= 253402300799
+                 and type(fetched) is bool and (not fetched or checked == success)
+                 and isinstance(withdrawn, list) and len(withdrawn) <= 41)
+        if valid:
+            keys = [row.get('key') for row in withdrawn if isinstance(row, dict)]
+            valid = (len(keys) == len(withdrawn) and all(isinstance(key, str) and re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])', key) for key in keys)
+                     and len(set(keys)) == len(keys))
+        if not valid:
+            report['classification'] = 'guard_state_contract_invalid'
+            return report
+        report.update(classification='inspected', checked_at=checked, last_success_at=success,
+                      fetch_ok=fetched, withdraw_count=len(withdrawn))
+    except FileNotFoundError:
+        pass
+    except PermissionError:
+        report['classification'] = 'guard_state_permission_denied'
+    except Exception:
+        report['classification'] = 'guard_state_inspection_failed'
+    return report
 
 
 def secure_parents(path, resolved):
@@ -308,7 +374,7 @@ def inspect_environment():
     agent = agent_metadata()
     return {'status': 'inspected', 'schema': 1, 'agent': agent, 'probe_service': probe_service_metadata(agent),
             'binaries': [binary_metadata(path) for path in BINARY_PATHS],
-            'guard': [unit_metadata(unit) for unit in UNITS], 'ipv6': ipv6_metadata(),
+            'guard': [unit_metadata(unit) for unit in UNITS], 'guard_state': guard_state_metadata(), 'ipv6': ipv6_metadata(),
             'files_mutated': False, 'policy_mutated': False, 'network_mutated': False, 'binaries_executed': False}
 
 

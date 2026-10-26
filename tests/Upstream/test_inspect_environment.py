@@ -24,6 +24,9 @@ class EnvironmentInspectionTest(unittest.TestCase):
         self.agent = self.root/'agent.json'
         patcher = patch.object(inspect, 'AGENT', self.agent)
         patcher.start();self.addCleanup(patcher.stop)
+        self.guard_state = self.root/'guard-state.json'
+        patcher = patch.object(inspect, 'GUARD_STATE', self.guard_state)
+        patcher.start();self.addCleanup(patcher.stop)
 
     def config(self, value, mode=0o600):
         self.agent.write_text(json.dumps(value))
@@ -194,6 +197,84 @@ class EnvironmentInspectionTest(unittest.TestCase):
             report=inspect.probe_service_metadata({})
         self.assertEqual('probe_identity_unresolved',report['classification'])
         self.assertNotIn('secret',json.dumps(report))
+
+    def write_guard_state(self, value=None, mode=0o600):
+        value = value if value is not None else {'checked_at':2000,'last_success_at':2000,'fetch_ok':True,'withdraw':[]}
+        if self.guard_state.exists():self.guard_state.chmod(0o600)
+        self.guard_state.write_text(json.dumps(value));self.guard_state.chmod(mode)
+
+    def guard_report(self):
+        with patch.object(inspect,'root_owned',return_value=True):return inspect.guard_state_metadata()
+
+    def test_guard_state_only_exposes_bounded_facts_without_usage_or_errors(self):
+        value={'checked_at':2000,'last_success_at':1900,'fetch_ok':False,
+               'withdraw':[{'key':'U01','reason':'private-error','ip':'private-endpoint'}],
+               'usage':{'expire':1234,'total':12345},'source_url':'https://private.invalid/?token=secret','error_type':'private-error'}
+        self.write_guard_state(value)
+        before=self.guard_state.read_bytes();report=self.guard_report()
+        self.assertEqual({'classification':'inspected','checked_at':2000,'last_success_at':1900,'fetch_ok':False,'withdraw_count':1},report)
+        self.assertEqual(before,self.guard_state.read_bytes())
+        self.assertNotIn('private',json.dumps(report));self.assertNotIn('12345',json.dumps(report))
+        self.write_guard_state()
+        self.assertEqual(0,self.guard_report()['withdraw_count']);self.assertTrue(self.guard_report()['fetch_ok'])
+
+    def test_guard_state_rejects_modes_symlink_nonroot_and_oversized_before_read(self):
+        for mode in (0o400,0o640,0o644,0o660,0o4600):
+            self.write_guard_state(mode=mode)
+            with patch.object(inspect.os,'open') as opened:
+                self.assertEqual('unsafe_guard_state_file',self.guard_report()['classification']);opened.assert_not_called()
+        self.write_guard_state()
+        with patch.object(inspect,'root_owned',return_value=False),patch.object(inspect.os,'open') as opened:
+            self.assertEqual('unsafe_guard_state_file',inspect.guard_state_metadata()['classification']);opened.assert_not_called()
+        self.guard_state.unlink();self.guard_state.symlink_to(self.root/'private-target')
+        self.assertEqual('unsafe_guard_state_file',self.guard_report()['classification'])
+        self.guard_state.unlink();self.guard_state.mkdir()
+        self.assertEqual('unsafe_guard_state_file',self.guard_report()['classification'])
+        self.guard_state.rmdir();self.guard_state.write_bytes(b'x'*65537);self.guard_state.chmod(0o600)
+        self.assertEqual('unsafe_guard_state_file',self.guard_report()['classification'])
+
+    def test_guard_state_json_duplicate_invalid_and_contract_failures_never_expose_raw(self):
+        self.write_guard_state()
+        for raw in (b'private-raw-error',b'{"fetch_ok":true,"fetch_ok":false}',b'{"checked_at":NaN}'):
+            self.guard_state.write_bytes(raw)
+            report=self.guard_report();self.assertEqual('guard_state_json_invalid',report['classification'])
+            self.assertIsNone(report['checked_at']);self.assertNotIn('private',json.dumps(report))
+        base={'checked_at':2000,'last_success_at':2000,'fetch_ok':True,'withdraw':[]}
+        for changes in ({'checked_at':True},{'checked_at':2000.0},{'checked_at':253402300800},
+                        {'last_success_at':2001},{'last_success_at':1999},{'fetch_ok':1},
+                        {'withdraw':[{'key':'U01'}]*42},{'withdraw':[{'key':'U01'},{'key':'U01'}]},
+                        {'withdraw':[{'key':'U42'}]},{'withdraw':['private-row']},{'withdraw':None}):
+            self.write_guard_state(dict(base,**changes));report=self.guard_report()
+            self.assertEqual('guard_state_contract_invalid',report['classification']);self.assertIsNone(report['withdraw_count'])
+
+    def test_guard_state_inode_content_and_permission_drift_do_not_report_success(self):
+        original=inspect.os.fstat
+        for drift in ('inode','content','permission'):
+            self.write_guard_state();count=[0]
+            def changed(fd):
+                count[0]+=1
+                if count[0]==2:
+                    if drift=='inode':
+                        replacement=self.root/'replacement';replacement.write_bytes(self.guard_state.read_bytes());replacement.chmod(0o600);replacement.replace(self.guard_state)
+                    elif drift=='content':self.guard_state.write_text(self.guard_state.read_text().replace('2000','2001'))
+                    else:self.guard_state.chmod(0o640)
+                return original(fd)
+            with patch.object(inspect.os,'fstat',side_effect=changed):report=self.guard_report()
+            self.assertEqual('guard_state_changed',report['classification']);self.assertIsNone(report['fetch_ok'])
+
+    def test_guard_state_missing_permission_and_io_errors_are_fixed(self):
+        self.assertEqual('missing',self.guard_report()['classification'])
+        self.write_guard_state()
+        for error,classification in ((PermissionError('private-permission'),'guard_state_permission_denied'),
+                                      (OSError('private-path'),'guard_state_inspection_failed')):
+            with patch.object(inspect.os,'open',side_effect=error):report=self.guard_report()
+            self.assertEqual(classification,report['classification']);self.assertNotIn('private',json.dumps(report))
+
+    def test_guard_state_sampling_runs_no_service_or_network_commands(self):
+        self.write_guard_state()
+        with patch.object(inspect.subprocess,'run') as command:
+            report=self.guard_report();command.assert_not_called()
+        self.assertEqual('inspected',report['classification'])
 
     def test_main_rejects_unknown_input_and_redacts_internal_error(self):
         output = io.StringIO()

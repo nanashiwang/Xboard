@@ -58,6 +58,8 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 [旧清单恢复40402207185](https://github.com/nanashiwang/Xboard/actions/runs/40402207185)成功：缺失app继承原storage身份与0775，私有两层root0700、manifest0600且摘要一致；未改DB、pin、源码或执行保护器。[合并账本创建40402095237](https://github.com/nanashiwang/Xboard/actions/runs/40402095237)在读取graph时拒绝，未创建ledger或变更DB。CLI原先进入DockerBackend后才读stdin，初始化docker compose exec可能提前消费输入；改为先读取、限长解析及验证graph，再初始化backend，追加真实stdin耗尽场景和无效输入零backend回归，不放宽控制包或修改历史证据。
 
+stdin入口修复提交`5401a8e`完成32项core/adapter及305项全套Python检查，首次push遇GitHub TLS错误，确认后重试成功、两文档按SHA回读。补充`inspect-environment`固定旧guard-state安全采样，只读已完成检查时间/最近抓取成功时间、fetch_ok与有界撤下数量；root0600、文件大小/防链接/双读漂移及JSON契约检查，绝不输出usage、错误原文、URL或凭据，不启动服务。20项inspector专项及311项完整Python回归通过；生产采样与合并公开验收待后续结果。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。
