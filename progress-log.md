@@ -74,6 +74,19 @@
 - 网络边界：首次 Actions 派发超时后先确认没有创建运行，再重试成功；Linux AppImage 首次公网下载超时，重试后完整摘要与签名通过。初次本地 PHP 使用已有预览容器配置停滞，停止该测试进程后改用独立配置缓存路径与内存 SQLite，13 / 131 通过。未把中途超时当作终态成功，也未跳过任何最终校验。最终仅补验收文档，不再构建、发版或部署。
 
 
+## 2026-10-26：运行时 AnyTLS 公钥身份检测
+
+用户要求补齐外接节点保护器对本次新加坡 `unrecognized remote public key` 的可执行检测，保持失败关闭、不接纳新公钥、不改生产配置。复用[既有决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，在原笔记更新事实与取舍，未另立重复决定。
+
+- 核对 guard.py、guard-apply.php、分配清单、历史 setup_guard/pin_cross/convert 生成逻辑及当天受限出站快照。原 approved.private 只含 key/两层 ID/来源名称与 JSON 摘要，没有运行时 pin；历史 pinned.private 已有 key/ip/port/sni/pin 可复用。公开清单 U04=365→366、U05=367→368，28 条 AnyTLS；未将当前观测公钥升级为批准值。
+- 新检查按旧固定 IP/端口/SNI 握手，提取叶证书 SPKI DER→SHA256→Base64。订阅成功与抓取失败均执行，分类记录公钥不匹配、TCP/TLS/超时、工具/证书失败和映射异常；原元数据理由优先，失败只合并到原受限撤下事务。元数据24小时宽限不遮蔽身份拒绝；成功不自动恢复。非 AnyTLS 不声称已检查，未知 key 不扩大范围，输出不含端点、SNI、完整摘要或异常文本。
+- 增加只读 `--check-identity`/可重复 `--key`，无订阅读取、状态写入或 Docker/数据库操作；操作说明与部署依赖见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。本次不部署；后续需验证私有映射、同步 allocation.json，并评估原120秒service预算至至少180秒，不能只替换脚本后跳过缺失映射。
+- 23:00（Asia/Shanghai）使用此前同日只读配置快照内的旧 pin，在本机执行新检测器检查 U04/U05。两个原端点均返回 `runtime_public_key_mismatch`，进程退出1，且未发送账号或业务请求。临时检查文件仅含旧批准值，执行后删除；未写入 Git。此结果是本机检测器对旧批准身份的现场拒绝，不等于当前入口进程内存快照、线上定时器执行或节点恢复。
+- 本轮 SSH 初次因认证尝试过多被拒，限定唯一密钥后握手超时；未修改认证、服务或生产文件，也未将该失败描述为线上检查成功。检查范围以仓库、既有受限快照及本机TLS证据为准。
+- 回归覆盖合成新加坡两条字段不变/公钥变化、同公钥换证、SNI与零应用字节、TLS/网络/工具/解析异常、缺失重复映射、抓取失败、撤下合并、不恢复、空范围不报成功及脱敏。[Upstream Guard Regression](./.github/workflows/upstream-guard.yml)在相关代码变更时执行，无生产凭据或公网节点依赖。
+
+本地 `python3 -m unittest discover -s tests/Upstream -v` 全部25项通过（含9项真实回环TLS/工具故障检查）；Python语法编译、`python3 .agents/workflow.py verify`（31篇含既有未提交笔记）和diff检查通过。GitHub Actions 与交付终态将在推送后补记；生产未部署，真实公开路径恢复未验。该宿主保护脚本没有独立版本号、标签规范、附件或 GitHub Release 流程，本次不变更卡皮巴拉0.1.5，不借桌面发布流程制造无关版本；按 master 提交推送并核验既有镜像流水线，构建成功也不代表线上保护器已升级。已有香港入口/TUN等未提交改动保持原归属。
+
 ## 2026-10-26：卡皮巴拉统一页面框架
 
 用户反馈从首页进入其他页面时 Logo 明显向左上偏移。复现 1180×748：首页 Logo 位于 (32,45)，套餐页为 (23,30)，左移 9px、上移 15px。原因是 scenic-shell 仅首页启用，侧栏外边距、宽度、内边距与响应式断点切回旧样式。本次所有页面复用同一外框和侧栏；仅首页内容使用固定高度的 home-main，其他内容区保留纵向滚动，切页归零滚动位置；不重挂更新组件或改变业务状态。更新[现有首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。

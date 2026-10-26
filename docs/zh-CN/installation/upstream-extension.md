@@ -38,6 +38,33 @@
 
 上游共用一份账户额度和有效期，价格与套餐节点数不会增加其容量。运营方需持续维护续费、额度和来源限制；本次短请求与小流量验证不代表长期稳定、并发承载或大陆各运营商速度。
 
+## 运行时 AnyTLS 公钥检查（仓库已实现，未部署）
+
+旧保护器的订阅 JSON 指纹无法发现“字段未变、服务端公钥已变”。新版对已批准 AnyTLS 固定 IP/端口/SNI 做真实 TLS 握手，计算叶证书 SPKI DER 的 SHA-256/Base64，必须与旧 pin 完全一致。`runtime_public_key_mismatch` 对应本次新加坡 `unrecognized remote public key` 的检测条件。检查不发送 AnyTLS 密码或业务请求；证书采集与显式 pin 比较完成前不判通过，不改变业务的 TLS 验证。
+
+输入为三个现有职责的文件，均不从当前握手自动建立信任：
+
+- `approved.private`：沿用 key、backend_id、public_id、source_name、source_sha256。
+- 随代码交付的 [allocation.json](../../../.docker/upstream/allocation.json)：核对 key/两层 ID 与 upstream_type，将范围限定为 28 条 AnyTLS；不读取当前订阅来选择探测端点。其余 VLESS/Trojan/Hysteria2 仍沿用元数据保护，不宣称本次已做它们的运行时身份校验。
+- 受限 `pinned.private`：沿用历史交叉核验脚本的 JSON 数组，每行 `{ "key": "U04", "ip": "已批准的IP字面量", "port": 443, "sni": "已批准SNI", "pin": "已批准的32字节SHA256的Base64" }`。此处为格式示意，不能直接投入使用。`--identity-map` 显式指定既有文件；省略时读取 `--root` 下同名文件。IP/端口/SNI/pin 与当前批准出站的对应关系必须人工核对；禁止运行历史 `pin_endpoints.py` 重新采信当前公钥。
+
+从仓库运行只读专项检测（路径按实际受限文件位置填写）：
+
+```sh
+python3 .docker/upstream/guard.py --check-identity \
+  --root /root/Xboard/backups/upstream-20261022 \
+  --identity-map /root/xboard-upstream-review/pinned.private \
+  --key U04 --key U05
+```
+
+该入口不读取订阅 URL/密码、不写 guard-state、不调用撤下事务。退出码 0 表示所检 AnyTLS 全部匹配；1 表示至少一项失败或没有可检查项；2 表示输入/执行错误。`--key` 只能配合只读模式，未知 key 拒绝。输出只有 key、后端/公开 ID、固定 reason，不包含完整端点、SNI、pin 或异常消息。只读失败不会主动撤下生产节点。
+
+默认保护流程在元数据成功、短暂失败、过期失败时均独立检查身份。失败即合并进原 `guard-apply.php` 撤下请求，额度/到期/来源变化理由优先，身份结果另存 `identity_checks`；原事务继续核对批准 manifest、机器、父子关系、标签，只隐藏公开节点和停用后端。运行时超时、TCP/TLS失败、证书解析/工具失败、映射缺失/重复/无效都不能当作通过，范围清单缺失/错配也失败关闭；未知映射不自动接入，检测通过不自动恢复。
+
+**部署前置条件（本轮未执行）**：核验现存私有映射完整且与已批准出站一致，将 guard.py 与 allocation.json 一并交付，确保 Python 3.9+、OpenSSL 可用（默认订阅流程另需既有 PyYAML），先运行只读检查。8 并发、单项 5 秒总预算使 28 条最多约 20 秒握手/转换时间；还需预算订阅读取与撤下事务，部署时需将既有 `TimeoutStartSec=120` 评估为至少 180 秒。本轮没有替换线上脚本、映射、systemd 或数据库配置；缺失映射不能以空文件或跳过检查应付。后续更新信任仍须独立确认来源、人工复验并恢复公开路径。
+
+检查通过仅说明此检测机在该次握手中看到批准的公钥，不证明供应商独立身份、密码有效、目标站点可用或公开 VLESS 路径成功。入口侧与本机网络差异仍需分别验证。
+
 ## 验证与回退
 
 本地执行 `python3 -m unittest discover -s tests/Upstream -v`、PHP/Python/shell 语法检查和 `python3 .agents/workflow.py verify`。线上应从实际入口验证每档权限、欠费/到期/封禁拒绝、上游失效不直连、倍率与客户端订阅。不能用服务器在线代替可用性；[独享验收脚本](../../../.docker/dedicated/verify-owned.py)仅核对保留的自建子集，拓展权限另按批准清单验证。

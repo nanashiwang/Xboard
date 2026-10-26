@@ -34,6 +34,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 用户确认 v2rayN 已退出，同一美国01家宽在 v2rayN 可用、卡皮巴拉失败；Windows 根因尚待现场证据。本机同版本可用，并复现五秒测速超时、十二秒成功，不能据此把 Windows 代理失败归结为测速期限。新增[只读诊断工具](./scripts/capybara/README.md)，直接用于已安装 0.1.5，分阶段检查回环内核、入口、检测站点和当前代理请求，输出不含凭据的报告；不修改客户端配置或生产。工具已通过本机 PowerShell 7 与 Windows PowerShell 5.1 各28项检查。验证及待办见[进展](./progress-log.md#2026-10-26windows-015-美国01连接差异诊断)。
 
+### 运行时 AnyTLS 公钥身份检测（2026-10-26）
+
+外接[保护器](./.docker/upstream/guard.py)补上已批准固定端点的 SPKI 握手检测，独立于订阅抓取宽限；公钥不符及无法验证均失败关闭，只撤下、不接纳新公钥、不自动恢复。新增只读 `--check-identity`，新加坡 U04/U05 可按 key 单独检查。本机用当天配置快照的旧 pin 实测两个端点，均准确返回 `runtime_public_key_mismatch`；生产脚本、信任映射和服务配置未改，不能据此称节点已恢复。回归、CI与交付状态见[进展](./progress-log.md#2026-10-26运行时-anytls-公钥身份检测)，输入格式和使用方法见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。
+
 ### 外接节点测速失败排查（2026-10-26）
 
 新加坡01/02（后端365/367）的现有中转仍因固定公钥与上游当前证书不符而失败。用户补充最新上游HTTPS订阅后，从入口服务器按原订阅临时直连，两条各访问Google/Cloudflare共4次均返回204；其域名解析、密码、SNI、端口与现有出站一致。原订阅明确跳过上游证书校验，生产中转保留旧公钥固定，因此不能把“原始上游可用”写成“卡皮巴拉线路恢复”。未修改生产信任或服务，原始凭据临时文件已清理；其他线路及用户v2rayN的具体有效配置仍未由本轮覆盖。当前证据、失败样本与恢复边界见[诊断记录](./progress-log.md#2026-10-26外接节点测速失败排查)。

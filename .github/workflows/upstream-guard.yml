@@ -1,0 +1,30 @@
+name: Upstream Guard Regression
+
+on:
+  push:
+    paths:
+      - '.docker/upstream/**'
+      - 'tests/Upstream/**'
+      - '.github/workflows/upstream-guard.yml'
+  pull_request:
+    paths:
+      - '.docker/upstream/**'
+      - 'tests/Upstream/**'
+      - '.github/workflows/upstream-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check TLS tooling and run isolated regression
+        run: |
+          openssl version
+          python -m unittest discover -s tests/Upstream -v
