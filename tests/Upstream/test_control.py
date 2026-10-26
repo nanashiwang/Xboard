@@ -101,6 +101,18 @@ class ControlTest(unittest.TestCase):
         value['selection'] = {'U04': 'c'*64}
         with self.assertRaises(ValueError): c.command(value)
 
+    def test_legacy_guard_scope_has_only_fixed_inspect_or_restore_without_bindings(self):
+        for operation, action in [('inspect-legacy-guard','inspect'),('restore-legacy-guard','restore')]:
+            value={'operation':operation,'plan_id':'','plan_sha256':'','selection':{},'execution_id':''}
+            result=c.command(value)
+            self.assertEqual(3,len(result));self.assertTrue(result[1].endswith('/legacy_guard_scope.py'))
+            self.assertEqual(action,result[2])
+            for field, content in [('plan_id','a'*32),('plan_sha256','b'*64),('selection',{'U01':None}),
+                                   ('execution_id','c'*64),('verification_id','d'*32),
+                                   ('verification_sha256','e'*64),('pinned_sha256','absent'),
+                                   ('ciphertext',{'pin':'secret'}),('path','/private/other-file')]:
+                with self.assertRaises(ValueError):c.command(dict(value,**{field:content}))
+
     def test_public_verification_requires_an_exact_execution_receipt(self):
         value = self.value('verify-success'); value['execution_id'] = ''
         with self.assertRaises(ValueError): c.command(value)
@@ -148,6 +160,18 @@ class ControlTest(unittest.TestCase):
         with patch.dict(os.environ, dict(env, CIPHERTEXT=env['CIPHERTEXT']+' '*5000), clear=True):
             with self.assertRaises(ValueError): c.from_environment()
         with self.assertRaises(ValueError): c.parse(b' '*65536)
+
+    def test_pin_sync_requires_published_report_and_old_map_binding_without_selection(self):
+        value = {'operation': 'sync-pins', 'plan_id': 'a'*32, 'plan_sha256': 'b'*64, 'execution_id': 'e'*64,
+                 'selection': {}, 'verification_id': 'c'*32, 'verification_sha256': 'd'*64, 'pinned_sha256': 'absent'}
+        args = c.command(value)
+        self.assertTrue(args[1].endswith('/sync_pins.py'))
+        self.assertEqual(args[-6:], ['--verification-id', 'c'*32, '--verification-sha256', 'd'*64, '--pinned-sha256', 'absent'])
+        for field, bad in [('verification_id', ''), ('verification_sha256', 'wrong'), ('pinned_sha256', '/tmp/pin'),
+                           ('execution_id', ''), ('selection', {'U01': 'd'*64}), ('ciphertext', {'pin': 'secret'})]:
+            with self.assertRaises(ValueError): c.command(dict(value, **{field: bad}))
+        for operation in ('recipient', 'snapshot', 'withdraw'):
+            with self.assertRaises(ValueError): c.command(dict(value, operation=operation))
 
 
 if __name__ == '__main__': unittest.main()

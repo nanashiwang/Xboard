@@ -25,6 +25,23 @@ def outbound():
             'transport':{'type':'ws','path':'/reviewed-path','max_early_data':0}}
 
 class Contracts(unittest.TestCase):
+    def test_verification_returns_id_and_digest_of_actual_saved_report_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory=Path(temp);plan={'schema':1};plan_sha=p.digest(plan)
+            p.save_exclusive(directory/'plan.private.json',plan)
+            p.save_exclusive(directory/'public-cache.private.json',self.cache)
+            binding={'phase':'publish','state_hashes':{'U01':'d'*64},'receipt_chain_sha256':'e'*64}
+            result={'key':'U01','status':'passed','temporary_process_terminated':True,'temporary_directory_removed':True}
+            with patch.object(p,'cache_contract',return_value=self.scopes), patch.object(p,'bound_binary',return_value=Path('/unused')), \
+                 patch.object(p,'receipt_binding',return_value=binding), patch.object(p,'scope',return_value=self.scopes), \
+                 patch.object(p,'measure',return_value=result):
+                report=p.verify(directory,'a'*32,plan_sha,plan,self.alloc,self.settings,['U01'],'success','f'*64)
+            path=directory/('public-verify-success-'+report['verification_id']+'.json')
+            saved=path.read_bytes()
+            self.assertEqual(report['verification_sha256'],hashlib.sha256(saved).hexdigest())
+            self.assertNotIn('verification_sha256',json.loads(saved))
+            self.assertEqual(saved,p.canonical({key:value for key,value in report.items() if key not in ('verification_id','verification_sha256')}))
+
     def setUp(self):
         self.alloc,self.rows=p.allocation()
         self.settings={'panel_url':'https://panel.example.test','token':'a'*64}

@@ -85,6 +85,25 @@ test('ca_pin_injection_rejected',function(){global $engine;
     $r=row(fixture('U06'));$r->identity->pin=base64_encode(str_repeat('c',32));$r->candidate_digest=digest($r->identity);
     rejected(fn()=>$engine->execute(request([$r],'withdraw')),'ca_boundary_changed');
 });
+test('omitted_insecure_preserves_strict_default_for_pinned_and_ca',function(){
+    foreach (['U01','U06'] as $key) {
+        $ids=fixture($key);$stored=Server::findOrFail($ids->backend_id);
+        $outbound=decode($stored->getRawOriginal('custom_outbounds'));unset($outbound[0]->settings->tls->insecure);
+        Capsule::table('v2_server')->where('id',$ids->backend_id)->update(['custom_outbounds'=>canonical($outbound)]);
+        $r=row($ids);callAction($r,'withdraw');callAction($r,'apply_hidden');callAction($r,'publish');
+        $tls=decode(routeState($r)->backend->custom_outbounds)[0]->settings->tls;
+        check(!property_exists($tls,'insecure'),'preserve omitted strict default');
+        check($key!=='U06'||!property_exists($tls,'certificate_public_key_sha256'),'CA policy preserved');
+    }
+});
+test('null_or_non_boolean_insecure_never_uses_omitted_default',function(){global $engine;
+    $r=row(fixture());
+    foreach ([null,true,0,1,'false','true',[],(object)[]] as $unsafe) {
+        $outbound=decode($r->original_state->backend->custom_outbounds);$outbound[0]->settings->tls->insecure=$unsafe;
+        $r->original_state->backend->custom_outbounds=canonical($outbound);$r->original_state_sha256=digest($r->original_state);
+        rejected(fn()=>$engine->execute(request([$r],'withdraw')),'tls_boundary_changed');
+    }
+});
 test('mixed_batch_hash_drift_rolls_back_prior_update',function(){global $engine;
     $a=row(fixture('U01'));$b=row(fixture('U02'));$before=digest(routeState($a));$b->expected_sha256=str_repeat('0',64);
     rejected(fn()=>$engine->execute(request([$a,$b],'withdraw')),'concurrent_config_drift');check(digest(routeState($a))===$before,'whole batch rolled back');

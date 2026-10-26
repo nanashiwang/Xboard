@@ -42,6 +42,8 @@ jobs:
           php tests/Upstream/test-recovery.php
           php -l .docker/upstream/guard-apply.php
           php tests/Upstream/test-guard-apply.php
+          php -l .docker/upstream/legacy-guard-scope.php
+          sudo -- "$(command -v php)" tests/Upstream/test-legacy-guard-scope.php
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.2'

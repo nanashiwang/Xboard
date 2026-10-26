@@ -110,6 +110,10 @@ U01的来源指纹变化通过“当前source仅还原server为原生产server�
 
 固定探针既有专用服务读组不应误判为不安全：公开验收只读接受root持有0600，或0640且gid精确匹配固定已加载、非DynamicUser服务的有效组；通过O_NOFOLLOW、inode/mtime/ctime/内容和前后服务身份检查，不更改权限或读者。其余私有计划与缓存继续0600。[权限修复](../../../../.docker/upstream/secure_probe_config.py)先确认固定服务静态root、原文件归属/结构/inode与内容，再仅fchmod0600并保存私有操作元数据，不更改URL/token或服务。运行时身份检查须在具备实际上游地址族的网络执行；当前IPv4面板不能直接承载含IPv6出站的默认runtime检查，否则会保守撤下本可用线路。
 
+维护契约接受sing-box既有严格默认：`tls.insecure`省略等同false，保存时仍保留省略；显式null/true/非bool一律拒绝。Python与PHP不能因序列化omitempty差异把已严格试连的配置误判为关闭校验。
+
+[pin同步](../../../../.docker/upstream/sync_pins.py)仅从已发布的显式选择及与其精确相同的当前DB构建完整28条AnyTLS映射；需发布阶段真实公开成功报告的ID/文件SHA、回执链、缓存、全41来源/状态前后复核。先备份并CAS原map或缺失状态，未知结果不重放；永不从运行时握手学习pin。[旧保护器清单修复](../../../../.docker/upstream/legacy_guard_scope.py)仅在已安装代码字节精确匹配已审阅metadata-only版本时，将已确认host最小manifest无覆盖放回原容器路径。它不改变检测政策或执行保护器；容器重建可能再次丢失副本的限制仍保留，新stdin传输/运行时检测需独立适配后部署。
+
 ## Alternatives considered
 
 - 四档都开放全部 41 条省去分档，但不满足用户的价格差异；采用累计 8/16/28/41。

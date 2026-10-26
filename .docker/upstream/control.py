@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 SIBLING = Path(__file__).resolve().parent
-OPERATIONS = {'recipient', 'import-reviewed', 'secure-probe-config', 'accept-source-address', 'inspect-environment', 'prepare', 'audit-scope', 'restore-scope', 'snapshot', 'verify-success', 'verify-withdrawn', 'verify-baseline',
+OPERATIONS = {'inspect-legacy-guard', 'restore-legacy-guard', 'sync-pins', 'recipient', 'import-reviewed', 'secure-probe-config', 'accept-source-address', 'inspect-environment', 'prepare', 'audit-scope', 'restore-scope', 'snapshot', 'verify-success', 'verify-withdrawn', 'verify-baseline',
               'withdraw', 'apply_hidden', 'publish', 'rollback'}
 MAX_CONTROL = 65535
 
@@ -30,7 +30,8 @@ def parse(raw):
 
 def validate(value):
     fields = {'operation', 'plan_id', 'plan_sha256', 'selection', 'execution_id'}
-    if not isinstance(value, dict) or set(value) not in (fields, fields | {'ciphertext'}):
+    optional = {'ciphertext', 'verification_id', 'verification_sha256', 'pinned_sha256'}
+    if not isinstance(value, dict) or not fields <= set(value) <= fields | optional:
         raise ValueError('control_fields_invalid')
     operation = value['operation']
     if operation not in OPERATIONS:
@@ -42,19 +43,26 @@ def validate(value):
         if not re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])', key) or (commitment is not None and
                 (not isinstance(commitment, str) or not re.fullmatch('[a-f0-9]{64}', commitment))):
             raise ValueError('selection_invalid')
-    if operation in ('prepare', 'audit-scope', 'inspect-environment', 'secure-probe-config'):
+    if operation in ('prepare', 'audit-scope', 'inspect-environment', 'secure-probe-config', 'inspect-legacy-guard', 'restore-legacy-guard'):
         if value['plan_id'] != '' or value['plan_sha256'] != '' or selection:
             raise ValueError('prepare_arguments_invalid')
     else:
         if not isinstance(value['plan_id'], str) or not re.fullmatch('[a-f0-9]{32}', value['plan_id']) or not isinstance(value['plan_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', value['plan_sha256']):
             raise ValueError('plan_binding_invalid')
-        if (operation in ('snapshot', 'restore-scope', 'recipient', 'import-reviewed')) != (not selection):
+        if (operation in ('snapshot', 'restore-scope', 'recipient', 'import-reviewed', 'sync-pins')) != (not selection):
             raise ValueError('selection_required')
-    if operation in ('verify-success', 'verify-withdrawn'):
+    if operation in ('verify-success', 'verify-withdrawn', 'sync-pins'):
         if not isinstance(value['execution_id'], str) or not re.fullmatch('[a-f0-9]{64}', value['execution_id']):
             raise ValueError('execution_binding_required')
     elif value['execution_id'] != '':
         raise ValueError('unexpected_execution_binding')
+    if operation == 'sync-pins':
+        if (not isinstance(value.get('verification_id'), str) or not re.fullmatch('[a-f0-9]{32}', value['verification_id'])
+                or not isinstance(value.get('verification_sha256'), str) or not re.fullmatch('[a-f0-9]{64}', value['verification_sha256'])
+                or not isinstance(value.get('pinned_sha256'), str) or not re.fullmatch('(?:absent|[a-f0-9]{64})', value['pinned_sha256'])):
+            raise ValueError('pin_sync_binding_required')
+    elif any(value.get(key, '') != '' for key in ('verification_id', 'verification_sha256', 'pinned_sha256')):
+        raise ValueError('unexpected_pin_sync_binding')
     ciphertext = value.get('ciphertext', {})
     if operation == 'import-reviewed':
         try:
@@ -72,6 +80,9 @@ def validate(value):
 def command(value, quic_sha=None):
     validate(value)
     operation = value['operation']
+    if operation in ('inspect-legacy-guard', 'restore-legacy-guard'):
+        return [sys.executable, str(SIBLING/'legacy_guard_scope.py'),
+                'inspect' if operation == 'inspect-legacy-guard' else 'restore']
     if operation == 'secure-probe-config':
         return [sys.executable, str(SIBLING/'secure_probe_config.py')]
     if operation == 'inspect-environment':
@@ -83,6 +94,10 @@ def command(value, quic_sha=None):
             raise ValueError('observer_binding_invalid')
         return [sys.executable, str(SIBLING/'prepare.py'), '--quic-observer-sha256', quic_sha]
     binding = ['--plan-id', value['plan_id'], '--plan-sha256', value['plan_sha256']]
+    if operation == 'sync-pins':
+        return [sys.executable, str(SIBLING/'sync_pins.py'), *binding, '--execution-id', value['execution_id'],
+                '--verification-id', value['verification_id'], '--verification-sha256', value['verification_sha256'],
+                '--pinned-sha256', value['pinned_sha256']]
     if operation in ('recipient', 'import-reviewed'):
         return [sys.executable, str(SIBLING/'import_reviewed.py'),
                 'recipient' if operation == 'recipient' else 'import', *binding]
@@ -113,15 +128,20 @@ def execute(value, quic_sha=None):
 
 
 def from_environment():
-    names = ('OPERATION', 'PLAN_ID', 'PLAN_SHA256', 'SELECTION', 'EXECUTION_ID', 'CIPHERTEXT')
-    fields = ('operation', 'plan_id', 'plan_sha256', 'selection', 'execution_id', 'ciphertext')
-    inputs = {field: os.environ.get(name, '{}') if name == 'CIPHERTEXT' else os.environ[name]
+    names = ('OPERATION', 'PLAN_ID', 'PLAN_SHA256', 'SELECTION', 'EXECUTION_ID', 'CIPHERTEXT',
+             'VERIFICATION_ID', 'VERIFICATION_SHA256', 'PINNED_SHA256')
+    fields = ('operation', 'plan_id', 'plan_sha256', 'selection', 'execution_id', 'ciphertext',
+              'verification_id', 'verification_sha256', 'pinned_sha256')
+    defaults = {'CIPHERTEXT': '{}', 'VERIFICATION_ID': '', 'VERIFICATION_SHA256': '', 'PINNED_SHA256': ''}
+    inputs = {field: os.environ.get(name, defaults[name]) if name in defaults else os.environ[name]
               for field, name in zip(fields, names)}
     # Conservative serialized-input bound includes quotes/escaping in the
     # workflow_dispatch string field, not merely the decrypted JSON envelope.
     if len(json.dumps(inputs, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()) > MAX_CONTROL:
         raise ValueError('dispatch_inputs_too_large')
     inputs['selection'] = parse(inputs['selection']); inputs['ciphertext'] = parse(inputs['ciphertext'])
+    if not any(inputs[key] for key in fields[-3:]):
+        for key in fields[-3:]:del inputs[key]
     return validate(inputs)
 
 

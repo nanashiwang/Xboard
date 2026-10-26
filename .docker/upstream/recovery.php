@@ -174,7 +174,9 @@ final class Recovery {
             $settings->server_port !== $identity->port || !is_object($settings->tls ?? null)) reject('invalid_settings');
         if (property_exists($settings, 'type') && $settings->type !== $scope->upstream_type) reject('outbound_protocol_changed');
         $tls = $settings->tls;
-        if (($tls->enabled ?? null) !== true || ($tls->insecure ?? null) !== false || ($tls->server_name ?? null) !== $identity->sni) reject('tls_boundary_changed');
+        // sing-box's omitted bool defaults to false. Preserve that omission;
+        // explicit null/non-bools must not be confused with a safe default.
+        if (($tls->enabled ?? null) !== true || (property_exists($tls, 'insecure') && $tls->insecure !== false) || ($tls->server_name ?? null) !== $identity->sni) reject('tls_boundary_changed');
         if ($scope->upstream_type === 'vless') {
             if ($identity->pin !== null || property_exists($tls, 'certificate_public_key_sha256')) reject('ca_boundary_changed');
         } else {

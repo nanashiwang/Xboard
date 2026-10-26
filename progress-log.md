@@ -36,6 +36,12 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 [recipient40392896087](https://github.com/nanashiwang/Xboard/actions/runs/40392896087)及[有限加密导入40393914641](https://github.com/nanashiwang/Xboard/actions/runs/40393914641)成功；仅导入面板计划缺少的U13/U17/U26–U30七条人工选择身份观察，新私有计划保留原期限，DB/source/pin基线未变。节点修复和公开路径验收待下一步执行。 本轮236项Python回归、31篇笔记结构/链接与diff检查通过。
 
+提交`8462ca6`已推送master、两文档按SHA回读，[专项CI40394442171](https://github.com/nanashiwang/Xboard/actions/runs/40394442171)通过。[公开配置缓存40394547247](https://github.com/nanashiwang/Xboard/actions/runs/40394547247)成功保存41条真实配置及内核SHA，[健康两条公开基线40394680416](https://github.com/nanashiwang/Xboard/actions/runs/40394680416)U18/U19双目标均通过。
+
+首轮[撤下40394970830](https://github.com/nanashiwang/Xboard/actions/runs/40394970830)在候选契约校验前置拒绝，尚未备份或写入DB。原因是实际41出站均省略`tls.insecure`，sing-box的bool/omitempty默认严格校验，prepare/试连已兼容，维护driver/PHP却误要求显式false。已统一仅接受省略或false，拒绝null/true/非bool；保持原始字段形状，只更新已批准IP/pin。严格试验41条原配置及候选始终保留省略，摘要全量一致，因此前述82/82证据仍适用，不通过改TLS政策掩盖差异。
+
+补充`sync-pins`：仅从已发布维护选择与实际DB完全一致的28条AnyTLS出站更新受限pin映射，必须绑定发布阶段公开成功报告的ID/真实文件SHA、完整回执链、全41当前状态和来源，旧map备份/缺失CAS、未知结果不重放，不从握手学习。补充旧保护器`inspect-legacy-guard`/`restore-legacy-guard`：仅当已安装两个脚本字节等于人工审读的metadata-only版本、宿主最小41范围和DB归属一致，才以0600无覆盖恢复容器清单，不替换保护器、不部署IPv6不适配的新runtime流程。两者尚未生产执行。268项Python、24项真实恢复PHP、12项旧清单PHP与工作流/笔记检查通过；后续专项CI和生产结果另记。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

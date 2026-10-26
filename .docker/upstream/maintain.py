@@ -201,7 +201,7 @@ def selected_rows(plan, selection, scopes, approvals, operation, now):
                 fail('candidate_address_invalid')
             settings = outbound_settings(state)
             tls = settings.get('tls', {})
-            if type(identity['port']) is not int or settings.get('server_port') != identity['port'] or tls.get('server_name') != identity['sni'] or tls.get('enabled') is not True or tls.get('insecure') is not False:
+            if type(identity['port']) is not int or settings.get('server_port') != identity['port'] or tls.get('server_name') != identity['sni'] or tls.get('enabled') is not True or tls.get('insecure', False) is not False:
                 fail('candidate_contract_invalid')
             if operation != 'rollback':
                 if candidate.get('certificate_time_valid') is not True or type(candidate.get('not_before')) not in (int, float) or type(candidate.get('not_after')) not in (int, float) or not math.isfinite(candidate['not_before']) or not math.isfinite(candidate['not_after']) or not candidate['not_before'] <= now <= candidate['not_after']:

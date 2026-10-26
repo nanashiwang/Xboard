@@ -170,12 +170,23 @@ class MaintenanceTests(unittest.TestCase):
         self.rows[0]['candidates'][0]['source_dns_endpoint']=True;self.rows[0]['candidates'][0]['not_after']=999;self.write_plan()
         self.rejects('candidate_certificate_expired',lambda:self.run_action('withdraw'))
 
-    def test_tls_contract_is_rejected_before_withdraw_if_insecure_field_missing(self):
+    def test_omitted_insecure_keeps_strict_default_and_remains_omitted(self):
         state=self.rows[0]['snapshot']['state'];entries=json.loads(state['backend']['custom_outbounds'])
         del entries[0]['settings']['tls']['insecure']
         state['backend']['custom_outbounds']=m.canonical(entries).decode()
         self.rows[0]['snapshot']['state_sha256']=m.digest(state);self.write_plan()
-        self.rejects('candidate_contract_invalid',lambda:self.run_action('withdraw'))
+        self.backend.states['U01']=copy.deepcopy(state)
+        self.run_action('withdraw');self.run_action('apply_hidden');self.run_action('publish')
+        applied=json.loads(self.backend.states['U01']['backend']['custom_outbounds'])
+        self.assertNotIn('insecure',applied[0]['settings']['tls'])
+
+    def test_null_true_and_non_boolean_insecure_rejected_before_any_mutation(self):
+        for unsafe in (None,True,0,1,'false','true',[],{}):
+            state=self.rows[0]['snapshot']['state'];entries=json.loads(state['backend']['custom_outbounds'])
+            entries[0]['settings']['tls']['insecure']=unsafe
+            state['backend']['custom_outbounds']=m.canonical(entries).decode()
+            self.rows[0]['snapshot']['state_sha256']=m.digest(state);self.write_plan()
+            self.rejects('candidate_contract_invalid',lambda:self.run_action('withdraw'))
         self.assertEqual(0,self.backend.mutations)
 
     def test_plan_expiry_does_not_prevent_known_state_rollback(self):

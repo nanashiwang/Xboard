@@ -726,8 +726,13 @@ def verify(directory,plan_id,plan_sha,plan,alloc,settings,selected,expect,execut
             'execution_plan_id':execution_id,'maintenance_phase':binding['phase'],'receipt_chain_sha256':binding['receipt_chain_sha256'],
             'configuration_source':'bound_pre_withdrawal_public_cache','strict_tls':True,'direct_fallback':False,
             'node_configuration_mutated':False,'probe_report_written':False,'fresh_core_per_route':True}
-    save_exclusive(directory/('public-verify-'+('baseline' if baseline else expect)+'-'+uuid.uuid4().hex+'.json'),report)
-    return report
+    verification_id=uuid.uuid4().hex
+    path=directory/('public-verify-'+('baseline' if baseline else expect)+'-'+verification_id+'.json')
+    save_exclusive(path,report)
+    # The digest binds the saved report, without a self-referential digest field.
+    report_bytes=private_bytes(path)
+    check(report_bytes==canonical(report))
+    return dict(report,verification_id=verification_id,verification_sha256=hashlib.sha256(report_bytes).hexdigest())
 
 def main():
     global STAGE
