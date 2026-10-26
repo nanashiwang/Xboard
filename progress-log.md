@@ -68,6 +68,20 @@ stdin入口修复提交`5401a8e`完成32项core/adapter及305项全套Python检�
 
 新增兼容schema2的有限有序修复链：base不变、最多3个真实repair引用，每次须引用前序ledger ID/SHA并恰追加一轮；前序必须hidden且无unknown intent，每轮全41快照精确接上前轮hidden，最后显式选择决定身份、原始字段始终来自首轮。最新fresh计划保持自己的2小时期限，旧计划仅作历史；所有引用去重排序加锁一次，拒绝循环/乱序/重复/跨范围。323项Python回归及独立351项真实PHP状态、3个execution摘要对照通过，旧schema1摘要完全兼容。第三轮生产应用和最终公开结果待记录，不把44次隔离试连当作公开恢复。
 
+本轮有限生产恢复完成。提交`ddae83b`已推送master、README/progress按SHA回读，[专项CI40406197662](https://github.com/nanashiwang/Xboard/actions/runs/40406197662)323项Python、24项恢复PHP、8项撤下PHP、25项旧清单PHP及Go8项race通过；独立351项PHP派生摘要与旧schema1兼容已验证。[5条QUIC观察导入](https://github.com/nanashiwang/Xboard/actions/runs/40406639051)仅补候选，[第三轮22撤下](https://github.com/nanashiwang/Xboard/actions/runs/40406864003)完成备份，等入口同步后[22条隐藏应用](https://github.com/nanashiwang/Xboard/actions/runs/40407335781)成功。第三轮只改这22条pin，其余19条保持；U41保留原IP/CA策略。
+
+[最终schema2账本](https://github.com/nanashiwang/Xboard/actions/runs/40407643890)绑定首轮39、第二轮5和第三轮22真实回执及前序隐藏账本；旧记录未改。入口10-27 05:51:13只读检查41条完整出站SHA匹配，28/28 AnyTLS公钥通过，PID202530/NRestarts0保持；这是独立身份检查，不代替公开业务。[发布前公开验收](https://github.com/nanashiwang/Xboard/actions/runs/40407903446)在10-27 05:53:06完成39/39、78/78请求通过，最长1.299秒；随后[恢复39条原始显示](https://github.com/nanashiwang/Xboard/actions/runs/40408195606)成功。
+
+[发布后公开验收](https://github.com/nanashiwang/Xboard/actions/runs/40408688374)在10-27 05:58:49再次39/39、78/78通过；[两条健康线路最终复验](https://github.com/nanashiwang/Xboard/actions/runs/40408880824)在10-27 05:59:56完成2/2、4/4通过。两次最终运行合并覆盖全部41条、82次严格HTTPS请求，最长1.319秒；Cloudflare trace为200、Google为204，每条全新隔离内核，无DIRECT，目标及上游TLS保持严格，临时进程/目录清理。该证据来自服务端真实公开入口/监控身份，未冒充另一台电脑本地网络或UDP全量验收；套餐权限/倍率和入站鉴权不变，订阅节点数仍按套餐分配。
+
+[批准AnyTLS映射同步](https://github.com/nanashiwang/Xboard/actions/runs/40409014215)绑定发布后成功报告和真实数据库，原map为缺失、CAS后仅创建已批准28条映射；未从握手学习、未改节点DB或来源指纹。整次恢复曾单独核准U01 source_sha256地址变化，不能统称来源基线从未变化。[最终保护状态](https://github.com/nanashiwang/Xboard/actions/runs/40409281879)显示旧metadata保护器在10-27 05:59:21自然执行成功、fetch_ok=true、withdraw_count=0，timer active/waiting；新版自动运行时守护未部署（面板无IPv6），本次运行时检查在实际入口只读执行。
+
+原始在线SQLite备份、最初字段及各阶段request/intent/receipt保留在宿主私有维护目录。aggregate rollback已用真实事务回归验证，生产未执行回退：恢复首轮出站且保持39条隐藏/停用，不整库覆盖业务；已同步新pin map保留，原缺失事实在备份中。回退仍要求全41状态、批准映射及历史链一致；若发生漂移须先查明，回退后另验公开路径关闭。
+
+本次观察到多次上游身份变化与暂时连接拒绝/521，因此只能确认上述时点全部通过，不能宣称供应商长期稳定问题已经解决，也不能推定证书变化是正常定时轮换。未来新公钥继续失败关闭并要求独立人工复验；一小时客户端更新只刷新Xboard下发配置。本轮运维工具与配置修复没有新客户端安装包，客户端仍为已发布0.1.6；没有部署应用容器或改香港入口并行工作。
+
+最终收尾按固定清单清理54个本地敏感临时文件，3份运行日志精确脱敏后保留、1个临时空目录移除；回读删除结果和日志SHA均一致。生产来源、批准映射、私有备份/回退账本以及用户SSH私钥保持。五份收尾文档经独立证据复核，无阻塞项；31篇笔记校验、497处相对文件链接与暂存差异检查通过。本次仅提交运维收尾记录，没有新增应用构建或Release。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

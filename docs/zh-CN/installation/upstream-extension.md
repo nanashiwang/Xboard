@@ -61,7 +61,7 @@ python3 .docker/upstream/guard.py --check-identity \
 
 默认保护流程在元数据成功、短暂失败、过期失败时均独立检查身份。失败即合并进原 `guard-apply.php` 撤下请求，额度/到期/来源变化理由优先，身份结果另存 `identity_checks`；原事务继续核对批准 manifest、机器、父子关系、标签，只隐藏公开节点和停用后端。运行时超时、TCP/TLS失败、证书解析/工具失败、映射缺失/重复/无效都不能当作通过，范围清单缺失/错配也失败关闭；未知映射不自动接入，检测通过不自动恢复。
 
-**部署前置条件（本轮未执行）**：核验现存私有映射完整且与已批准出站一致，将 guard.py 与 allocation.json 一并交付，确保 Python 3.9+、OpenSSL 可用（默认订阅流程另需既有 PyYAML），先运行只读检查。8 并发、单项 5 秒总预算使 28 条最多约 20 秒握手/转换时间；还需预算订阅读取与撤下事务，部署时需将既有 `TimeoutStartSec=120` 评估为至少 180 秒。本轮没有替换线上脚本、映射、systemd 或数据库配置；缺失映射不能以空文件或跳过检查应付。后续更新信任仍须独立确认来源、人工复验并恢复公开路径。
+**自动运行时守护部署前置条件（尚未执行）**：核验现存私有映射完整且与已批准出站一致，将 guard.py 与 allocation.json 一并交付，确保 Python 3.9+、OpenSSL 可用（默认订阅流程另需既有 PyYAML），先运行只读检查。8 并发、单项 5 秒总预算使 28 条最多约 20 秒握手/转换时间；还需预算订阅读取与撤下事务，部署时需将既有 `TimeoutStartSec=120` 评估为至少 180 秒。本次有限恢复已显式更新验证过的出站/批准映射，未替换自动守护脚本或systemd；新版部署前仍须核对完整当前映射，缺失不能以空文件或跳过检查应付。后续更新信任仍须独立确认来源、人工复验并恢复公开路径。
 
 检查通过仅说明此检测机在该次握手中看到批准的公钥，不证明供应商独立身份、密码有效、目标站点可用或公开 VLESS 路径成功。入口侧与本机网络差异仍需分别验证。
 
@@ -69,15 +69,15 @@ python3 .docker/upstream/guard.py --check-identity \
 
 本地执行 `python3 -m unittest discover -s tests/Upstream -v`、PHP/Python/shell 语法检查和 `python3 .agents/workflow.py verify`。线上应从实际入口验证每档权限、欠费/到期/封禁拒绝、上游失效不直连、倍率与客户端订阅。不能用服务器在线代替可用性；[独享验收脚本](../../../.docker/dedicated/verify-owned.py)仅核对保留的自建子集，拓展权限另按批准清单验证。
 
-生产容器 `storage/app/backups/upstream-20261022/` 保留一致性 SQLite 备份、原字段快照、私有 manifest 和发布结果；宿主同名 backups 目录保留执行/验收结果。回退先隐藏清单中的公开记录、停用对应后端并确认旧链接拒绝，再停用探针 2、保护定时器及拓展服务。Nginx 只移除 `BEGIN/END upstream-extension-20261022` 区段并检查后重载；限速只移除优先级 47000–47007。确认没有监听后可删除专用 nft 表与服务文件。不要整库恢复、替换整个 Nginx 路由文件或修改原 53 条节点、套餐、用户、订单、NAS 探针和独享池。
+本次原始在线SQLite备份、原字段与各阶段回执保留在宿主 `/root/xboard-upstream-recovery/` 对应私有计划/ledger目录；持久approved/source/manifest/pinned位于宿主既有私有backups目录。容器 `storage/app/backups/upstream-20261022/` 本次只恢复旧保护器需要的最小manifest，可能随容器重建丢失，不能作为持久备份。以下为整个拓展接入的历史卸载路径，本次限定字段回退使用aggregate-rollback。回退先隐藏清单中的公开记录、停用对应后端并确认旧链接拒绝，再停用探针 2、保护定时器及拓展服务。Nginx 只移除 `BEGIN/END upstream-extension-20261022` 区段并检查后重载；限速只移除优先级 47000–47007。确认没有监听后可删除专用 nft 表与服务文件。不要整库恢复、替换整个 Nginx 路由文件或修改原 53 条节点、套餐、用户、订单、NAS 探针和独享池。
 
 ## 人工恢复工具
 
-候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝；只能单独执行audit-scope，交叉核对现存approved、固定allocation、DB归属/状态，再针对具体审计ID/SHA显式restore-scope。不是自动重建，也不批准新pin。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。工作流按显式阶段操作，公开路径验证绑定维护回执；生产执行与尚待验收部分见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。
+候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝；只能单独执行audit-scope，交叉核对现存approved、固定allocation、DB归属/状态，再针对具体审计ID/SHA显式restore-scope。不是自动重建，也不批准新pin。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。工作流按显式阶段操作，公开路径验证绑定维护回执；生产执行与最终验收结果见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。
 
 保护器新版撤下传输仅使用经验证的宿主持久manifest与PHP stdin，不再依赖容器存储副本；该代码当前尚未部署。缺映射依然拒绝，不能把重建scope当成公钥批准。
 
-`inspect-environment`只读检查固定探针文件的安全形状和运行环境类别；不打印凭据或URL。`accept-source-address`只接受U01的明确新来源SHA，必须证明还原原server后精确等于旧批准指纹；仅更新该source_sha256且使旧计划失效，不修改或批准pin。两者均不是自动恢复线路。`sync-pins`必须在publish后公开路径通过，绑定返回的验证报告ID/文件SHA与维护执行回执，才同步DB中已核准的28条AnyTLS身份；不探测或学习新pin。`inspect-legacy-guard`/`restore-legacy-guard`仅支持字节匹配已审阅metadata-only版本的原容器清单恢复，不升级保护器。目录随容器丢失时，只允许在固定真实storage anchor下创建缺失backups/scope为root0700；现存unsafe目录、symlink或冲突均拒绝，不更改原目录权限。维护工具接受省略insecure的严格默认并保留省略，null/true/非bool拒绝。
+`inspect-environment`只读检查固定探针文件的安全形状和运行环境类别；不打印凭据或URL。`accept-source-address`只接受U01的明确新来源SHA，必须证明还原原server后精确等于旧批准指纹；仅更新该source_sha256且使旧计划失效，不修改或批准pin。两者均不是自动恢复线路。`sync-pins`必须在publish后公开路径通过，绑定返回的验证报告ID/文件SHA与维护执行回执，才同步DB中已核准的28条AnyTLS身份；不探测或学习新pin。`inspect-legacy-guard`/`restore-legacy-guard`仅支持字节匹配已审阅metadata-only版本的原容器清单恢复，不升级保护器。目录随容器丢失时，只允许在既有真实storage下直接创建缺失app并继承其uid/gid及普通权限，再创建缺失backups/scope为root0700；现存unsafe目录、symlink或冲突均拒绝，不更改原目录权限。维护工具接受省略insecure的严格默认并保留省略，null/true/非bool拒绝。
 
 `secure-probe-config`只适用于已核验静态root服务，本次非root服务检查已在写入前拒绝，不能用它破坏专用服务读组。公开验收只读允许root拥有0600，或0640且文件组精确匹配固定静态探针服务有效组；拒绝其他权限、符号链接与读取漂移，不改变服务配置。`recipient`为现存有效计划生成绑定公钥；`import-reviewed`接收有限RSA-OAEP身份密文及双网络观察承诺，只创建新私有候选计划，不批准或应用。它保留原计划期限，严格CA线路不添加pin，导入后仍须显式选择与公开路径验收。现面板无IPv6，外部观察标明入口/独立观察位置，不绕过TLS，也不将新runtime保护器直接部署到不具备对应地址族的检测机。
 
