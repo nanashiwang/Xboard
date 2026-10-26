@@ -29,6 +29,7 @@ SIBLING = Path(__file__).resolve().parent
 TCP_TYPES = {'anytls', 'trojan'}
 FIELDS = ('key', 'ip', 'port', 'sni', 'pin')
 MAX_DNS = 8
+STAGE = 'startup'
 
 
 class ContractError(Exception):
@@ -102,6 +103,7 @@ def validate_scope(allocation, approved, snapshot):
 
 
 def snapshot_database(allocation):
+    global STAGE
     encoded = base64.b64encode(canonical(allocation)).decode()
     program = (SIBLING / 'snapshot.php').read_text()
     if program.count('__ALLOCATION_BASE64__') != 1:
@@ -109,10 +111,14 @@ def snapshot_database(allocation):
     program = program.replace('__ALLOCATION_BASE64__', encoded)
     result = subprocess.run(['docker', 'compose', 'exec', '-T', 'xboard', 'php'],
                             cwd='/root/Xboard', input=program.encode(), capture_output=True, timeout=60)
-    if result.returncode or len(result.stdout) > 5 * 1024 * 1024:
+    if len(result.stdout) > 5 * 1024 * 1024:
         raise ContractError()
     data = json.loads(result.stdout)
     if 'error' in data:
+        if data.get('stage') in {'bootstrap', 'manifest', 'mapping', 'read_fields'}:
+            STAGE = 'database_snapshot_' + data['stage']
+        raise ContractError()
+    if result.returncode:
         raise ContractError()
     return data
 
@@ -184,6 +190,11 @@ except Exception:
 """
 
 
+def global_unicast(value):
+    address = ipaddress.ip_address(value)
+    return address.is_global and not address.is_multicast and not address.is_reserved
+
+
 def resolve(host, port):
     result = subprocess.run([sys.executable, '-c', DNS_PROGRAM], input=canonical({'host': host, 'port': port}),
                             capture_output=True, timeout=6)
@@ -193,7 +204,7 @@ def resolve(host, port):
     if not isinstance(values, list):
         raise ContractError()
     addresses = sorted({str(ipaddress.ip_address(item)) for item in values})
-    if any(not ipaddress.ip_address(item).is_global for item in addresses):
+    if any(not global_unicast(item) for item in addresses):
         raise ContractError()
     return addresses[:MAX_DNS], len(addresses) > MAX_DNS
 
@@ -261,6 +272,8 @@ def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resol
         matches = names.get(old['source_name'], [])
         report = {'key': key, 'backend_id': scope['backend_id'], 'public_id': scope['public_id'],
                   'protocol': scope['upstream_type'], 'source_name_sha256': hashlib.sha256(old['source_name'].encode()).hexdigest(),
+                  'approved_source_sha256': old['source_sha256'],
+                  'observed_source_sha256': digest(matches[0]) if len(matches) == 1 else None,
                   'source_matches_approved': len(matches) == 1 and digest(matches[0]) == old['source_sha256'],
                   'source_match_count': len(matches), 'quota_and_expiry_ok': quota_ok,
                   'current_show': snap['public'].get('show'), 'current_enabled': snap['backend'].get('enabled'),
@@ -284,7 +297,7 @@ def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resol
         try:
             settings = settings_for(snap, scope['upstream_type'])
             host, port, sni, pins, current_ip = source_target(matches[0], settings)
-            if not ipaddress.ip_address(current_ip).is_global:
+            if not global_unicast(current_ip):
                 raise ContractError()
         except Exception:
             report['reason'] = 'current_source_contract_mismatch'
@@ -337,24 +350,34 @@ def save_plan(root, plan):
 
 
 def main():
+    global STAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--allocation', type=Path, default=SIBLING / 'allocation.json')
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise ContractError()
     os.umask(0o077)
+    STAGE = 'allocation'
     allocation = json.loads(args.allocation.read_text())
+    STAGE = 'approved_storage'
     approved_bytes = private_file(PRIVATE_ROOT / 'approved.private')
     approved = json.loads(approved_bytes)
+    STAGE = 'source_url_storage'
     private_file(PRIVATE_ROOT / 'source-url.secret')  # Validate storage before fetch.
+    STAGE = 'guard_module'
     guard = load_guard(SIBLING / 'guard.py')
+    STAGE = 'database_snapshot'
     snapshot = snapshot_database(allocation)
+    STAGE = 'scope_validation'
     validate_scope(allocation, approved, snapshot)
+    STAGE = 'source_fetch'
     proxies, usage = guard.fetch_subscription(PRIVATE_ROOT)
+    STAGE = 'candidate_discovery'
     private, report_rows = prepare_rows(allocation, approved, snapshot, proxies, usage)
     plan = {'schema': 1, 'prepared_at': int(time.time()), 'allocation_sha256': digest(allocation),
             'approved_file_sha256': hashlib.sha256(approved_bytes).hexdigest(), 'usage': usage, 'routes': private,
             'trust_status': 'candidate_observations_only_not_approved', 'production_mutated': False}
+    STAGE = 'private_plan_storage'
     plan_id, plan_hash, directory = save_plan(PLAN_ROOT, plan)
     report = {'status': 'prepared', 'schema': 1, 'plan_id': plan_id, 'plan_sha256': plan_hash,
               'production_mutated': False, 'trust_status': 'candidate_observations_only_not_approved', 'routes': report_rows}
@@ -366,5 +389,6 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as error:
-        print(json.dumps({'status': 'error', 'reason': 'prepare_failed', 'error_type': type(error).__name__}), flush=True)
+        print(json.dumps({'status': 'error', 'reason': 'prepare_failed', 'stage': STAGE,
+                          'error_type': type(error).__name__}), flush=True)
         raise SystemExit(1)

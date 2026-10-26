@@ -124,8 +124,23 @@ class CandidatePreparationTest(unittest.TestCase):
             self.assertEqual(b'{}', prepare.private_file(path))
 
     def test_resolver_rejects_private_answers(self):
-        with patch.object(prepare.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'["127.0.0.1"]')):
-            with self.assertRaises(prepare.ContractError): prepare.resolve('allowed.example', 443)
+        for address in ['127.0.0.1', '224.0.0.1', 'ff00::1', '240.0.0.1']:
+            body = json.dumps([address]).encode()
+            with patch.object(prepare.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, body)):
+                with self.assertRaises(prepare.ContractError): prepare.resolve('allowed.example', 443)
+
+    def test_failed_private_snapshot_exposes_only_whitelisted_stage(self):
+        before = prepare.STAGE
+        try:
+            for stage, expected in [('mapping', 'database_snapshot_mapping'),
+                                    ('secret-host-and-password', 'database_snapshot')]:
+                prepare.STAGE = 'database_snapshot'
+                reply = json.dumps({'error': 'snapshot_failed', 'stage': stage}).encode()
+                with patch.object(prepare.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, reply)):
+                    with self.assertRaises(prepare.ContractError): prepare.snapshot_database(self.allocation)
+                self.assertEqual(expected, prepare.STAGE)
+        finally:
+            prepare.STAGE = before
 
     def test_certificate_spki_and_validity_use_real_openssl(self):
         with tempfile.TemporaryDirectory() as temporary:
