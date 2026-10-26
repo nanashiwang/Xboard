@@ -4,6 +4,14 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-27：生产外接线路人工恢复
+
+用户明确希望线路实际恢复，进一步授权“修复已核实的生产公钥和地址，逐条验证并保留回退”，替代此前本轮不改生产配置的限制。沿用[第三方线路决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，不自动接纳新公钥、不关闭TLS、不更改用户权限/倍率/原自建线路。
+
+恢复前入口执行41条生产原参数、严格TLS/旧pin、全新隔离sing-box的双目标HTTPS基线：2条Trojan成功；22条公钥拒绝（AnyTLS15+Hysteria2 7），12条TCP超时、1条连接拒绝、1条网络不可达，3条CA VLESS系统DNS失败。域名线路另行复验以排除隔离配置缺resolver误报。入口服务active/running、PID202530与重启计数0保持，临时进程/目录清理；此阶段未改生产。源订阅重新HTTPS取回46个条目，41条实际线路。历史两份审计JSON通过唯一index显式关联41个来源名，当前来源均唯一且协议/凭据/SNI/端口/transport匹配；仍用面板approved.private精确核对，不能凭相似名称或共用密码猜对应关系。
+
+补充只读候选[prepare.py](./.docker/upstream/prepare.py)、[数据库快照](./.docker/upstream/snapshot.php)与[限定工作流](./.github/workflows/upstream-maintenance.yml)：机器21及41对映射/父子/标签白名单，来源名SHA与原指纹、额度/有效期核对；28 AnyTLS及3 Trojan枚举源DNS候选并握手采集SPKI，只输出摘要承诺和固定分类，不发代理密码或应用字节、不写生产。私有计划仅保存在面板0700目录/0600文件，候选不是已批准身份；后续必须按固定digest人工审核，并保留字段快照和回退。Hysteria2另需QUIC身份采集，3条CA线路保留公共CA验证。37项Python回归、PHP语法及流程检查结果随本轮提交核验；线上候选准备、更新、恢复公开和实际客户端路径尚待执行，不能写成已恢复。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

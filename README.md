@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 生产外接线路恢复（2026-10-27）
+
+用户已授权修复核实后的生产公钥和地址，逐条验证并保留回退。恢复前严格生产参数复测41条仅2条双目标通过，其余22条公钥拒绝、12条TCP超时、1条拒绝、1条网络不可达及3条DNS失败。先按批准映射准备私有候选，优先保留原pin更新地址；新pin只作有限人工TOFU复核，不关闭TLS、不自动采信。仓库已补齐[只读候选准备入口](./.github/workflows/upstream-maintenance.yml)，生产变更与完整公开路径验收仍待后续执行，见[进展](./progress-log.md#2026-10-27生产外接线路人工恢复)。
+
 ### 卡皮巴拉订阅更新（2026-10-27）
 
 0.1.6 在首页节点面板提供“更新订阅”，立即重新下载、校验并应用Xboard配置；单独显示配置成功时间，不再把流量同步时间当作节点更新时间。帮助设置可选30分钟或1/3/6/12/24小时，默认1小时，原生持久化并在后台检查到期；普通网络失败保留有效旧配置，认证或套餐失效继续停止连接。该功能同步服务器当前下发内容，不能自行修复外接节点旧公钥/地址。[0.1.6正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.6)四目标构建及18附件核验完成，官网应用更新源已同步并通过公开下载校验；另一台电脑可在帮助与设置检查应用更新后使用。实现、验证与发布状态见[进展](./progress-log.md#2026-10-27卡皮巴拉订阅手动更新与自动周期)和[节点决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。

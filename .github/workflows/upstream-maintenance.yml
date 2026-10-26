@@ -1,0 +1,45 @@
+name: Upstream Candidate Preparation
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Read-only candidate discovery (does not approve or apply)
+        type: choice
+        required: true
+        default: prepare
+        options: [prepare]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SSH client helper
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Prepare private candidates without changing production
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          test "$OPERATION" = prepare
+          test -n "$SSHPASS"
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'cd /root/Xboard && docker compose exec -T xboard php -l' < .docker/upstream/snapshot.php
+          remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'umask 077; mktemp -d /tmp/xboard-upstream-prepare.XXXXXX')
+          [[ "$remote_dir" =~ ^/tmp/xboard-upstream-prepare\.[A-Za-z0-9]+$ ]]
+          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/prepare.py $remote_dir/snapshot.php $remote_dir/guard.py $remote_dir/allocation.json; rmdir -- $remote_dir"' EXIT
+          sshpass -e scp "${ssh_opts[@]}" .docker/upstream/{prepare.py,snapshot.php,guard.py,allocation.json} "root@107.173.191.23:$remote_dir/"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/prepare.py'"
