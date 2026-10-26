@@ -60,7 +60,8 @@ class Driver:
     def fetch_live(self):
         a.private_read(self.private_root/'source-url.secret');return self.guard.fetch_subscription(self.private_root)
 
-    def graph_contract(self,graph):
+    @staticmethod
+    def graph_contract(graph):
         exact(graph,('schema','base','continuation','repair_execution_id'))
         check(type(graph['schema']) is int and graph['schema']==1)
         exact(graph['base'],('plan_id','plan_sha256','execution_id'));exact(graph['continuation'],('plan_id','plan_sha256'))
@@ -305,12 +306,18 @@ def main(argv=None):
     for name in ('ledger-id','ledger-sha256','verification-id','verification-sha256'):parser.add_argument('--'+name)
     args=parser.parse_args(argv);check(os.geteuid()==0,'root_required');os.umask(0o077)
     import sys
+    graph=None
+    if args.operation=='prepare':
+        check(not any((args.ledger_id,args.ledger_sha256,args.verification_id,args.verification_sha256)))
+        # Docker initialization contains subprocesses whose default stdin is
+        # inherited. Consume and validate this finite control input before any
+        # such subprocess can read the parent's pipe.
+        raw=sys.stdin.buffer.read(4097);check(0<len(raw)<=4096,'graph_input_size_invalid')
+        graph=a.parse_json(raw);Driver.graph_contract(graph)
     m=module('finalizer_cli_maintenance',SIBLING/'maintain.py')
     with m.DockerBackend(sibling=SIBLING) as backend:
         driver=Driver(backend)
-        if args.operation=='prepare':
-            check(not any((args.ledger_id,args.ledger_sha256,args.verification_id,args.verification_sha256)))
-            raw=sys.stdin.buffer.read(4097);check(0<len(raw)<=4096,'graph_input_size_invalid');result=driver.create(a.parse_json(raw))
+        if args.operation=='prepare':result=driver.create(graph)
         else:result=driver.run(args.operation,args.ledger_id,args.ledger_sha256,args.verification_id,args.verification_sha256)
     print(json.dumps(result,sort_keys=True),flush=True);return 0
 def safe_main(argv=None):

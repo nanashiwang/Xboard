@@ -54,6 +54,10 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 303项Python回归通过；两轮链相关core14/adapter16/control17包含真实工具联动，117项PHP派生对照通过。旧清单修复的第二轮尝试确认`storage/app`本身缺失，前置拒绝且未写入；现仅允许在真实既有`/www/storage`下创建缺失app，直接继承其uid/gid及普通权限，随后创建root0700私有子目录及0600清单。既有目录不chmod/chown，缺storage、symlink、特殊权限位拒绝；25项真实无网络PHP回归含身份恢复/失败边界通过，16项Python旧清单回归、actionlint及31篇笔记检查通过。清单恢复及合并生产验收仍待执行。
 
+提交`e3215db`已推送master并按SHA回读，两轮恢复工具[专项CI40401997831](https://github.com/nanashiwang/Xboard/actions/runs/40401997831)与笔记CI通过。5条补修[withdraw40401537519](https://github.com/nanashiwang/Xboard/actions/runs/40401537519)、[apply_hidden40401856118](https://github.com/nanashiwang/Xboard/actions/runs/40401856118)成功，仍隐藏。入口合并新5条与原36条精确配置SHA后，只读AnyTLS检查28/28通过，服务PID/NRestarts不变、临时目录清理；不能替代公开业务验收。
+
+[旧清单恢复40402207185](https://github.com/nanashiwang/Xboard/actions/runs/40402207185)成功：缺失app继承原storage身份与0775，私有两层root0700、manifest0600且摘要一致；未改DB、pin、源码或执行保护器。[合并账本创建40402095237](https://github.com/nanashiwang/Xboard/actions/runs/40402095237)在读取graph时拒绝，未创建ledger或变更DB。CLI原先进入DockerBackend后才读stdin，初始化docker compose exec可能提前消费输入；改为先读取、限长解析及验证graph，再初始化backend，追加真实stdin耗尽场景和无效输入零backend回归，不放宽控制包或修改历史证据。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

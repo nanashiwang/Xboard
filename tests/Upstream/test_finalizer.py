@@ -3,6 +3,8 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -178,5 +180,57 @@ class FinalizerTests(unittest.TestCase):
   self.assertEqual(result['route_count'],28);self.assertEqual(result['status'],'pins_synced')
   pins=json.loads((self.f.private/'pinned.private').read_bytes())
   for row in pins:self.assertEqual(row['pin'],self.third_pin if row['key'] in z.REPAIR_KEYS else self.f.new_pin)
+
+class FinalizerCliInputTests(unittest.TestCase):
+ def graph(self):
+  return {'schema':1,'base':{'plan_id':'1'*32,'plan_sha256':'2'*64,'execution_id':'3'*64},
+          'continuation':{'plan_id':'4'*32,'plan_sha256':'5'*64},'repair_execution_id':'6'*64}
+
+ def invoke(self,raw,arguments=None):
+  # A real subprocess pipe exercises inherited stdin. The fake backend models
+  # an initialization command that drains every remaining byte on entry.
+  script='''
+import importlib.util,json,os,sys
+from pathlib import Path
+spec=importlib.util.spec_from_file_location('pipeline_finalizer',Path(PATH))
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+original_module=m.module
+class DrainingBackend:
+ def __init__(self,**kwargs):pass
+ def __enter__(self):
+  remainder=sys.stdin.buffer.read()
+  print(json.dumps({'backend_entered':True,'remaining_stdin_bytes':len(remainder)}))
+  return self
+ def __exit__(self,*args):pass
+class FakeMaintenance: DockerBackend=DrainingBackend
+class FakeDriver:
+ graph_contract=staticmethod(m.Driver.graph_contract)
+ def __init__(self,backend):pass
+ def create(self,graph):return {'status':'prepared_fixture','received_graph_sha256':m.a.digest(graph)}
+m.Driver=FakeDriver
+m.module=lambda name,path:FakeMaintenance if name=='finalizer_cli_maintenance' else original_module(name,path)
+m.os.geteuid=lambda:0
+raise SystemExit(m.safe_main(ARGS))
+'''.replace('PATH',repr(str(ROOT/'finalizer.py'))).replace('ARGS',repr(arguments or ['prepare']))
+  return subprocess.run([sys.executable,'-c',script],input=raw,capture_output=True,timeout=10)
+
+ def test_real_pipe_is_consumed_before_draining_backend_enters(self):
+  graph=self.graph();result=self.invoke(z.a.canonical(graph))
+  self.assertEqual(result.returncode,0,result.stderr.decode())
+  lines=[json.loads(line) for line in result.stdout.splitlines()]
+  self.assertEqual(lines[0],{'backend_entered':True,'remaining_stdin_bytes':0})
+  self.assertEqual(lines[1],{'status':'prepared_fixture','received_graph_sha256':z.a.digest(graph)})
+
+ def test_invalid_empty_or_oversized_graph_never_initializes_backend(self):
+  cases=[b'',b'x'*4097,b'{}',b'{"schema":1,"schema":1}',
+         z.a.canonical(dict(self.graph(),identity={'pin':'must-not-output'}))]
+  for raw in cases:
+   with self.subTest(size=len(raw)):
+    result=self.invoke(raw);self.assertEqual(result.returncode,1)
+    self.assertNotIn(b'backend_entered',result.stdout)
+    self.assertNotIn(b'must-not-output',result.stdout)
+    self.assertEqual(json.loads(result.stdout)['status'],'rejected')
+  result=self.invoke(z.a.canonical(self.graph()),['prepare','--ledger-id','a'*32])
+  self.assertEqual(result.returncode,1);self.assertNotIn(b'backend_entered',result.stdout)
 
 if __name__=='__main__':unittest.main()
