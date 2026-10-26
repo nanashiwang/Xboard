@@ -30,6 +30,7 @@ TCP_TYPES = {'anytls', 'trojan'}
 FIELDS = ('key', 'ip', 'port', 'sni', 'pin')
 MAX_DNS = 8
 STAGE = 'startup'
+DIAGNOSTICS = {}
 
 
 class ContractError(Exception):
@@ -103,7 +104,7 @@ def validate_scope(allocation, approved, snapshot):
 
 
 def snapshot_database(allocation):
-    global STAGE
+    global STAGE, DIAGNOSTICS
     encoded = base64.b64encode(canonical(allocation)).decode()
     program = (SIBLING / 'snapshot.php').read_text()
     if program.count('__ALLOCATION_BASE64__') != 1:
@@ -115,6 +116,12 @@ def snapshot_database(allocation):
         raise ContractError()
     data = json.loads(result.stdout)
     if 'error' in data:
+        details = data.get('diagnostics', {})
+        for key in ('manifest_exists', 'manifest_readable', 'manifest_object', 'machine_matches', 'routes_array'):
+            if type(details.get(key)) is bool:
+                DIAGNOSTICS[key] = details[key]
+        if type(details.get('route_count')) is int and 0 <= details['route_count'] <= 1000:
+            DIAGNOSTICS['route_count'] = details['route_count']
         if data.get('stage') in {'bootstrap', 'manifest', 'mapping', 'read_fields'}:
             STAGE = 'database_snapshot_' + data['stage']
         raise ContractError()
@@ -390,5 +397,5 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         print(json.dumps({'status': 'error', 'reason': 'prepare_failed', 'stage': STAGE,
-                          'error_type': type(error).__name__}), flush=True)
+                          'error_type': type(error).__name__, 'diagnostics': DIAGNOSTICS}), flush=True)
         raise SystemExit(1)

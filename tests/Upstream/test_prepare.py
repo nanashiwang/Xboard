@@ -152,5 +152,13 @@ class CandidatePreparationTest(unittest.TestCase):
             self.assertEqual(32, len(base64.b64decode(pin)))
             self.assertGreater(end, start)
 
+    def test_snapshot_diagnostics_never_forward_arbitrary_values(self):
+        details = {'manifest_exists': False, 'manifest_readable': 'secret', 'route_count': 41,
+                   'machine_matches': True, 'unknown': 'password'}
+        reply = json.dumps({'error': 'snapshot_failed', 'stage': 'manifest', 'diagnostics': details}).encode()
+        with patch.object(prepare, 'DIAGNOSTICS', {}), patch.object(prepare.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, reply)):
+            with self.assertRaises(prepare.ContractError): prepare.snapshot_database(self.allocation)
+            self.assertEqual({'manifest_exists': False, 'machine_matches': True, 'route_count': 41}, prepare.DIAGNOSTICS)
+
 
 if __name__ == '__main__': unittest.main()

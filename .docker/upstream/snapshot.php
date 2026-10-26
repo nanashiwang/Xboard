@@ -3,6 +3,7 @@
 ini_set('display_errors', '0');
 set_error_handler(static function () { throw new RuntimeException('snapshot_io_failed'); });
 $stage = 'bootstrap';
+$diagnostics = [];
 function upstream_prepare_stable_value($value) {
     if (is_array($value)) {
         if (!array_is_list($value)) { ksort($value, SORT_STRING); }
@@ -17,7 +18,11 @@ try {
     $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
     $stage = 'manifest';
     $allocation = json_decode(base64_decode('__ALLOCATION_BASE64__', true), true, 512, JSON_THROW_ON_ERROR);
-    $manifest = json_decode(file_get_contents('/www/storage/app/backups/upstream-20261022/manifest.private'), true, 512, JSON_THROW_ON_ERROR);
+    $path = '/www/storage/app/backups/upstream-20261022/manifest.private';
+    $diagnostics = ['manifest_exists' => file_exists($path), 'manifest_readable' => is_readable($path)];
+    $manifest = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+    $diagnostics += ['manifest_object' => is_array($manifest), 'machine_matches' => ($manifest['machine_id'] ?? null) === 21,
+        'routes_array' => is_array($manifest['routes'] ?? null), 'route_count' => is_array($manifest['routes'] ?? null) ? count($manifest['routes']) : 0];
     if (($allocation['machine_id'] ?? null) !== 21 || ($manifest['machine_id'] ?? null) !== 21
         || count($allocation['routes'] ?? []) !== 41 || count($manifest['routes'] ?? []) !== 41) {
         throw new RuntimeException('scope_invalid');
@@ -66,6 +71,6 @@ try {
     echo json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
 } catch (Throwable $error) {
     // No exception message, SQL, source row, or framework stack may leave capture.
-    echo json_encode(['error' => 'snapshot_failed', 'stage' => $stage], JSON_THROW_ON_ERROR);
+    echo json_encode(['error' => 'snapshot_failed', 'stage' => $stage, 'diagnostics' => $diagnostics], JSON_THROW_ON_ERROR);
     exit(1);
 }

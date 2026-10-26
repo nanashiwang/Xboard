@@ -12,7 +12,7 @@
 
 补充只读候选[prepare.py](./.docker/upstream/prepare.py)、[数据库快照](./.docker/upstream/snapshot.php)与[限定工作流](./.github/workflows/upstream-maintenance.yml)：机器21及41对映射/父子/标签白名单，来源名SHA与原指纹、额度/有效期核对；28 AnyTLS及3 Trojan枚举源DNS候选并握手采集SPKI，只输出摘要承诺和固定分类，不发代理密码或应用字节、不写生产。私有计划仅保存在面板0700目录/0600文件，候选不是已批准身份；后续必须按固定digest人工审核，并保留字段快照和回退。Hysteria2另需QUIC身份采集，3条CA线路保留公共CA验证。37项Python回归、PHP语法及流程检查结果随本轮提交核验；线上候选准备、更新、恢复公开和实际客户端路径尚待执行，不能写成已恢复。
 
-只读工具提交 `76081a3` 已推送master且README/progress按SHA回读一致；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40377030092)37项通过。首轮[准备执行](https://github.com/nanashiwang/Xboard/actions/runs/40377026811)在前置ContractError停止，未写生产；补充固定阶段白名单以定位错误，不输出异常原文、路径或凭据。同步补来源内容摘要交叉核对及多播/保留地址拒绝，38项本地Python回归与PHP语法通过；下一轮只读准备待核验。
+只读工具提交 `76081a3` 已推送master且README/progress按SHA回读一致；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40377030092)37项通过。首轮[准备执行](https://github.com/nanashiwang/Xboard/actions/runs/40377026811)在前置ContractError停止，未写生产；补充固定阶段白名单以定位错误，不输出异常原文、路径或凭据。同步补来源内容摘要交叉核对及多播/保留地址拒绝，38项本地Python回归与PHP语法通过；第二轮准备仍在`database_snapshot_manifest`停止；继续补文件存在/可读、machine匹配与routes数量的固定类型诊断，未确认具体成因且未修改生产。
 
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
