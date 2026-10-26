@@ -108,7 +108,7 @@ U01的来源指纹变化通过“当前source仅还原server为原生产server�
 
 面板当前无IPv6，因此有限人工候选可由入口与独立IPv6观察点提供同一身份、有效期和来源DNS证据。新增[加密导入](../../../../.docker/upstream/import_reviewed.py)以计划绑定的RSA-4096-OAEP-SHA256只传输身份密文；逐项来源/端口/SNI/摘要与两处证据校验，全41来源、额度及两次完整DB状态核对后，仅生成保留原2小时有效期的新私有计划。它不修改信任或自动选择，不把外部DNS观察标成面板观察；公共CA两处均验证且执行时仍不加pin。复用相同证据重新加密也不能重放，未知结果保留私有intent。
 
-固定探针配置权限过宽时不放宽验证：[权限修复](../../../../.docker/upstream/secure_probe_config.py)先确认固定服务静态root、原文件归属/结构/inode与内容，再仅fchmod0600并保存私有操作元数据，不更改URL/token或服务。运行时身份检查须在具备实际上游地址族的网络执行；当前IPv4面板不能直接承载含IPv6出站的默认runtime检查，否则会保守撤下本可用线路。
+固定探针既有专用服务读组不应误判为不安全：公开验收只读接受root持有0600，或0640且gid精确匹配固定已加载、非DynamicUser服务的有效组；通过O_NOFOLLOW、inode/mtime/ctime/内容和前后服务身份检查，不更改权限或读者。其余私有计划与缓存继续0600。[权限修复](../../../../.docker/upstream/secure_probe_config.py)先确认固定服务静态root、原文件归属/结构/inode与内容，再仅fchmod0600并保存私有操作元数据，不更改URL/token或服务。运行时身份检查须在具备实际上游地址族的网络执行；当前IPv4面板不能直接承载含IPv6出站的默认runtime检查，否则会保守撤下本可用线路。
 
 ## Alternatives considered
 

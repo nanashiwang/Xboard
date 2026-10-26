@@ -472,4 +472,104 @@ class Contracts(unittest.TestCase):
                     self.assertIs(type(receipt['at']),float)
             finally:fixture.tearDown()
 
+class AgentPermissions(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.agent=Path(self.temp.name)/'agent.json'
+        self.raw=p.canonical({'panel_url':'https://panel.example.test','token':'s'*64})
+        self.agent.write_bytes(self.raw);self.agent.chmod(0o640)
+        self.file_uid,self.file_gid=0,321
+        original_lstat,original_fstat=Path.lstat,os.fstat
+        def metadata(value):
+            fields={key:getattr(value,key) for key in ('st_dev','st_ino','st_uid','st_gid','st_mode','st_size','st_mtime_ns','st_ctime_ns')}
+            fields.update(st_uid=self.file_uid,st_gid=self.file_gid)
+            return SimpleNamespace(**fields)
+        for mocked in (patch.object(p,'AGENT',self.agent),
+                       patch.object(Path,'lstat',lambda path:metadata(original_lstat(path))),
+                       patch.object(p.os,'fstat',lambda fd:metadata(original_fstat(fd))),
+                       patch.object(p.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=123,pw_gid=321)),
+                       patch.object(p.pwd,'getpwuid',return_value=SimpleNamespace(pw_uid=123,pw_gid=321)),
+                       patch.object(p.grp,'getgrnam',return_value=SimpleNamespace(gr_gid=321)),
+                       patch.object(p.grp,'getgrgid',return_value=SimpleNamespace(gr_gid=321))):
+            mocked.start();self.addCleanup(mocked.stop)
+        mocked=patch.object(p.subprocess,'run',return_value=self.response())
+        self.command=mocked.start();self.addCleanup(mocked.stop)
+
+    def response(self,user='probe',group='probe',loaded='loaded',dynamic='no'):
+        body=f'LoadState={loaded}\nUser={user}\nGroup={group}\nDynamicUser={dynamic}\n'.encode()
+        return subprocess.CompletedProcess([],0,body,b'never-print-stderr')
+
+    def test_root_0600_does_not_require_service_and_preserves_bytes(self):
+        self.agent.chmod(0o600)
+        self.assertEqual(self.raw,p.agent_bytes());self.command.assert_not_called()
+        self.assertEqual(self.raw,self.agent.read_bytes());self.assertEqual(0o600,stat.S_IMODE(self.agent.stat().st_mode))
+
+    def test_0640_matches_static_service_group_without_chmod_or_restart(self):
+        with patch.object(p.os,'fchmod') as chmod:
+            self.assertEqual(json.loads(self.raw),p.agent_settings());chmod.assert_not_called()
+        self.assertEqual(2,self.command.call_count)
+        for call in self.command.call_args_list:
+            self.assertEqual(['systemctl','show',p.PROBE_SERVICE,'--property=LoadState,User,Group,DynamicUser','--no-pager'],call.args[0])
+        self.assertEqual(self.raw,self.agent.read_bytes());self.assertEqual(0o640,stat.S_IMODE(self.agent.stat().st_mode))
+
+    def test_empty_group_uses_user_primary_group_and_numeric_identity_resolves(self):
+        for user,group in (('probe',''),('123','321'),('','')):
+            self.command.return_value=self.response(user=user,group=group)
+            self.assertEqual(self.raw,p.agent_bytes())
+
+    def test_other_modes_nonroot_owner_and_wrong_group_refuse(self):
+        for mode in (0o400,0o604,0o644,0o660,0o666,0o4600):
+            self.agent.chmod(mode)
+            with self.assertRaises(p.ContractError):p.agent_bytes()
+        self.agent.chmod(0o640)
+        self.file_uid=1
+        with self.assertRaises(p.ContractError):p.agent_bytes()
+        self.file_uid,self.file_gid=0,999
+        with self.assertRaises(p.ContractError):p.agent_bytes()
+
+    def test_dynamic_missing_unknown_or_unresolvable_service_refuse(self):
+        for response in (self.response(dynamic='yes'),self.response(loaded='not-found'),
+                         subprocess.CompletedProcess([],0,b'LoadState=loaded\n'),
+                         self.response(user='bad/user'),self.response(group='bad:group')):
+            self.command.return_value=response
+            with self.assertRaises(p.ContractError):p.agent_bytes()
+        self.command.return_value=self.response()
+        with patch.object(p.pwd,'getpwnam',side_effect=KeyError('never-print-account')):
+            with self.assertRaises(p.ContractError) as error:p.agent_bytes()
+            self.assertEqual('',str(error.exception))
+
+    def test_symlink_refused_before_open(self):
+        destination=self.agent.with_name('credential.json');self.agent.rename(destination);self.agent.symlink_to(destination)
+        with patch.object(p.os,'open') as opened:
+            with self.assertRaises(p.ContractError):p.agent_bytes()
+            opened.assert_not_called()
+
+    def test_file_content_inode_or_mode_drift_is_rejected(self):
+        for drift in ('content','inode','mode'):
+            self.agent.write_bytes(self.raw);self.agent.chmod(0o640)
+            def second_read(*args,**kwargs):
+                if drift=='content':self.agent.write_bytes(self.raw.replace(b's'*64,b't'*64))
+                elif drift=='inode':
+                    replacement=self.agent.with_name('replacement');replacement.write_bytes(self.raw);replacement.chmod(0o640);replacement.replace(self.agent)
+                else:self.agent.chmod(0o600)
+                return self.response()
+            count=[0]
+            def invoke(*args,**kwargs):
+                count[0]+=1
+                return self.response() if count[0]==1 else second_read()
+            self.command.side_effect=invoke
+            with self.assertRaises(p.ContractError):p.agent_bytes()
+
+    def test_service_identity_drift_and_raw_command_errors_are_redacted(self):
+        self.command.side_effect=[self.response(),self.response(group='')]
+        with self.assertRaises(p.ContractError):p.agent_bytes()
+        for error in (OSError('never-print-path'),subprocess.TimeoutExpired('never-print-command',5,stderr=b'never-print-stderr')):
+            self.command.side_effect=error
+            with self.assertRaises(p.ContractError) as captured:p.agent_bytes()
+            self.assertEqual('',str(captured.exception))
+
+    def test_generic_private_storage_stays_strict(self):
+        with self.assertRaises(p.ContractError):p.private_bytes(self.agent)
+
+
 if __name__=='__main__':unittest.main()

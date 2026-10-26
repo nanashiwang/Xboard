@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -148,20 +149,51 @@ class EnvironmentInspectionTest(unittest.TestCase):
         with patch.object(inspect.subprocess,'run',return_value=subprocess.CompletedProcess([],1,b'private',b'private')):
             self.assertEqual((None,'command_failed'),inspect.command_output(['ip']))
 
-    def test_complete_inspection_only_runs_four_fixed_read_commands(self):
+    def test_complete_inspection_only_runs_five_fixed_read_commands(self):
         before = list(self.root.iterdir())
         def response(arguments, **kwargs):
             if arguments[0] == 'systemctl':
-                self.assertIn(arguments[2], inspect.UNITS)
+                self.assertIn(arguments[2], (*inspect.UNITS,inspect.PROBE_UNIT))
                 return subprocess.CompletedProcess(arguments, 0, b'ActiveState=inactive\nSubState=dead\nResult=success\n')
             self.assertEqual('ip', arguments[0]);self.assertIn('-6', arguments);self.assertIn('-j', arguments)
             return subprocess.CompletedProcess(arguments,0,b'[]')
         with patch.object(inspect, 'BINARY_PATHS', tuple(str(self.root/('binary'+str(n))) for n in range(4))), \
                 patch.object(inspect.subprocess, 'run', side_effect=response) as runner:
             report = inspect.inspect_environment()
-        self.assertEqual(4, runner.call_count)
+        self.assertEqual(5, runner.call_count)
         self.assertEqual(before, list(self.root.iterdir()))
         self.assertFalse(report['files_mutated'] or report['policy_mutated'] or report['network_mutated'] or report['binaries_executed'])
+
+    def test_agent_reports_exact_permissions_and_numeric_ownership(self):
+        self.config({'panel_url':'https://taige.us','token':'s'*64},mode=0o640)
+        report=self.agent_report()
+        self.assertEqual('0640',report['mode'])
+        self.assertEqual(self.agent.stat().st_uid,report['uid'])
+        self.assertEqual(self.agent.stat().st_gid,report['gid'])
+        self.assertTrue(report['group_readable'])
+        self.assertFalse(report['group_or_world_writable'] or report['world_accessible'])
+
+    def test_probe_service_reports_only_identity_and_group_policy(self):
+        agent={'uid':0,'gid':321,'regular_file':True,'owner_root':True,'mode':'0640','group_readable':True}
+        body=b'LoadState=loaded\nUser=probe\nGroup=\nDynamicUser=no\nActiveState=active\nSubState=running\nResult=success\n'
+        with patch.object(inspect,'command_output',return_value=(body,'ok')) as command, \
+                patch.object(inspect.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=123,pw_gid=321)):
+            report=inspect.probe_service_metadata(agent)
+        self.assertTrue(report['identity_resolved'] and report['static_identity'] and report['group_matches_file_group'])
+        self.assertTrue(report['group_read_matches_service'] and report['agent_read_policy_compatible'])
+        self.assertFalse(report['user_matches_file_owner'])
+        self.assertEqual((123,321),(report['effective_uid'],report['effective_gid']))
+        self.assertEqual(inspect.PROBE_UNIT,command.call_args.args[0][2])
+        with patch.object(inspect,'command_output',return_value=(body.replace(b'DynamicUser=no',b'DynamicUser=yes'),'ok')), \
+                patch.object(inspect.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=123,pw_gid=321)):
+            self.assertFalse(inspect.probe_service_metadata(agent)['agent_read_policy_compatible'])
+
+    def test_probe_unexpected_identity_and_errors_are_not_exposed(self):
+        body=b'LoadState=loaded\nUser=secret/user\nGroup=secret:group\nDynamicUser=no\nActiveState=secret-state\nSubState=running\nResult=success\n'
+        with patch.object(inspect,'command_output',return_value=(body,'ok')):
+            report=inspect.probe_service_metadata({})
+        self.assertEqual('probe_identity_unresolved',report['classification'])
+        self.assertNotIn('secret',json.dumps(report))
 
     def test_main_rejects_unknown_input_and_redacts_internal_error(self):
         output = io.StringIO()

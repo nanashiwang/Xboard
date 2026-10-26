@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Read fixed local environment metadata only; never expose URLs or credentials."""
 import hashlib
+import grp
 import ipaddress
 import json
 import os
+import pwd
 from pathlib import Path
 import re
 import stat
@@ -16,6 +18,9 @@ BINARY_PATHS = ('/usr/local/bin/sing-box', '/usr/bin/sing-box', '/opt/xboard-nod
                 '/root/Xboard/backups/fleet-20261017/sing-box')
 UNITS = ('xboard-upstream-guard.timer', 'xboard-upstream-guard.service')
 PROPERTIES = ('ActiveState', 'SubState', 'Result', 'TimeoutStartUSec')
+PROBE_UNIT = 'xboard-extension-probe.service'
+PROBE_PROPERTIES = ('LoadState', 'User', 'Group', 'DynamicUser', 'ActiveState', 'SubState', 'Result')
+ACCOUNT_NAME = re.compile(r'^(?:[A-Za-z_][A-Za-z0-9_.-]{0,31}|[0-9]{1,10})$')
 FIELD_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,31}$')
 ACTIVE_VALUES = {'active', 'reloading', 'inactive', 'failed', 'activating', 'deactivating', 'maintenance', 'refreshing'}
 SUB_VALUES = {'dead', 'waiting', 'running', 'elapsed', 'failed', 'exited', 'start', 'start-pre', 'start-post',
@@ -72,13 +77,17 @@ def panel_url_metadata(value):
 
 def agent_metadata():
     report = {'exists': False, 'regular_file': False, 'owner_root': False, 'private_permissions': False,
+              'mode': None, 'uid': None, 'gid': None, 'group_readable': False,
+              'group_or_world_writable': False, 'world_accessible': False,
               'classification': 'missing', 'json_object': False, 'exact_known_fields': False, 'field_names': [],
               'field_names_truncated': False, 'token_is_string': False, 'token_length': None, 'token_length_capped': False,
               'panel_url': panel_url_metadata(None)}
     try:
         info = AGENT.lstat()
         report.update(exists=True, regular_file=stat.S_ISREG(info.st_mode), owner_root=root_owned(info),
-                      private_permissions=not bool(info.st_mode & 0o077))
+                      private_permissions=not bool(info.st_mode & 0o077), mode=format(stat.S_IMODE(info.st_mode), '04o'),
+                      uid=info.st_uid, gid=info.st_gid, group_readable=bool(info.st_mode & 0o040),
+                      group_or_world_writable=bool(info.st_mode & 0o022), world_accessible=bool(info.st_mode & 0o007))
         if not report['regular_file'] or not report['owner_root']:
             report['classification'] = 'unsafe_agent_file'
             return report
@@ -227,6 +236,51 @@ def unit_metadata(unit):
     return report
 
 
+def probe_service_metadata(agent):
+    body, classification = command_output(['systemctl', 'show', PROBE_UNIT,
+                                           '--property=' + ','.join(PROBE_PROPERTIES), '--no-pager'])
+    report = {'unit': PROBE_UNIT, 'classification': classification,
+              'properties': {key: None for key in PROBE_PROPERTIES},
+              'identity_resolved': False, 'static_identity': False, 'effective_uid': None, 'effective_gid': None,
+              'user_matches_file_owner': False, 'group_matches_file_group': False,
+              'group_read_matches_service': False, 'agent_read_policy_compatible': False}
+    if body is None:
+        return report
+    try:
+        fields = {}
+        for line in body.decode('utf-8').splitlines():
+            key, separator, value = line.partition('=')
+            if not separator or key not in PROBE_PROPERTIES or key in fields:
+                raise ValueError()
+            fields[key] = value
+            valid = ((key == 'LoadState' and value in ('loaded', 'not-found', 'error', 'masked', 'merged', 'stub', 'bad-setting'))
+                     or (key in ('User', 'Group') and (value == '' or ACCOUNT_NAME.fullmatch(value)))
+                     or (key == 'DynamicUser' and value in ('yes', 'no'))
+                     or (key == 'ActiveState' and value in ACTIVE_VALUES)
+                     or (key == 'SubState' and value in SUB_VALUES)
+                     or (key == 'Result' and value in RESULT_VALUES))
+            report['properties'][key] = value if valid else 'unknown'
+        if set(fields) != set(PROBE_PROPERTIES):
+            raise ValueError()
+        report['static_identity'] = fields['LoadState'] == 'loaded' and fields['DynamicUser'] == 'no'
+        user, group = fields['User'] or 'root', fields['Group']
+        if not ACCOUNT_NAME.fullmatch(user) or (group and not ACCOUNT_NAME.fullmatch(group)):
+            raise ValueError()
+        account = pwd.getpwuid(int(user)) if user.isdecimal() else pwd.getpwnam(user)
+        gid = (grp.getgrgid(int(group)).gr_gid if group.isdecimal() else grp.getgrnam(group).gr_gid) if group else account.pw_gid
+        if account.pw_uid < 0 or gid < 0:
+            raise ValueError()
+        report.update(identity_resolved=True, effective_uid=account.pw_uid, effective_gid=gid,
+                      user_matches_file_owner=account.pw_uid == agent['uid'], group_matches_file_group=gid == agent['gid'])
+        report['group_read_matches_service'] = bool(report['static_identity'] and report['group_matches_file_group']
+                                                    and agent['group_readable'])
+        report['agent_read_policy_compatible'] = bool(agent['regular_file'] and agent['owner_root'] and
+            (agent['mode'] == '0600' or (agent['mode'] == '0640' and report['group_read_matches_service'])))
+    except Exception:
+        report['classification'] = 'probe_identity_unresolved'
+    return report
+
+
 def ipv6_metadata():
     result = {}
     for kind, arguments in (('default_route', ['ip', '-6', '-j', 'route', 'show', 'default']),
@@ -251,7 +305,8 @@ def ipv6_metadata():
 
 
 def inspect_environment():
-    return {'status': 'inspected', 'schema': 1, 'agent': agent_metadata(),
+    agent = agent_metadata()
+    return {'status': 'inspected', 'schema': 1, 'agent': agent, 'probe_service': probe_service_metadata(agent),
             'binaries': [binary_metadata(path) for path in BINARY_PATHS],
             'guard': [unit_metadata(unit) for unit in UNITS], 'ipv6': ipv6_metadata(),
             'files_mutated': False, 'policy_mutated': False, 'network_mutated': False, 'binaries_executed': False}

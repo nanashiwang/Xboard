@@ -5,11 +5,13 @@ import base64
 import concurrent.futures
 import copy
 import errno
+import grp
 import hashlib
 import ipaddress
 import json
 import math
 import os
+import pwd
 from pathlib import Path
 import re
 import select
@@ -28,6 +30,7 @@ import urllib.parse
 import uuid
 
 AGENT = Path('/etc/xboard-extension-probe/agent.json')
+PROBE_SERVICE = 'xboard-extension-probe.service'
 PLAN_ROOT = Path('/root/xboard-upstream-recovery')
 APP_ROOT = Path('/root/Xboard')
 SIBLING = Path(__file__).resolve().parent
@@ -116,8 +119,61 @@ def plan_contract(plan_id,plan_sha,alloc):
         check(current['public']['id']==expected['public_id'] and current['backend']['id']==expected['backend_id'])
     return directory,plan
 
+def probe_service_identity():
+    # Only the fixed, installed service can justify the existing group reader.
+    try:
+        properties={'LoadState','User','Group','DynamicUser'}
+        result=subprocess.run(['systemctl','show',PROBE_SERVICE,
+                               '--property=LoadState,User,Group,DynamicUser','--no-pager'],
+                              capture_output=True,timeout=5)
+        check(result.returncode==0 and len(result.stdout)<=4096)
+        fields={}
+        for line in result.stdout.decode('utf-8').splitlines():
+            key,separator,value=line.partition('=')
+            check(separator and key in properties and key not in fields)
+            fields[key]=value
+        check(set(fields)==properties and fields['LoadState']=='loaded' and fields['DynamicUser']=='no')
+        user,group=fields['User'] or 'root',fields['Group']
+        check(re.fullmatch(r'(?:[A-Za-z_][A-Za-z0-9_.-]{0,31}|[0-9]{1,10})',user) and
+              (not group or re.fullmatch(r'(?:[A-Za-z_][A-Za-z0-9_.-]{0,31}|[0-9]{1,10})',group)))
+        account=pwd.getpwuid(int(user)) if user.isdecimal() else pwd.getpwnam(user)
+        gid=(grp.getgrgid(int(group)).gr_gid if group.isdecimal() else grp.getgrnam(group).gr_gid) if group else account.pw_gid
+        check(account.pw_uid>=0 and gid>=0)
+        return {'properties':fields,'uid':account.pw_uid,'gid':gid}
+    except Exception:
+        raise ContractError() from None
+
+def agent_file_signature(info):
+    check(stat.S_ISREG(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode) in (0o600,0o640)
+          and 0<info.st_size<=65536)
+    return tuple(getattr(info,key) for key in ('st_dev','st_ino','st_uid','st_gid','st_mode','st_size','st_mtime_ns','st_ctime_ns'))
+
+def agent_bytes():
+    # Keep generic plan storage private_bytes strict; this credential already has
+    # an installed service reader and this operation must not alter that access.
+    try:
+        initial=AGENT.lstat()
+        signature=agent_file_signature(initial)
+        service=probe_service_identity() if stat.S_IMODE(initial.st_mode)==0o640 else None
+        check(service is None or service['gid']==initial.st_gid)
+        fd=os.open(AGENT,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+        try:
+            check(agent_file_signature(os.fstat(fd))==signature)
+            with os.fdopen(fd,'rb',closefd=False) as source:
+                raw=source.read(65537)
+                check(len(raw)==initial.st_size)
+                source.seek(0)
+                check(source.read(65537)==raw)
+            check(service is None or probe_service_identity()==service)
+            check(agent_file_signature(os.fstat(fd))==signature and agent_file_signature(AGENT.lstat())==signature)
+            return raw
+        finally:
+            os.close(fd)
+    except Exception:
+        raise ContractError() from None
+
 def agent_settings():
-    settings=load_json(private_bytes(AGENT))
+    settings=load_json(agent_bytes())
     check(set(settings)=={'panel_url','token'} and isinstance(settings['token'],str) and len(settings['token'])==64)
     parsed=urllib.parse.urlsplit(settings['panel_url'])
     check(parsed.scheme=='https' and parsed.hostname and not parsed.username and not parsed.password and
