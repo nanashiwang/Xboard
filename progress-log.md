@@ -12,6 +12,7 @@
 - 隔离内核对照（不改运行中客户端）：将选择组设为故意不可达的回环地址，日本01与美国01仍测通，排除这两条 VLESS 测速必须依赖当前组所选节点的猜测。一次冷启动请求耗时9218ms但返回delay506ms，五秒期限可能误报；未因此扩大产品超时或改DNS。
 - 新增独立 PowerShell 5.1 [脚本与说明](./scripts/capybara/README.md)：只读进程/系统代理状态、严格回环鉴权、入口 TCP/HTTPS、DoH HTTPS、Google 5秒/12秒及Cloudflare12秒、当前所选出口实际GET；有限内核警告只按固定类别计数，不保存原文、UUID、令牌或WS路径。所有HTTP请求均GET、不跟随重定向、不改变证书校验；不写系统配置。测速会更新临时历史并产生少量流量。
 - 本机 PowerShell 7.6.9 的28项检查通过，真实TCP/HTTP/WebSocket夹具验证鉴权、重定向拒绝、头/正文超时、报告脱敏与分类；完整实际报告对照美国01：5秒504，12秒200/959ms，Cloudflare200/869ms，当前出口GET204。报告扫描未含运行配置秘密/UUID/WS路径。修正 PowerShell异步Task空结果意外输出后再验报告结构；Windows 5.1 CI与故障电脑实测分别待确认。
+- 工具提交 `a20256e` 已推送 master，README/progress及脚本按该SHA从GitHub回读一致；[Windows PowerShell 5.1检查](https://github.com/nanashiwang/Xboard/actions/runs/40319157833)28项全部通过，笔记检查通过。修正报告结构后的第二次本机实测：Google5秒504、12秒200/525ms（总6231ms），Cloudflare200/449ms，当前出口GET204；报告为单一对象、秘密扫描通过。Windows CI为合成网络夹具，不代表用户电脑已测试或故障已恢复。
 - 本轮为现场工具及证据记录，不修改桌面二进制、不创建0.1.6或部署生产。仍需用户在故障Windows上运行脚本并提供脱敏JSON，之后按结果修复并复验。临时证据位于本机 `/tmp/capybara-windows-diagnosis-20261026/`；不提交该目录或配置。保留香港入口/TUN等未提交内容。
 
 ## 2026-10-26：外接节点测速失败排查

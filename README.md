@@ -32,7 +32,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### Windows 0.1.5 美国01连接差异（2026-10-26）
 
-用户确认 v2rayN 已退出，同一美国01家宽在 v2rayN 可用、卡皮巴拉失败；Windows 根因尚待现场证据。本机同版本可用，并复现五秒测速超时、十二秒成功，不能据此把 Windows 代理失败归结为测速期限。新增[只读诊断工具](./scripts/capybara/README.md)，直接用于已安装 0.1.5，分阶段检查回环内核、入口、检测站点和当前代理请求，输出不含凭据的报告；不修改客户端配置或生产。验证及待办见[进展](./progress-log.md#2026-10-26windows-015-美国01连接差异诊断)。
+用户确认 v2rayN 已退出，同一美国01家宽在 v2rayN 可用、卡皮巴拉失败；Windows 根因尚待现场证据。本机同版本可用，并复现五秒测速超时、十二秒成功，不能据此把 Windows 代理失败归结为测速期限。新增[只读诊断工具](./scripts/capybara/README.md)，直接用于已安装 0.1.5，分阶段检查回环内核、入口、检测站点和当前代理请求，输出不含凭据的报告；不修改客户端配置或生产。工具已通过本机 PowerShell 7 与 Windows PowerShell 5.1 各28项检查。验证及待办见[进展](./progress-log.md#2026-10-26windows-015-美国01连接差异诊断)。
 
 ### 外接节点测速失败排查（2026-10-26）
 

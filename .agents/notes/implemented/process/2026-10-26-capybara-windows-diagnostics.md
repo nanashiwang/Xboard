@@ -24,7 +24,7 @@ Status: implemented
 
 ## Verification
 
-本机 PowerShell 7.6.9 的 28 项检查通过，覆盖非回环控制器拒绝、鉴权不泄漏、重定向拒绝、HTTP 头及正文超时、真实 TCP/HTTP/WebSocket 夹具、错误分类和报告凭据金丝雀。macOS 实际控制器美国01对照：5 秒返回504，12秒返回200/959ms，Cloudflare返回200/869ms，当前出口代理GET为204；不据此声称 Windows 根因或修复。Windows PowerShell 5.1 CI 与用户现场报告另记进展。
+本机 PowerShell 7.6.9 的 28 项检查通过，覆盖非回环控制器拒绝、鉴权不泄漏、重定向拒绝、HTTP 头及正文超时、真实 TCP/HTTP/WebSocket 夹具、错误分类和报告凭据金丝雀。macOS 实际控制器美国01对照：5 秒返回504，12秒返回200/959ms，Cloudflare返回200/869ms，当前出口代理GET为204；不据此声称 Windows 根因或修复。Windows PowerShell 5.1 CI（run 40319157833）28项通过；修正异步Task空结果后的实际报告为单一对象，秘密扫描通过。用户故障电脑的现场报告仍待采集，不能把合成夹具当作实际网络已恢复。
 
 ## Consequences
 
