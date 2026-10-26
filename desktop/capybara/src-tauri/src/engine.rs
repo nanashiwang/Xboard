@@ -37,6 +37,77 @@ pub struct Controller {
     api: u16,
     secret: String,
 }
+struct ExpectedConfig {
+    mode: String,
+    port: u16,
+    targets: Vec<String>,
+    global_choices: Vec<String>,
+    rule_count: usize,
+}
+impl ExpectedConfig {
+    fn from_yaml(content: &str) -> Result<Self, String> {
+        let config: serde_yaml::Value =
+            serde_yaml::from_str(content).map_err(|_| "无法读取内核启动配置")?;
+        let mode = config["mode"]
+            .as_str()
+            .ok_or("内核启动模式无效")?
+            .to_owned();
+        let port = config["mixed-port"]
+            .as_u64()
+            .and_then(|p| u16::try_from(p).ok())
+            .filter(|p| *p > 0)
+            .ok_or("内核启动端口无效")?;
+        let mut targets = Vec::new();
+        for key in ["proxies", "proxy-groups"] {
+            for item in config[key].as_sequence().ok_or("内核启动节点无效")? {
+                targets.push(
+                    item["name"]
+                        .as_str()
+                        .ok_or("内核启动节点名称无效")?
+                        .to_owned(),
+                );
+            }
+        }
+        let global = config["proxy-groups"]
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .find(|group| group["name"].as_str() == Some("GLOBAL"))
+            .ok_or("内核缺少全局分流组")?;
+        let global_choices: Vec<String> = global["proxies"]
+            .as_sequence()
+            .ok_or("内核全局节点无效")?
+            .iter()
+            .map(|v| v.as_str().map(str::to_owned).ok_or("内核全局节点无效"))
+            .collect::<Result<_, _>>()?;
+        if global_choices.is_empty() {
+            return Err("内核缺少全局代理节点".into());
+        }
+        let rule_count = config["rules"]
+            .as_sequence()
+            .ok_or("内核启动规则无效")?
+            .len();
+        Ok(Self {
+            mode,
+            port,
+            targets,
+            global_choices,
+            rule_count,
+        })
+    }
+    fn matches(&self, general: &Value, proxies: &Value, rules: &Value) -> bool {
+        let map = &proxies["proxies"];
+        general["mode"].as_str() == Some(self.mode.as_str())
+            && general["mixed-port"].as_u64() == Some(u64::from(self.port))
+            && self.targets.iter().all(|name| map[name].is_object())
+            && map["GLOBAL"]["type"] == "Selector"
+            && map["GLOBAL"]["now"].as_str() == self.global_choices.first().map(String::as_str)
+            && map["GLOBAL"]["all"] == json!(self.global_choices)
+            && rules["rules"]
+                .as_array()
+                .is_some_and(|rules| rules.len() == self.rule_count)
+    }
+}
 impl std::ops::Deref for Engine {
     type Target = Controller;
     fn deref(&self) -> &Controller {
@@ -339,6 +410,74 @@ impl Engine {
     }
 }
 impl Controller {
+    async fn wait_ready<F>(
+        &self,
+        expected: &ExpectedConfig,
+        timeout: Duration,
+        mut check_lifecycle: F,
+    ) -> Result<(), String>
+    where
+        F: FnMut() -> Result<(), String>,
+    {
+        let client = account::http()?;
+        let started = Instant::now();
+        loop {
+            check_lifecycle()?;
+            let remaining = timeout
+                .checked_sub(started.elapsed())
+                .filter(|remaining| !remaining.is_zero())
+                .ok_or("内核配置加载超时，请检查线路配置或安全软件")?;
+            // The controller starts before Mihomo installs proxies, rules and listeners. A version
+            // response cannot prove readiness. Check the complete startup contract with a deadline.
+            let result = tokio::time::timeout(remaining.min(Duration::from_millis(800)), async {
+                let mut data = Vec::new();
+                for path in ["/configs", "/proxies", "/rules"] {
+                    let response = match client
+                        .get(format!("http://127.0.0.1:{}{path}", self.api))
+                        .bearer_auth(&self.secret)
+                        .send()
+                        .await
+                    {
+                        Ok(response) => response,
+                        Err(_) => return Ok(false),
+                    };
+                    if matches!(
+                        response.status(),
+                        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN
+                    ) {
+                        return Err("本地连接组件鉴权失败，请重新启动客户端".to_owned());
+                    }
+                    if !response.status().is_success() {
+                        return Ok(false);
+                    }
+                    let value = match response.json::<Value>().await {
+                        Ok(value) => value,
+                        Err(_) => return Ok(false),
+                    };
+                    data.push(value);
+                }
+                if !expected.matches(&data[0], &data[1], &data[2]) {
+                    return Ok(false);
+                }
+                // GetPorts normally reflects an active listener; also reject a socket closed after
+                // a partial listener setup failure. This probe does not change the system proxy.
+                Ok(
+                    tokio::net::TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, expected.port))
+                        .await
+                        .is_ok(),
+                )
+            })
+            .await;
+            if let Ok(result) = result {
+                if result? {
+                    check_lifecycle()?;
+                    return Ok(());
+                }
+            }
+            let remaining = timeout.saturating_sub(started.elapsed());
+            tokio::time::sleep(remaining.min(Duration::from_millis(200))).await;
+        }
+    }
     async fn call(
         &self,
         method: reqwest::Method,
@@ -582,6 +721,16 @@ pub fn worker_main() -> i32 {
         Ok(r) => r,
         Err(_) => return 1,
     };
+    let expected = match std::fs::read_to_string(launch.dir.join("runtime.yaml"))
+        .map_err(|_| "无法读取内核启动配置".to_owned())
+        .and_then(|config| ExpectedConfig::from_yaml(&config))
+    {
+        Ok(expected) => expected,
+        Err(error) => {
+            println!("{}", json!({"error":error}));
+            return 1;
+        }
+    };
     let mut core = match cmd(&launch.binary)
         .arg("-d")
         .arg(&launch.dir)
@@ -607,35 +756,22 @@ pub fn worker_main() -> i32 {
         let _ = stdin.read_line(&mut line);
         let _ = tx.send(());
     });
-    let ready = runtime.block_on(async {
-        let client = account::http()?;
-        let start = Instant::now();
-        loop {
+    let controller = Controller {
+        port: launch.port,
+        api: launch.api,
+        secret: launch.secret.clone(),
+    };
+    let ready = runtime.block_on(
+        controller.wait_ready(&expected, Duration::from_secs(35), || {
             if rx.try_recv().is_ok() {
                 return Err("连接已取消".to_string());
             }
             if !matches!(core.try_wait(), Ok(None)) {
                 return Err("内核未能加载配置，请检查线路配置或重新连接".into());
             }
-            if let Ok(r) = client
-                .get(format!("http://127.0.0.1:{}/version", launch.api))
-                .bearer_auth(&launch.secret)
-                .timeout(Duration::from_millis(800))
-                .send()
-                .await
-            {
-                if r.status().is_success() {
-                    break;
-                }
-            }
-            if start.elapsed() > Duration::from_secs(35) {
-                return Err("内核启动超时，请检查网络或安全软件".into());
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
-        // Preparing nodes must never change system proxy settings.
-        Ok(())
-    });
+            Ok(())
+        }),
+    );
     if let Err(error) = ready {
         let _ = core.kill();
         let _ = core.wait();
@@ -670,6 +806,174 @@ pub fn worker_main() -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    struct ReadinessServer {
+        api: u16,
+        stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+        thread: Option<std::thread::JoinHandle<()>>,
+    }
+    impl Drop for ReadinessServer {
+        fn drop(&mut self) {
+            self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
+            if let Some(thread) = self.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
+    fn readiness_server<F>(response: F) -> ReadinessServer
+    where
+        F: Fn(&str, &str) -> (u16, Value) + Send + 'static,
+    {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let api = listener.local_addr().unwrap().port();
+        listener.set_nonblocking(true).unwrap();
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let done = stop.clone();
+        let thread = std::thread::spawn(move || {
+            use std::io::Read;
+            while !done.load(std::sync::atomic::Ordering::SeqCst) {
+                match listener.accept() {
+                    Ok((mut socket, _)) => {
+                        socket
+                            .set_read_timeout(Some(Duration::from_secs(1)))
+                            .unwrap();
+                        let mut bytes = [0; 4096];
+                        let size = socket.read(&mut bytes).unwrap_or(0);
+                        let request = String::from_utf8_lossy(&bytes[..size]);
+                        let path = request.split_whitespace().nth(1).unwrap_or("");
+                        let (status, data) = response(path, &request);
+                        let body = data.to_string();
+                        let _ = write!(socket, "HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(5))
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+        ReadinessServer {
+            api,
+            stop,
+            thread: Some(thread),
+        }
+    }
+    fn startup_fixture(port: u16) -> (ExpectedConfig, Value, Value, Value) {
+        let config = sanitize("proxies: [{name: one, type: direct}]\nproxy-groups: [{name: group, type: select, proxies: [one]}]\nrules: ['MATCH,group']", port, 19091, "private").unwrap();
+        (
+            ExpectedConfig::from_yaml(&config).unwrap(),
+            json!({"mode":"rule", "mixed-port":port}),
+            json!({"proxies":{"one":{"type":"Direct"},"group":{"type":"Selector"},"GLOBAL":{"type":"Selector","now":"one","all":["one"]}}}),
+            json!({"rules":[{},{}]}),
+        )
+    }
+    #[test]
+    fn startup_requires_mode_nodes_global_selection_and_rules_to_match() {
+        let (expected, general, proxies, rules) = startup_fixture(12345);
+        assert!(expected.matches(&general, &proxies, &rules));
+        assert!(!expected.matches(
+            &json!({"mode":"global", "mixed-port":12345}),
+            &proxies,
+            &rules
+        ));
+        assert!(!expected.matches(&json!({"mode":"rule", "mixed-port":0}), &proxies, &rules));
+        for target in ["one", "group", "GLOBAL"] {
+            let mut missing = proxies.clone();
+            missing["proxies"].as_object_mut().unwrap().remove(target);
+            assert!(!expected.matches(&general, &missing, &rules));
+        }
+        let mut wrong_global = proxies.clone();
+        wrong_global["proxies"]["GLOBAL"]["now"] = json!("DIRECT");
+        assert!(!expected.matches(&general, &wrong_global, &rules));
+        assert!(!expected.matches(&general, &proxies, &json!({"rules":[]})));
+    }
+    #[tokio::test]
+    async fn startup_waits_for_configuration_after_controller_accepts_requests() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let mixed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let (expected, general, proxies, rules) =
+            startup_fixture(mixed.local_addr().unwrap().port());
+        let attempts = std::sync::Arc::new(AtomicUsize::new(0));
+        let probes = attempts.clone();
+        let server = readiness_server(move |path, request| {
+            assert!(request
+                .to_lowercase()
+                .contains("authorization: bearer private"));
+            (
+                200,
+                match path {
+                    "/configs" => general.clone(),
+                    "/proxies" => {
+                        if probes.fetch_add(1, Ordering::SeqCst) < 2 {
+                            json!({"proxies":{}})
+                        } else {
+                            proxies.clone()
+                        }
+                    }
+                    "/rules" => rules.clone(),
+                    "/version" => json!({"version":"already-listening"}),
+                    _ => panic!("unexpected readiness endpoint"),
+                },
+            )
+        });
+        let controller = Controller {
+            port: expected.port,
+            api: server.api,
+            secret: "private".into(),
+        };
+        controller
+            .wait_ready(&expected, Duration::from_secs(2), || Ok(()))
+            .await
+            .unwrap();
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
+    }
+    #[tokio::test]
+    async fn startup_rejects_auth_failure_closed_listener_timeout_and_cancellation() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let (expected, general, proxies, rules) =
+            startup_fixture(listener.local_addr().unwrap().port());
+        let denied = readiness_server(|_, _| (401, json!({})));
+        let controller = Controller {
+            port: expected.port,
+            api: denied.api,
+            secret: "wrong".into(),
+        };
+        let started = Instant::now();
+        assert!(controller
+            .wait_ready(&expected, Duration::from_secs(2), || Ok(()))
+            .await
+            .unwrap_err()
+            .contains("鉴权"));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        let ready_but_closed = readiness_server(move |path, _| {
+            (
+                200,
+                match path {
+                    "/configs" => general.clone(),
+                    "/proxies" => proxies.clone(),
+                    _ => rules.clone(),
+                },
+            )
+        });
+        drop(listener);
+        let controller = Controller {
+            api: ready_but_closed.api,
+            ..controller
+        };
+        assert!(controller
+            .wait_ready(&expected, Duration::from_millis(250), || Ok(()))
+            .await
+            .unwrap_err()
+            .contains("超时"));
+        assert_eq!(
+            controller
+                .wait_ready(&expected, Duration::from_secs(2), || Err(
+                    "连接已取消".into()
+                ))
+                .await
+                .unwrap_err(),
+            "连接已取消"
+        );
+    }
     #[test]
     fn config_cannot_open_network_listeners_or_tun() {
         let raw="proxies:\n  - { name: one, type: ss, server: example.com, port: 443, cipher: aes-128-gcm, password: x }\nproxy-groups: []\nrules: [MATCH,DIRECT]\nallow-lan: true\ntun: { enable: true }\nexternal-ui: /etc\nlisteners: [{port: 80}]\ndns: { listen: '0.0.0.0:53' }\n";
@@ -785,23 +1089,25 @@ mod integration {
         );
         let client = account::http().unwrap();
         let base = format!("http://127.0.0.1:{api}");
-        let mut ready = false;
-        for _ in 0..100 {
-            if let Ok(r) = client
-                .get(format!("{base}/version"))
-                .bearer_auth(&secret)
-                .send()
-                .await
-            {
-                if r.status().is_success() {
-                    ready = true;
-                    break;
-                }
-            }
-            assert!(matches!(core.0.try_wait(), Ok(None)));
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        assert!(ready, "bundled core did not become ready");
+        let controller = Controller {
+            port,
+            api,
+            secret: secret.clone(),
+        };
+        controller
+            .wait_ready(
+                &ExpectedConfig::from_yaml(&config).unwrap(),
+                Duration::from_secs(35),
+                || {
+                    if matches!(core.0.try_wait(), Ok(None)) {
+                        Ok(())
+                    } else {
+                        Err("bundled core exited before becoming ready".into())
+                    }
+                },
+            )
+            .await
+            .unwrap();
         assert_eq!(
             client
                 .get(format!("{base}/proxies"))
@@ -821,11 +1127,6 @@ mod integration {
             .await
             .unwrap();
         assert!(before["proxies"]["卡皮巴拉"].is_object());
-        let controller = Controller {
-            port,
-            api,
-            secret: secret.clone(),
-        };
         controller.select("卡皮巴拉", "测试线路").await.unwrap();
         assert!(controller.select("卡皮巴拉", "not-a-node").await.is_err());
         // Real bundled core measures a controlled HTTP target, without setting the system proxy.
