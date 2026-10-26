@@ -18,7 +18,11 @@
 
 新增[受限维护driver](./.docker/upstream/maintain.py)与[事务助手](./.docker/upstream/recovery.php)：只接收固定计划SHA和key→候选摘要，先在线SQLite备份并保存字段/批准映射，按withdraw→apply_hidden→publish分步；CAS全配置摘要、并发漂移和未知提交结果拒绝重放，rollback仅恢复原出站且保持撤下。候选不自动成为信任值，CLI不接受任意IP/公钥；工作流目前仍只开放prepare，生产操作待明确候选及公开路径缓存就绪。Python、真实隔离SQLite事务、QUIC真实握手与race回归均在本地执行，提交`49ed292`已推送master且两文档按SHA回读一致；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40382304664)80Python、22PHP及Go通过。[第四轮准备](https://github.com/nanashiwang/Xboard/actions/runs/40382305920)首次被QUIC测试中服务端Accept与客户端立即关闭的竞态拦下；仅测试改EarlyListener，8项race重复20轮通过，不延长生产超时。第二次执行进入面板后确认宿主manifest也缺失，仍未修改生产。
 
-补充显式[audit/restore-scope](./.docker/upstream/scope_restore.py)：已有approved字节SHA、仓库固定allocation SHA、41唯一来源名和82条DB实际归属/全配置摘要交叉确认后，由操作者对具体审计ID/SHA执行一次性重建最小scope manifest。原子no-overwrite、复验漂移、私有intent/receipt；不是找回历史文件，也不是缺文件自动fallback，不改来源、公钥或DB。线上审计/重建仍待执行。
+补充显式[audit/restore-scope](./.docker/upstream/scope_restore.py)：已有approved字节SHA、仓库固定allocation SHA、41唯一来源名和82条DB实际归属/全配置摘要交叉确认后，由操作者对具体审计ID/SHA执行一次性重建最小scope manifest。原子no-overwrite、复验漂移、私有intent/receipt；不是找回历史文件，也不是缺文件自动fallback，不改来源、公钥或DB。[审计40385752858](https://github.com/nanashiwang/Xboard/actions/runs/40385752858)确认41来源名摘要与历史一致，按固定审计ID/SHA人工执行的[范围恢复40386216148](https://github.com/nanashiwang/Xboard/actions/runs/40386216148)成功，仅创建宿主最小manifest，DB/公钥/来源指纹均未改。提交`aadc2b7`已推送master、两文档按SHA回读；[专项CI40385761571](https://github.com/nanashiwang/Xboard/actions/runs/40385761571)成功。
+
+[候选准备40386468393](https://github.com/nanashiwang/Xboard/actions/runs/40386468393)成功保存41条当前状态（公开/启用均41），来源指纹40/41一致；[公开快照40386827060](https://github.com/nanashiwang/Xboard/actions/runs/40386827060)在fixed_agent_settings拒绝，未生成缓存或执行baseline。补充固定路径脱敏环境诊断，只输出权限/字段/URL类别、已安装内核摘要、保护器状态和IPv6存在布尔，不输出token/URL/地址、不改环境。
+
+U01唯一来源差异已确定为server单字段：当前来源仅将server还原为原生产出站server，即精确命中旧approved SHA，其余名称/密码/端口/SNI/协议/客户端指纹/UDP/TLS声明保持。补充[显式地址来源接受](./.docker/upstream/accept_source_address.py)，只接受U01和指定新来源SHA，fresh HTTPS及唯一字段证明、两次全DB状态/批准/manifest核对、先私有备份再原子替换；最多更新U01.source_sha256，绝不批准pin或改DB，任何旧计划会失效须重prepare。该接受动作尚未执行。
 
 保护器撤下传输改为固定宿主manifest验证后与限定request经PHP stdin传输，摆脱容器副本依赖，保留41对ID、父子/标签、事务仅撤下；代码尚未生产部署。公开路径工具缓存探针2真实配置，隐藏后以严格TLS、双HTTPS、全新隔离内核验收，并绑定维护执行回执和实际全配置摘要；测试器失败不算撤销证据。受限工作流提供显式阶段选择，不自动批准候选或恢复公开。 本轮本地160项Python、22项恢复事务、8项撤下事务、Go8项race、PHP语法、actionlint及31篇笔记结构/链接检查通过；真实维护回执覆盖CA/null选择和浮点时间，健康未改节点另以prepare原状态绑定的baseline验收，避免为测试撤下健康项。
 

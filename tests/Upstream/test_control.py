@@ -49,6 +49,20 @@ class ControlTest(unittest.TestCase):
         value['execution_id'] = 'e'*64
         with self.assertRaises(ValueError): c.command(value)
 
+    def test_source_address_acceptance_is_only_explicit_u01_hash(self):
+        value = self.value('accept-source-address')
+        with self.assertRaises(ValueError): c.command(value)
+        value['selection'] = {'U01': 'f'*64}
+        self.assertEqual(['--key', 'U01', '--expected-source-sha256', 'f'*64], c.command(value)[-4:])
+        value['selection'] = {'U01': None}
+        with self.assertRaises(ValueError): c.command(value)
+
+    def test_inspector_has_no_plan_selection_or_shell_arguments(self):
+        value = {'operation': 'inspect-environment', 'plan_id': '', 'plan_sha256': '', 'selection': {}, 'execution_id': ''}
+        self.assertEqual(2, len(c.command(value)))
+        value['selection'] = {'U01': None}
+        with self.assertRaises(ValueError): c.command(value)
+
     def test_scope_reconstruction_is_an_explicit_separate_action(self):
         value = {'operation': 'audit-scope', 'plan_id': '', 'plan_sha256': '', 'selection': {}, 'execution_id': ''}
         self.assertEqual('audit', c.command(value)[-1])

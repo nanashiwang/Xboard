@@ -104,6 +104,8 @@ Status: implemented
 
 撤下请求与最小manifest通过PHP stdin传输，避免应用容器重建丢失私有文件后使保护失效。生产部署前仍须核对完整28条当前pin、只读检查及systemd超时预算，不得跳过运行时检测。
 
+U01的来源指纹变化通过“当前source仅还原server为原生产server即可精确命中旧approved SHA”证明为单字段地址变化。[受限接受工具](../../../../.docker/upstream/accept_source_address.py)仅允许显式U01/计划SHA/新来源SHA，fresh来源、两次完整DB状态、批准文件与manifest均固定，先备份再仅更新source_sha256；不修改节点、公钥或其他来源字段。它是本次地址修复的人工步骤，不是自动跟随订阅；旧准备计划因批准字节变化失效，必须重做候选准备。
+
 ## Alternatives considered
 
 - 四档都开放全部 41 条省去分档，但不满足用户的价格差异；采用累计 8/16/28/41。

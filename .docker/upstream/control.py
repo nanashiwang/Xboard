@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 SIBLING = Path(__file__).resolve().parent
-OPERATIONS = {'prepare', 'audit-scope', 'restore-scope', 'snapshot', 'verify-success', 'verify-withdrawn', 'verify-baseline',
+OPERATIONS = {'accept-source-address', 'inspect-environment', 'prepare', 'audit-scope', 'restore-scope', 'snapshot', 'verify-success', 'verify-withdrawn', 'verify-baseline',
               'withdraw', 'apply_hidden', 'publish', 'rollback'}
 
 
@@ -39,7 +39,7 @@ def validate(value):
         if not re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])', key) or (commitment is not None and
                 (not isinstance(commitment, str) or not re.fullmatch('[a-f0-9]{64}', commitment))):
             raise ValueError('selection_invalid')
-    if operation in ('prepare', 'audit-scope'):
+    if operation in ('prepare', 'audit-scope', 'inspect-environment'):
         if value['plan_id'] != '' or value['plan_sha256'] != '' or selection:
             raise ValueError('prepare_arguments_invalid')
     else:
@@ -58,6 +58,8 @@ def validate(value):
 def command(value, quic_sha=None):
     validate(value)
     operation = value['operation']
+    if operation == 'inspect-environment':
+        return [sys.executable, str(SIBLING/'inspect_environment.py')]
     if operation == 'audit-scope':
         return [sys.executable, str(SIBLING/'scope_restore.py'), 'audit']
     if operation == 'prepare':
@@ -69,6 +71,11 @@ def command(value, quic_sha=None):
         return [sys.executable, str(SIBLING/'scope_restore.py'), 'restore', *binding]
     if operation == 'snapshot':
         return [sys.executable, str(SIBLING/'public_verify.py'), 'snapshot', *binding]
+    if operation == 'accept-source-address':
+        if set(value['selection']) != {'U01'} or value['selection']['U01'] is None:
+            raise ValueError('source_selection_invalid')
+        return [sys.executable, str(SIBLING/'accept_source_address.py'), *binding, '--key', 'U01',
+                '--expected-source-sha256', value['selection']['U01']]
     if operation.startswith('verify-'):
         keys = [item for key in sorted(value['selection']) for item in ['--key', key]]
         if operation == 'verify-baseline':

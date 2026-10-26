@@ -76,3 +76,5 @@ python3 .docker/upstream/guard.py --check-identity \
 候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝；只能单独执行audit-scope，交叉核对现存approved、固定allocation、DB归属/状态，再针对具体审计ID/SHA显式restore-scope。不是自动重建，也不批准新pin。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。工作流按显式阶段操作，公开路径验证绑定维护回执，尚未执行生产恢复；最新事实见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。
 
 保护器新版撤下传输仅使用经验证的宿主持久manifest与PHP stdin，不再依赖容器存储副本；该代码当前尚未部署。缺映射依然拒绝，不能把重建scope当成公钥批准。
+
+`inspect-environment`只读检查固定探针文件的安全形状和运行环境类别；不打印凭据或URL。`accept-source-address`只接受U01的明确新来源SHA，必须证明还原原server后精确等于旧批准指纹；仅更新该source_sha256且使旧计划失效，不修改或批准pin。两者均不是自动恢复线路。
