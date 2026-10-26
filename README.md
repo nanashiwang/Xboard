@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉系统通知（2026-10-26）
+
+客户端侧栏增加通知铃铛，与官网读取同一公开公告源；支持未读红点、详情、分页、刷新和本页已读。启动、打开、回到窗口和每五分钟刷新，内容更新后重新提示；已读只保存在本机，不宣称与网页版已读互通。明暗主题、760×620、空态和失败提示已验，正式公告源当前为空；安装版和发布结果见[进展](./progress-log.md#2026-10-26卡皮巴拉系统通知)，取舍见[通知决定](./.agents/notes/implemented/feature/2026-10-26-capybara-notifications.md)。
+
 ### 卡皮巴拉授权页自动关闭（2026-10-26）
 
 官网授权接口确认成功后，授权页自动尝试关闭，客户端继续独立兑换登录结果，无需升级现有 0.1.1 客户端。失败、过期和取消不自动关闭；浏览器限制关闭时保留明确的成功提示，避免重复授权。登录/注册跳转使用 replace 减少临时历史，网页不接触客户端令牌。本地网页 14 项、后端授权及并发 9 项 / 110 断言通过；Chrome 隔离页面确认新标签授权后消失，受限页面保留成功提示。官网双架构镜像与专项 CI 已通过，生产运行 d01331a 并 Healthy；主备域 v3 脚本逐字节匹配。正式 Chrome 临时请求批准后标签页自动关闭，随后取消该请求且未兑换设备令牌；现有客户端登录不受影响。详见[进展](./progress-log.md#2026-10-26卡皮巴拉授权页自动关闭)与[授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。

@@ -15,6 +15,7 @@ vi.mock("../src/Updates", () => ({ default: () => null }));
 vi.mock("../src/bridge", () => ({
     command: vi.fn(),
     preview: null,
+    native: false,
     errorText: () => "未获得钥匙串授权，可以重试或重新登录",
 }));
 let state: View;
@@ -57,7 +58,10 @@ describe("钥匙串授权由用户发起", () => {
                     ["snapshot", "nodes_snapshot"].includes(name),
                 ),
         ).toBe(true);
-        expect(document.querySelector("dialog")?.open).toBe(false);
+        expect(
+            document.querySelector<HTMLDialogElement>("dialog.login-dialog")
+                ?.open,
+        ).toBe(false);
     });
     it("点击才恢复、等待时不可重复操作、拒绝后可重试且不会自动连接", async () => {
         let rejectRestore: (error: Error) => void = () => {};
@@ -125,7 +129,10 @@ describe("钥匙串授权由用户发起", () => {
         await screen.findByText("登录记录等待授权");
         fireEvent.click(screen.getByRole("button", { name: "登录你的账号" }));
         await screen.findByText("在浏览器中完成登录");
-        expect(document.querySelector("dialog")?.open).toBe(true);
+        expect(
+            document.querySelector<HTMLDialogElement>("dialog.login-dialog")
+                ?.open,
+        ).toBe(true);
         expect(document.querySelector('input[type="password"]')).toBeNull();
         expect(
             vi
@@ -146,7 +153,10 @@ describe("钥匙串授权由用户发起", () => {
             screen.getByRole("button", { name: "取消登录", exact: true }),
         );
         await waitFor(() =>
-            expect(document.querySelector("dialog")?.open).toBe(false),
+            expect(
+                document.querySelector<HTMLDialogElement>("dialog.login-dialog")
+                    ?.open,
+            ).toBe(false),
         );
     });
     it("授权失败可重新发起，成功后关闭等待页且不自动连接", async () => {
@@ -169,7 +179,10 @@ describe("钥匙串授权由用户发起", () => {
             screen.getByRole("button", { name: "重新登录", exact: true }),
         );
         await waitFor(() =>
-            expect(document.querySelector("dialog")?.open).toBe(false),
+            expect(
+                document.querySelector<HTMLDialogElement>("dialog.login-dialog")
+                    ?.open,
+            ).toBe(false),
         );
         expect(
             vi.mocked(command).mock.calls.some(([name]) => name === "connect"),
@@ -217,7 +230,10 @@ describe("钥匙串授权由用户发起", () => {
             screen.getByRole("button", { name: "继续注册", exact: true }),
         );
         await waitFor(() =>
-            expect(document.querySelector("dialog")?.open).toBe(false),
+            expect(
+                document.querySelector<HTMLDialogElement>("dialog.login-dialog")
+                    ?.open,
+            ).toBe(false),
         );
         expect(
             screen.queryByRole("button", { name: "注册账号", exact: true }),
@@ -250,7 +266,9 @@ describe("钥匙串授权由用户发起", () => {
         });
         render(<App />);
         await screen.findByText("在浏览器中完成登录");
-        const dialog = document.querySelector("dialog")!;
+        const dialog = document.querySelector<HTMLDialogElement>(
+            "dialog.login-dialog",
+        )!;
         fireEvent.click(
             Array.from(dialog.querySelectorAll("button")).find((button) =>
                 button.textContent?.includes("注册账号"),

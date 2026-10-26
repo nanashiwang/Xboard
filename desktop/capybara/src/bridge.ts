@@ -92,6 +92,11 @@ export async function command<T = View>(
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (name === "fetch_notices") {
+            const { noticePreview } = await import("./notice-preview");
+            return await noticePreview(preview, Number(args?.page || 1)) as T;
+        }
+        if (name === "open_notice_link") return undefined as T;
         if (name === "desktop_settings" || name === "set_autostart") {
             if (name === "set_autostart")
                 demoDesktop = {

@@ -1,4 +1,5 @@
 import Updates from "./Updates";
+import Notifications from "./Notifications";
 import Plans from "./Plans";
 import Home from "./Home";
 import { useNodes } from "./nodes";
@@ -179,7 +180,7 @@ export default function App() {
                         <small>CAPYBARA</small>
                     </span>
                 </a>
-                <div className="sidebar-caption">你的连接小伙伴</div>
+                <div className="sidebar-tools"><div className="sidebar-caption">你的连接小伙伴</div><Notifications /></div>
                 <nav aria-label="主导航">
                     {pages.map((p) => (
                         <button

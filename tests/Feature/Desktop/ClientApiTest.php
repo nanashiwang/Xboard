@@ -170,11 +170,21 @@ class ClientApiTest extends TestCase
             'updated_at' => time(),
         ]);
 
+        Notice::query()->create([
+            'title' => '隐藏公告', 'content' => '未发布的内容', 'show' => false, 'sort' => 0,
+            'created_at' => time(), 'updated_at' => time(),
+        ]);
         $this->getJson('/api/v1/notices')
             ->assertOk()
             ->assertJsonPath('data.total', 2)
             ->assertJsonPath('data.items.0.title', '第一条')
             ->assertJsonPath('data.items.1.title', '第二条');
+        $this->getJson('/api/v1/notices?page=2&page_size=1')
+            ->assertOk()->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.page', 2)->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.title', '第二条')
+            ->assertDontSee('隐藏公告');
+
     }
 
     public function test_plan_can_store_registered_device_limit(): void

@@ -4,6 +4,7 @@ mod credentials;
 mod desktop;
 mod engine;
 mod nodes;
+mod notices;
 mod proxy;
 mod updates;
 use account::{Account, BrowserSession, Fault};
@@ -635,6 +636,8 @@ fn main() {
             nodes::test_nodes,
             check_connection,
             open_link,
+            notices::fetch_notices,
+            notices::open_notice_link,
             store::store_request,
             updates::update_snapshot,
             updates::check_updates,
