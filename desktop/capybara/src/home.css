@@ -126,6 +126,7 @@
     background: #fff3e8f5;
 }
 .journey-hero {
+    container-type: size;
     position: relative;
     overflow: hidden;
     flex: 1;
@@ -812,11 +813,11 @@
     .journey-copy {
         position: absolute;
         inset: 0;
-        width: 100%;
+        width: 62%;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 112px;
-        grid-template-rows: auto minmax(0, 1fr);
-        gap: 8px 14px;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 8px;
         padding: 18px;
         align-items: center;
     }
@@ -834,8 +835,8 @@
         font-size: 12px;
     }
     .journey-power-wrap {
-        grid-column: 2;
-        grid-row: 1 / 3;
+        grid-column: 1;
+        grid-row: 3;
         margin: 0;
         width: 112px;
         gap: 10px;
@@ -900,8 +901,7 @@
     }
     .journey-copy {
         padding: 14px;
-        grid-template-columns: minmax(0, 1fr) 100px;
-        gap: 6px 10px;
+        gap: 6px;
     }
     .journey-power-wrap {
         width: 100px;
@@ -937,6 +937,99 @@
     .node-test-button {
         padding: 10px;
         margin-top: 8px;
+    }
+}
+/* Compact the left controls when notices or routing reduce the artwork height. */
+@container (max-height: 550px) {
+    .journey-copy {
+        padding-block: 20px;
+    }
+    .journey-copy h2 {
+        font-size: clamp(26px, 7cqh, 38px);
+        margin-block: 10px;
+    }
+    .journey-power-wrap {
+        margin-top: 16px;
+        gap: 10px;
+    }
+    .journey-power {
+        width: clamp(78px, 23cqh, 112px);
+        height: clamp(78px, 23cqh, 112px);
+    }
+}
+@container (max-height: 250px) {
+    .journey-copy {
+        position: absolute;
+        inset: 0;
+        width: 62%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 6px;
+        padding: 12px 14px;
+        align-items: center;
+    }
+    .journey-copy h2 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.2;
+        max-height: 2.4em;
+        overflow: hidden;
+    }
+    .journey-copy > p {
+        display: none;
+    }
+    .journey-copy .connection-state {
+        font-size: 12px;
+    }
+    .journey-power-wrap {
+        grid-column: 1;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: 64px max-content;
+        gap: 4px 8px;
+        width: fit-content;
+        margin: 0;
+    }
+    .journey-power {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        width: 64px;
+        height: 64px;
+    }
+    .journey-power > svg {
+        width: 30px;
+        height: 30px;
+    }
+    .journey-power-wrap > span {
+        grid-column: 2;
+        font-size: 12px;
+        padding: 3px 6px;
+    }
+    .journey-power-wrap:not(:has(.journey-register)) > span {
+        grid-row: 1 / 3;
+    }
+    .journey-register {
+        grid-column: 2;
+        padding: 3px 6px;
+    }
+}
+@container (max-height: 175px) {
+    .journey-copy {
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 4px;
+        padding-block: 10px;
+    }
+    .journey-copy h2 {
+        display: none;
+    }
+    .journey-power-wrap {
+        grid-row: 2;
+        grid-template-columns: 56px max-content;
+    }
+    .journey-power {
+        width: 56px;
+        height: 56px;
     }
 }
 @media (prefers-reduced-motion: reduce) {

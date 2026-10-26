@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉连接按钮恢复左侧（2026-10-26）
+
+根据用户反馈，将首页一键连接按钮恢复到插画左侧，避免遮挡卡皮巴拉。保持首页固定、节点内部滚动；按插画实际高度紧凑排列，小窗口出现错误提示时优先保证连接、登录和注册入口完整可见。前端 57 项、脚本 16 项及类型/构建检查通过；四种窗口和明暗、未登录、同步异常预览已验。修正交由分流任务统一发布 0.1.4，Release 与本机安装终态见[进展](./progress-log.md#2026-10-26卡皮巴拉连接按钮恢复左侧)。
+
 ### 卡皮巴拉分流模式与自定义规则（2026-10-26）
 
 客户端首页补上规则、全局、直连三种模式，以及自定义分流规则管理。全局模式提供独立的出口选择；规则支持域名、域名后缀和 IPv4/IPv6 网段，可走订阅节点/代理组、直连或拦截，并可编辑、删除、调整优先顺序。设置由原生层校验和保存，重新启动与刷新订阅继续使用。应用结果、本地检查、安装包发布和官网分发分别记录在[进展](./progress-log.md#2026-10-26卡皮巴拉分流模式与自定义规则)，取舍见[分流决定](./.agents/notes/implemented/feature/2026-10-26-capybara-routing.md)。分流 0.1.3 的本地合并检查已通过（前端 57、脚本 16、Rust 34，另 1 项既有手工钥匙串测试跳过），最小窗口与三模式内核流量验证通过；通知和邀请 0.1.2 已完成发布上线，本次分流 0.1.3 接续发布；当前本地验证完成，Release 和本机安装结果见进展。
