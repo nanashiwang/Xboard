@@ -14,12 +14,87 @@ function manifest_scope(string $raw): void {
     }
     if (json_encode($value,JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR)!==$raw) rejected('container_scope_invalid');
 }
+function directory_metadata(string $path,bool $blocked=false): array {
+    $report=['classification'=>$blocked?'parent_unavailable':'missing','exists'=>false,'directory'=>false,
+             'is_symlink'=>false,'owner_class'=>'unknown','mode'=>null,'realpath_matches'=>false];
+    if ($blocked) return $report;
+    clearstatcache(true,$path);
+    $info=@lstat($path);
+    if ($info===false) {
+        // A failed lstat is missing only if its readable, already checked
+        // parent confirms no entry. Permission/IO failures are not absence.
+        $entries=@scandir(dirname($path));
+        if ($entries===false || in_array(basename($path),$entries,true)) $report['classification']='unreadable';
+        return $report;
+    }
+    return array_replace($report,['classification'=>'present','exists'=>true,
+        'directory'=>($info['mode']&0170000)===0040000,'is_symlink'=>($info['mode']&0170000)===0120000,
+        'owner_class'=>$info['uid']===0?'root':'nonroot','mode'=>sprintf('%04o',$info['mode']&07777),
+        'realpath_matches'=>realpath($path)===$path]);
+}
+function directory_usable(array $meta,string $role): bool {
+    if (!$meta['directory'] || $meta['is_symlink'] || !$meta['realpath_matches']) return false;
+    if ($role==='anchor') return true; // Existing Laravel storage may be app-owned and writable.
+    if ($meta['owner_class']!=='root') return false;
+    $mode=octdec($meta['mode']);
+    return $role==='scope' ? $mode===0700 : ($mode&0022)===0;
+}
+function scope_directories(string $directory): array {
+    if (basename($directory)!=='upstream-20261022' || basename(dirname($directory))!=='backups') rejected('container_parent_invalid');
+    $anchor=directory_metadata(dirname($directory,2));
+    $anchorSafe=directory_usable($anchor,'anchor');
+    $backups=directory_metadata(dirname($directory),!$anchorSafe);
+    $backupsSafe=directory_usable($backups,'backups');
+    $scope=directory_metadata($directory,!$backupsSafe);
+    // Missing intermediate directory means its fixed child is also missing;
+    // do not traverse an unsafe existing parent to inspect that child.
+    if ($anchorSafe && $backups['classification']==='missing') $scope['classification']='missing';
+    $scopeSafe=directory_usable($scope,'scope');
+    $creatable=$anchorSafe && ($backupsSafe || $backups['classification']==='missing') && $scope['classification']==='missing';
+    return ['directories'=>['anchor'=>$anchor,'backups'=>$backups,'scope'=>$scope],
+            'parent_safe'=>$anchorSafe && $backupsSafe && $scopeSafe,'parent_creatable'=>$creatable];
+}
+function directory_identity(string $directory): array {
+    clearstatcache(true,$directory);
+    $info=lstat($directory);
+    if ($info===false || ($info['mode']&0170000)!==0040000 || realpath($directory)!==$directory) rejected('container_parent_invalid');
+    return array_intersect_key($info,array_flip(['dev','ino','uid','gid','mode']));
+}
+function sync_parent(string $directory): void {
+    $handle=fopen($directory,'r');
+    if ($handle===false) rejected('container_commit_unknown');
+    try { if (!fsync($handle)) rejected('container_commit_unknown'); }
+    finally { fclose($handle); }
+}
+function create_missing_directories(string $directory,array &$created): void {
+    $before=scope_directories($directory);
+    if ($before['parent_safe']) return;
+    if (!$before['parent_creatable']) rejected('container_parent_invalid');
+    $anchor=dirname($directory,2);
+    $anchorIdentity=directory_identity($anchor);
+    foreach (['backups'=>dirname($directory),'scope'=>$directory] as $role=>$path) {
+        $meta=directory_metadata($path);
+        if ($meta['classification']==='missing') {
+            $parent=dirname($path);
+            $identity=directory_identity($parent);
+            // No recursive mkdir: an existing file/link/directory is never
+            // followed, chmodded, replaced, or treated as a successful create.
+            if (!mkdir($path,0700,false)) rejected('container_parent_invalid');
+            $created[]=$role;
+            if (directory_identity($anchor)!==$anchorIdentity || directory_identity($parent)!==$identity ||
+                !directory_usable(directory_metadata($path),$role) || directory_metadata($path)['mode']!=='0700') rejected('container_commit_unknown');
+            sync_parent($parent);
+        } elseif (!directory_usable($meta,$role)) rejected('container_parent_invalid');
+    }
+    if (!scope_directories($directory)['parent_safe']) rejected('container_commit_unknown');
+}
 function status_at(string $directory,string $raw): array {
     clearstatcache(true);
-    $parent=@lstat($directory);
-    $safe=$parent!==false && ($parent['mode']&0170000)===0040000 && $parent['uid']===0 && ($parent['mode']&0022)===0 && realpath($directory)===$directory;
+    $parents=scope_directories($directory);
+    $safe=$parents['parent_safe'];
     $target=$directory.'/manifest.private';
-    $info=@lstat($target);
+    // Never traverse an unsafe or missing fixed parent to read the target.
+    $info=$safe ? @lstat($target) : false;
     $exists=$info!==false;
     $regular=$exists && ($info['mode']&0170000)===0100000;
     $private=$regular && $info['uid']===0 && ($info['mode']&0777)===0600;
@@ -41,18 +116,24 @@ function status_at(string $directory,string $raw): array {
         $matches=$body!==false && hash_equals($raw,$body);
     }
     return ['status'=>'inspected','manifest_sha256'=>hash('sha256',$raw),'target_exists'=>$exists,
-            'target_matches'=>$matches,'target_private'=>$private,'parent_safe'=>$safe,'manifest_created'=>false];
+            'target_matches'=>$matches,'target_private'=>$private,'parent_safe'=>$safe,
+            'parent_creatable'=>$parents['parent_creatable'],'directories'=>$parents['directories'],
+            'directories_created'=>[],'manifest_created'=>false];
 }
 function mirror_scope(string $directory,string $raw,string $action): array {
     manifest_scope($raw);
     if (!in_array($action,['inspect','restore'],true)) rejected('container_scope_invalid');
     $before=status_at($directory,$raw);
     if ($action==='inspect') return $before;
-    if (!$before['parent_safe']) rejected('container_parent_invalid');
+    if (!$before['parent_safe'] && !$before['parent_creatable']) rejected('container_parent_invalid');
+    $created=[];
+    try { create_missing_directories($directory,$created); }
+    catch (Throwable $error) { if ($created) rejected('container_commit_unknown'); throw $error; }
+    $before=status_at($directory,$raw);
     if ($before['target_exists']) {
         if (!$before['target_matches']) rejected('container_manifest_conflict');
         if (!$before['target_private']) rejected('container_manifest_permissions');
-        return array_replace($before,['status'=>'already_matches']);
+        return array_replace($before,['status'=>'already_matches','directories_created'=>$created]);
     }
     $temporary=$directory.'/.guard-scope-'.bin2hex(random_bytes(16)).'.tmp';
     $target=$directory.'/manifest.private';
@@ -78,7 +159,7 @@ function mirror_scope(string $directory,string $raw,string $action): array {
         finally { fclose($directoryHandle); }
         $after=status_at($directory,$raw);
         if (!$after['target_exists'] || !$after['target_matches'] || !$after['target_private'] || !$after['parent_safe']) rejected('container_commit_unknown');
-        return array_replace($after,['status'=>'restored','manifest_created'=>true]);
+        return array_replace($after,['status'=>'restored','manifest_created'=>true,'directories_created'=>$created]);
     } catch (Throwable $error) {
         if ($linked) rejected('container_commit_unknown');
         throw $error;
@@ -94,6 +175,7 @@ if (!defined('XBOARD_LEGACY_GUARD_SCOPE_LIBRARY_ONLY')) {
         rejected('container_io_failed');
     });
     try {
+        umask(0077);
         $raw=base64_decode('__MANIFEST_BASE64__',true);
         if ($raw===false || strlen($raw)>16384 || !function_exists('posix_geteuid') || posix_geteuid()!==0) rejected('container_scope_invalid');
         echo json_encode(mirror_scope('/www/storage/app/backups/upstream-20261022',$raw,'__ACTION__'),JSON_THROW_ON_ERROR);

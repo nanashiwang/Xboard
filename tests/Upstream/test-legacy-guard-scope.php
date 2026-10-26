@@ -13,7 +13,9 @@ function rejects(callable $call,string $reason): void {
     throw new RuntimeException('expected_failure');
 }
 function fixture(): string {
-    $directory=sys_get_temp_dir().'/legacy-scope-'.bin2hex(random_bytes(12));
+    $anchor=sys_get_temp_dir().'/legacy-scope-'.bin2hex(random_bytes(12));
+    mkdir($anchor,0700);mkdir($anchor.'/backups',0700);
+    $directory=$anchor.'/backups/upstream-20261022';
     mkdir($directory,0700);return $directory;
 }
 function clean(string $path): void {
@@ -25,7 +27,7 @@ function clean(string $path): void {
 function test(callable $call): void {
     global $count;
     $directory=fixture();
-    try { $call($directory); $count++; } finally { clean($directory); }
+    try { $call($directory); $count++; } finally { clean(dirname($directory,2)); }
 }
 $rows=[];
 for ($i=1;$i<=41;$i++) $rows[]=['backend_id'=>357+2*$i,'key'=>sprintf('U%02d',$i),'public_id'=>358+2*$i];
@@ -93,8 +95,61 @@ test(function($directory)use($raw) {
 });
 test(function($directory)use($raw) {
     $report=mirror_scope($directory,$raw,'restore');
-    expect(array_keys($report)===['status','manifest_sha256','target_exists','target_matches','target_private','parent_safe','manifest_created']);
+    expect(array_keys($report)===['status','manifest_sha256','target_exists','target_matches','target_private','parent_safe',
+                                 'parent_creatable','directories','directories_created','manifest_created']);
     expect($report['manifest_sha256']===hash('sha256',$raw));
     expect(!str_contains(json_encode($report),'backend_id'));
+});
+test(function($directory)use($raw) {
+    rmdir($directory);rmdir(dirname($directory));
+    $before=mirror_scope($directory,$raw,'inspect');
+    expect(!$before['parent_safe'] && $before['parent_creatable']);
+    expect($before['directories']['backups']['classification']==='missing');
+    expect($before['directories']['scope']['classification']==='missing');
+    expect(!file_exists(dirname($directory)));
+    $report=mirror_scope($directory,$raw,'restore');
+    expect($report['directories_created']===['backups','scope']);
+    expect((fileperms($directory)&07777)===0700 && (fileperms(dirname($directory))&07777)===0700);
+    expect(file_get_contents($directory.'/manifest.private')===$raw);
+});
+test(function($directory)use($raw) {
+    $anchor=dirname($directory,2);chmod($anchor,0775);chown($anchor,1001);
+    rmdir($directory);chmod(dirname($directory),0755);
+    $report=mirror_scope($directory,$raw,'restore');
+    expect($report['directories_created']===['scope']);
+    expect($report['directories']['anchor']['owner_class']==='nonroot');
+    expect($report['directories']['anchor']['mode']==='0775');
+    expect((fileperms($anchor)&07777)===0775 && (fileperms(dirname($directory))&07777)===0755);
+});
+test(function($directory)use($raw) {
+    chmod($directory,0755);
+    $before=mirror_scope($directory,$raw,'inspect');
+    expect(!$before['parent_safe'] && !$before['parent_creatable']);
+    expect($before['directories']['scope']['classification']==='present' && $before['directories']['scope']['mode']==='0755');
+    rejects(fn()=>mirror_scope($directory,$raw,'restore'),'container_parent_invalid');
+    expect((fileperms($directory)&07777)===0755);
+});
+test(function($directory)use($raw) {
+    $anchor=dirname($directory,2);rmdir($directory);rmdir(dirname($directory));
+    mkdir($anchor.'/other',0700);symlink($anchor.'/other',dirname($directory));
+    $before=mirror_scope($directory,$raw,'inspect');
+    expect($before['directories']['backups']['is_symlink']);
+    expect($before['directories']['scope']['classification']==='parent_unavailable');
+    rejects(fn()=>mirror_scope($directory,$raw,'restore'),'container_parent_invalid');
+    expect(count(scandir($anchor.'/other'))===2);
+});
+test(function($directory)use($raw) {
+    $anchor=dirname($directory,2);rmdir($directory);mkdir($anchor.'/other',0700);symlink($anchor.'/other',$directory);
+    $before=mirror_scope($directory,$raw,'inspect');
+    expect($before['directories']['scope']['is_symlink'] && !$before['parent_creatable']);
+    rejects(fn()=>mirror_scope($directory,$raw,'restore'),'container_parent_invalid');
+    expect(count(scandir($anchor.'/other'))===2);
+});
+test(function($directory)use($raw) {
+    rmdir($directory);chown(dirname($directory),1001);
+    $before=mirror_scope($directory,$raw,'inspect');
+    expect($before['directories']['backups']['owner_class']==='nonroot');
+    rejects(fn()=>mirror_scope($directory,$raw,'restore'),'container_parent_invalid');
+    expect(!file_exists($directory));
 });
 echo json_encode(['status'=>'passed','tests'=>$count],JSON_THROW_ON_ERROR)."\n";

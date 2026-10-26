@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -27,14 +28,15 @@ STAGE = 'startup'
 
 
 class ScopeRepairError(Exception):
-    def __init__(self, reason, installed=None):
+    def __init__(self, reason, installed=None, container=None):
         self.reason = reason
         self.installed = installed
+        self.container = container
         super().__init__(reason)
 
 
-def fail(reason, installed=None):
-    raise ScopeRepairError(reason, installed)
+def fail(reason, installed=None, container=None):
+    raise ScopeRepairError(reason, installed, container)
 
 
 def sha(body):
@@ -99,12 +101,28 @@ def container_scope(action, manifest_bytes):
                           'container_manifest_permissions', 'container_commit_unknown', 'container_io_failed'}:
             reason = 'container_operation_failed'
         fail(reason)
-    expected = {'status', 'manifest_sha256', 'target_exists', 'target_matches', 'target_private', 'parent_safe', 'manifest_created'}
+    expected = {'status', 'manifest_sha256', 'target_exists', 'target_matches', 'target_private', 'parent_safe',
+                'parent_creatable', 'directories', 'directories_created', 'manifest_created'}
     if set(value) != expected or value['status'] not in ('inspected', 'restored', 'already_matches') or value['manifest_sha256'] != sha(manifest_bytes):
         fail('container_reply_invalid')
-    if any(type(value[key]) is not bool for key in expected - {'status', 'manifest_sha256'}):
+    if any(type(value[key]) is not bool for key in expected - {'status', 'manifest_sha256', 'directories', 'directories_created'}):
         fail('container_reply_invalid')
-    if action == 'inspect' and (value['status'] != 'inspected' or value['manifest_created']):
+    directories = value['directories']
+    if not isinstance(directories, dict) or set(directories) != {'anchor', 'backups', 'scope'}:
+        fail('container_reply_invalid')
+    for metadata in directories.values():
+        fields = {'classification', 'exists', 'directory', 'is_symlink', 'owner_class', 'mode', 'realpath_matches'}
+        if (not isinstance(metadata, dict) or set(metadata) != fields
+                or metadata['classification'] not in ('missing', 'unreadable', 'present', 'parent_unavailable')
+                or metadata['owner_class'] not in ('root', 'nonroot', 'unknown')
+                or (metadata['mode'] is not None and (not isinstance(metadata['mode'], str) or not re.fullmatch('[0-7]{4}', metadata['mode'])))
+                or any(type(metadata[key]) is not bool for key in ('exists', 'directory', 'is_symlink', 'realpath_matches'))):
+            fail('container_reply_invalid')
+    created = value['directories_created']
+    if (not isinstance(created, list) or any(item not in ('backups', 'scope') for item in created)
+            or len(created) != len(set(created))):
+        fail('container_reply_invalid')
+    if action == 'inspect' and (value['status'] != 'inspected' or value['manifest_created'] or created):
         fail('container_reply_invalid')
     if action == 'restore' and (value['status'] not in ('restored', 'already_matches') or not all(value[k] for k in ('target_exists','target_matches','target_private','parent_safe'))):
         fail('container_reply_invalid')
@@ -141,8 +159,8 @@ def run(action, scope=None, prepare=None, container=None):
                   'public_key_baseline_mutated': False, 'source_baseline_mutated': False, 'guard_executed': False}
         if action == 'inspect':
             return report
-        if not before['parent_safe']:
-            fail('container_parent_invalid')
+        if not before['parent_safe'] and not before['parent_creatable']:
+            fail('container_parent_invalid', container=before)
         if before['target_exists'] and not before['target_matches']:
             fail('container_manifest_conflict')
         if before['target_exists'] and not before['target_private']:
@@ -157,7 +175,8 @@ def run(action, scope=None, prepare=None, container=None):
         intent = {'schema': 1, 'operation': 'restore_legacy_guard_scope', 'metadata_id': metadata_id,
                   'at': int(time.time()), 'approved_file_sha256': sha(approved_bytes),
                   'allocation_file_sha256': scope.ALLOCATION_BYTES_SHA, 'manifest_sha256': sha(manifest_bytes),
-                  'installed': installed, 'state_sha256': state_hashes, 'target_missing_before': True}
+                  'installed': installed, 'state_sha256': state_hashes, 'target_missing_before': True,
+                  'container_directories_before': before['directories']}
         scope.private_write(directory / 'legacy-guard-scope-intent.private.json', scope.canonical(intent))
         scope.sync_directory(directory)
         scope.sync_directory(PLAN_ROOT)
@@ -208,6 +227,8 @@ def safe_main(argv=None):
         report = {'status': 'error', 'reason': reason, 'stage': STAGE}
         if isinstance(error, ScopeRepairError) and error.installed is not None:
             report.update(installed=error.installed, metadata_only_exact=False)
+        if isinstance(error, ScopeRepairError) and error.container is not None:
+            report['container'] = error.container
         print(json.dumps(report, sort_keys=True), flush=True)
         return 1
 

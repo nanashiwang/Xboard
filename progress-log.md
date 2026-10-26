@@ -42,6 +42,10 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 补充`sync-pins`：仅从已发布维护选择与实际DB完全一致的28条AnyTLS出站更新受限pin映射，必须绑定发布阶段公开成功报告的ID/真实文件SHA、完整回执链、全41当前状态和来源，旧map备份/缺失CAS、未知结果不重放，不从握手学习。补充旧保护器`inspect-legacy-guard`/`restore-legacy-guard`：仅当已安装两个脚本字节等于人工审读的metadata-only版本、宿主最小41范围和DB归属一致，才以0600无覆盖恢复容器清单，不替换保护器、不部署IPv6不适配的新runtime流程。两者尚未生产执行。268项Python、24项真实恢复PHP、12项旧清单PHP与工作流/笔记检查通过；后续专项CI和生产结果另记。
 
+提交`b5f7704`已推送master并按SHA回读，[专项CI40395763940](https://github.com/nanashiwang/Xboard/actions/runs/40395763940)成功。[撤下40395772362](https://github.com/nanashiwang/Xboard/actions/runs/40395772362)完成39条在线备份及限定事务；等入口同步后[公开撤下验收40396712175](https://github.com/nanashiwang/Xboard/actions/runs/40396712175)39/39确认旧路径拒绝；[隐藏应用40397068146](https://github.com/nanashiwang/Xboard/actions/runs/40397068146)39条成功，只改23条地址/34条pin的重叠集合，仍隐藏，等待公开双目标验收。两条健康线路未变。
+
+[旧保护器检查40396309980](https://github.com/nanashiwang/Xboard/actions/runs/40396309980)确认线上两脚本SHA与已审阅metadata-only版本完全一致，容器manifest缺失且专用父目录不满足条件。新增固定anchor/backups/scope的白名单权限诊断；在真实Laravel storage anchor下只为缺失的固定backups/scope逐层创建root0700目录，不创建anchor、不跟symlink、不chmod/chown现存目录；现存unsafe拒绝。271项Python、18项真实PHP目录/无覆盖回归及笔记/工作流检查通过，线上清单恢复待执行。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

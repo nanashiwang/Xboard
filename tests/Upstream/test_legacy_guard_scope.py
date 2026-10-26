@@ -59,7 +59,7 @@ class LegacyScopeTests(unittest.TestCase):
         patcher.start();self.addCleanup(patcher.stop)
         for name,body in fixtures.items():
             path=self.private/name;path.write_bytes(body);path.chmod(0o600)
-        self.calls=[];self.container_exists=False;self.target_matches=False;self.target_private=False;self.parent_safe=True
+        self.calls=[];self.container_exists=False;self.target_matches=False;self.target_private=False;self.parent_safe=True;self.parent_creatable=False
 
     def container(self,action,raw):
         self.assertEqual(self.manifest,raw)
@@ -69,9 +69,13 @@ class LegacyScopeTests(unittest.TestCase):
             self.assertEqual(1,len(intents));self.assertEqual(0o600,intents[0].stat().st_mode&0o777)
             self.assertEqual(0o700,intents[0].parent.stat().st_mode&0o777)
             self.container_exists=self.target_matches=self.target_private=True
+            self.parent_safe=True;self.parent_creatable=False
+        directories={role:{'classification':'present','exists':True,'directory':True,'is_symlink':False,
+                           'owner_class':'root','mode':'0700','realpath_matches':True} for role in ('anchor','backups','scope')}
         return {'status':'restored' if action=='restore' else 'inspected','manifest_sha256':repair.sha(raw),
                 'target_exists':self.container_exists,'target_matches':self.target_matches,'target_private':self.target_private,
-                'parent_safe':self.parent_safe,'manifest_created':action=='restore'}
+                'parent_safe':self.parent_safe,'parent_creatable':self.parent_creatable,'directories':directories,
+                'directories_created':[],'manifest_created':action=='restore'}
 
     def run_tool(self,action):
         return repair.run(action,scope,self.fake,self.container)
@@ -121,6 +125,20 @@ class LegacyScopeTests(unittest.TestCase):
         report=self.run_tool('restore')
         self.assertEqual('legacy_guard_scope_already_matches',report['status'])
         self.assertEqual(['inspect'],self.calls);self.assertEqual([],list(path for path in self.plans.iterdir() if path.is_dir()))
+
+    def test_missing_fixed_directories_are_explicitly_allowed_after_private_intent(self):
+        self.parent_safe=False;self.parent_creatable=True
+        report=self.run_tool('restore')
+        self.assertEqual('legacy_guard_scope_restored',report['status'])
+        self.assertEqual(['inspect','restore','inspect'],self.calls)
+
+    def test_existing_unsafe_directory_is_refused_with_safe_metadata(self):
+        self.parent_safe=self.parent_creatable=False
+        with self.assertRaises(repair.ScopeRepairError) as captured:self.run_tool('restore')
+        self.assertEqual('container_parent_invalid',captured.exception.reason)
+        self.assertIsNotNone(captured.exception.container)
+        self.assertNotIn('private-source',json.dumps(captured.exception.container))
+        self.assertEqual(['inspect'],self.calls)
 
     def test_host_manifest_must_exactly_match_fixed_allocation(self):
         (self.private/'manifest.private').write_bytes(self.manifest+b' ')
@@ -180,6 +198,15 @@ class LegacyScopeTests(unittest.TestCase):
             with patch.object(repair.subprocess,'run',return_value=subprocess.CompletedProcess([],1,response,b'private-stderr')):
                 with self.assertRaises(repair.ScopeRepairError) as error:repair.container_scope('restore',self.manifest)
                 self.assertNotIn('private',str(error.exception))
+
+    def test_directory_metadata_contract_rejects_arbitrary_values(self):
+        report=self.container('inspect',self.manifest)
+        with patch.object(repair.subprocess,'run',return_value=subprocess.CompletedProcess([],0,json.dumps(report).encode(),b'')):
+            self.assertEqual(report,repair.container_scope('inspect',self.manifest))
+        for field,value in [('classification','private-path'),('mode','/private'),('owner_class','private-user')]:
+            invalid=copy.deepcopy(report);invalid['directories']['anchor'][field]=value
+            with patch.object(repair.subprocess,'run',return_value=subprocess.CompletedProcess([],0,json.dumps(invalid).encode(),b'')):
+                with self.assertRaisesRegex(repair.ScopeRepairError,'container_reply_invalid'):repair.container_scope('inspect',self.manifest)
 
     def test_cli_arguments_and_generic_failure_are_fixed(self):
         for args in ([],['restore','/private/path'],['start']):
