@@ -26,6 +26,9 @@
 
 - 就绪修复 `72e4d81` 已推送且 README/progress 按 SHA 回读一致。[第二轮发布 40290686129](https://github.com/nanashiwang/Xboard/actions/runs/40290686129) 的 ARM/Linux/Windows 成功，Intel 在新增模拟控制器测试失败，publish 跳过，仍未生成 Release。测试服务器曾把一次 TCP read 当成完整请求头，断言失败后清理线程再次 panic；本次只修测试夹具，完整读到请求头结束、跳过已取消连接、显式报告线程错误并避免清理二次 panic，保留 Bearer 鉴权断言。新增真实 TCP 分片与取消回归，取消依赖机器调度的精确重试次数断言；生产就绪期限和鉴权处理不变。全套 Rust 34 项通过、1 项既有手工测试忽略，核心专项连续 20 轮通过，继续使用尚未发布的 0.1.3 重新构建。
 
+- 测试夹具修复 `707453a` 已推送，README/progress 按 SHA 回读一致。[第三轮 40293113078](https://github.com/nanashiwang/Xboard/actions/runs/40293113078) 四平台构建全部 success；收到按钮位置反馈时请求取消，取消生效前已创建 [0.1.3 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.3)，故 Actions 终态 cancelled 不等于未发布。实际下载全部 18 附件并验证 GitHub 大小/摘要、5 份 SHA256 清单、四目标签名和更新索引；源码 ZIP 的 100 个文件及标签均对应完整提交 `707453ae6bb86483e1b5c49b1323eba04eef2552`。保留正式标签，不覆盖已发布版本。
+- 按钮左置修正 `a3eaaa1` 已合入 master，前端 57/脚本 16、TypeScript/Vite 与四尺寸预览通过；以此基线统一更新版本为 0.1.4，并在说明中明确未启动内核时先保存、下次准备节点生效。0.1.4 的正式发布与本机验收结果后续追加；本轮不更新官网分发，在线更新源和下载页仍为 0.1.2。
+
 ## 2026-10-26：卡皮巴拉邀请好友与首页适配
 
 用户要求客户端支持邀请，并指出首页内容少却可以上下移动；节点较多时应保留列表滚动。邀请复用官网数据与注册归属，首页消除各区域最小高度叠加和窄窗口单列堆叠造成的溢出。取舍见[邀请决定](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)与[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
