@@ -22,9 +22,13 @@
 
 [候选准备40386468393](https://github.com/nanashiwang/Xboard/actions/runs/40386468393)成功保存41条当前状态（公开/启用均41），来源指纹40/41一致；[公开快照40386827060](https://github.com/nanashiwang/Xboard/actions/runs/40386827060)在fixed_agent_settings拒绝，未生成缓存或执行baseline。补充固定路径脱敏环境诊断，只输出权限/字段/URL类别、已安装内核摘要、保护器状态和IPv6存在布尔，不输出token/URL/地址、不改环境。
 
-U01唯一来源差异已确定为server单字段：当前来源仅将server还原为原生产出站server，即精确命中旧approved SHA，其余名称/密码/端口/SNI/协议/客户端指纹/UDP/TLS声明保持。补充[显式地址来源接受](./.docker/upstream/accept_source_address.py)，只接受U01和指定新来源SHA，fresh HTTPS及唯一字段证明、两次全DB状态/批准/manifest核对、先私有备份再原子替换；最多更新U01.source_sha256，绝不批准pin或改DB，任何旧计划会失效须重prepare。该接受动作尚未执行。
+U01唯一来源差异已确定为server单字段：当前来源仅将server还原为原生产出站server，即精确命中旧approved SHA，其余名称/密码/端口/SNI/协议/客户端指纹/UDP/TLS声明保持。补充[显式地址来源接受](./.docker/upstream/accept_source_address.py)，只接受U01和指定新来源SHA，fresh HTTPS及唯一字段证明、两次全DB状态/批准/manifest核对、先私有备份再原子替换；最多更新U01.source_sha256，绝不批准pin或改DB，任何旧计划会失效须重prepare。提交`929c77e`已推送master、两文档按SHA回读；[专项CI40389230323](https://github.com/nanashiwang/Xboard/actions/runs/40389230323)192项Python及既有PHP/Go通过。[U01有限接受40389298625](https://github.com/nanashiwang/Xboard/actions/runs/40389298625)成功，仅更新U01来源指纹并保留私有备份；DB/公钥未改。[重新准备40390522476](https://github.com/nanashiwang/Xboard/actions/runs/40390522476)成功，全41来源精确匹配。
 
 保护器撤下传输改为固定宿主manifest验证后与限定request经PHP stdin传输，摆脱容器副本依赖，保留41对ID、父子/标签、事务仅撤下；代码尚未生产部署。公开路径工具缓存探针2真实配置，隐藏后以严格TLS、双HTTPS、全新隔离内核验收，并绑定维护执行回执和实际全配置摘要；测试器失败不算撤销证据。受限工作流提供显式阶段选择，不自动批准候选或恢复公开。 本轮本地160项Python、22项恢复事务、8项撤下事务、Go8项race、PHP语法、actionlint及31篇笔记结构/链接检查通过；真实维护回执覆盖CA/null选择和浮点时间，健康未改节点另以prepare原状态绑定的baseline验收，避免为测试撤下健康项。
+
+补充交叉观察：较早入口与独立网络证书有差异，随后对原59个固定候选在入口刷新，53次取得证书全部匹配独立网络，22个相较旧入口公钥变化、31个保持，6个两处均超时。仅证明观测时间间身份发生变化，不能据此推定定期轮换或网络因果。对U11/U38另做最新源DNS有限纯TLS补证；全41最终有可人工选择候选，U11/U25保留原pin候选，U13旧pin地址已不在源DNS且不是原生产地址，不作保留例外。候选仍未自动获信任，真实严格业务试连与生产恢复待执行。
+
+[环境诊断40389221127](https://github.com/nanashiwang/Xboard/actions/runs/40389221127)确认固定探针配置结构正确但权限过宽、面板无IPv6、现行metadata保护服务因缺容器manifest失败。新增`secure-probe-config`仅在固定服务静态root身份和文件归属/结构一致时把原文件收紧至0600，留私有元数据回执、内容不变、不重启。`import-reviewed`只接收绑定计划公钥的RSA-OAEP密文与两处观察摘要，解密留在面板内，复核41来源/额度/完整DB/批准文件后创建新私有候选计划；不改旧计划、DB或pin，不延长原2小时期限，不自动选择。面板无法观察IPv6，外部证据明确标注观察位置，不伪称面板DNS核验；新runtime保护器不能直接部署到该IPv4环境。此两项操作尚未执行。本轮224项Python回归、actionlint与31篇笔记结构/链接校验通过，专项CI及生产执行结果后续记录。
 
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 

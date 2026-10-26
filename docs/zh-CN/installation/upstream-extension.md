@@ -78,3 +78,5 @@ python3 .docker/upstream/guard.py --check-identity \
 保护器新版撤下传输仅使用经验证的宿主持久manifest与PHP stdin，不再依赖容器存储副本；该代码当前尚未部署。缺映射依然拒绝，不能把重建scope当成公钥批准。
 
 `inspect-environment`只读检查固定探针文件的安全形状和运行环境类别；不打印凭据或URL。`accept-source-address`只接受U01的明确新来源SHA，必须证明还原原server后精确等于旧批准指纹；仅更新该source_sha256且使旧计划失效，不修改或批准pin。两者均不是自动恢复线路。
+
+`secure-probe-config`只收紧已核验静态root探针服务的固定配置权限至0600，保留私有元数据及内容不变证明。`recipient`为现存有效计划生成绑定公钥；`import-reviewed`接收有限RSA-OAEP身份密文及双网络观察承诺，只创建新私有候选计划，不批准或应用。它保留原计划期限，严格CA线路不添加pin，导入后仍须显式选择与公开路径验收。现面板无IPv6，外部观察标明入口/独立观察位置，不绕过TLS，也不将新runtime保护器直接部署到不具备对应地址族的检测机。
