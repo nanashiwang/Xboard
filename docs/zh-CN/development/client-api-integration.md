@@ -17,7 +17,7 @@
 6. 检查客户端版本、校验安装包并执行更新。
 7. 对客户端安装设备进行数量限制和基础风控。
 
-首期不包含支付、工单、邀请、节点测速与日志上传。alpha.8 按用户要求增加限定的套餐/订单购买接口，见[客户端套餐与订单](#客户端套餐与订单)；工单、邀请等边界保持不变。
+首期不包含支付、工单、邀请、节点测速与日志上传。alpha.8 按用户要求增加限定的套餐/订单购买接口，见[客户端套餐与订单](#客户端套餐与订单)；0.1.2 增加限定邀请接口，见[客户端邀请好友](#客户端邀请好友)；工单和日志上传仍未纳入。
 
 ## 2. 当前实现状态
 
@@ -803,3 +803,16 @@ alpha.8 通过独立的 Desktop 商店接口复用网站套餐与订单服务；
 错误使用 ClientApiResponse 与稳定 STORE_* 代码，不透传支付插件异常。拒绝跨用户订单、错误设备、封禁账户、不可购买套餐和无效周期。支付 URL 限制 HTTP(S)、无凭据与控制字符；不执行 HTML/自定义协议。二维码数据由本地 qrcode 生成图片，无第三方图片请求。Unsupported 支付方式可到网站继续原订单。
 
 新增商店接口无需表迁移；浏览器登录依赖 alpha.6 迁移。必须分别验证服务器部署、客户端 Release 和实际付款。回归见 `tests/Feature/Desktop/StoreTest.php` 与 `desktop/capybara/tests/store.test.tsx`；决定见[套餐购买](../../../.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。
+
+
+## 客户端邀请好友
+
+以下接口使用 `client.auth` 与 `client.device`，账号封禁/设备撤销继续拒绝；不要求有效套餐。响应沿用 Desktop `data` 包装，金额为分，邀请记录时间沿用现有模型 Unix 秒（非 subscription 的 ISO 时间）。
+
+| 方法与路径 | 数据与限制 |
+| --- | --- |
+| GET `client/invite` | 本人可用 `codes[{code,created_at,visits}]`；`stats{registered,total_commission,pending_commission,available_commission}`；`rules{generation_limit,can_generate,registration_open,reusable,commission_rates}` |
+| POST `client/invite/generate` | 无业务参数，主动创建一条邀请码并返回同一概览；共用网站额度与用户行锁。禁用注册或额度耗尽返回409，生成中返回409；结果不确定时读取概览，不自动重放 |
+| GET `client/invite/details?page=1` | 页码1–100000，固定每页10条；`items[{id,order_amount,commission,created_at}],total,page,page_size`；不返回用户标识与订单号 |
+
+业务错误：`INVITE_REGISTRATION_CLOSED`、`INVITE_LIMIT_REACHED`、`INVITE_BUSY`（409），`INVITE_INVALID_PAGE`（422）。分享地址固定为 `https://taige.us/#/register?code=<encoded code>`，仅邀请码可进入链接/二维码；提现和余额划转仍在官网邀请中心。需要先部署配套接口再发布客户端，无新增数据库迁移。

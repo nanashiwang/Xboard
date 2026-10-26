@@ -230,7 +230,11 @@ impl Account {
             "STORE_PAYMENT_UNSUPPORTED" => "此支付方式请在网站订单中心继续",
             "STORE_ORDER_NOT_FOUND" => "找不到订单，请刷新列表",
             "STORE_INVALID_INPUT" => "请选择有效套餐、周期和订单",
-            _ if status == StatusCode::NOT_FOUND => "服务正在准备中，请稍后重试或前往网站购买",
+            "INVITE_BUSY" => "邀请码正在生成，请稍后刷新查看",
+            "INVITE_LIMIT_REACHED" => "已达到可用邀请码数量上限，请使用已有邀请码",
+            "INVITE_REGISTRATION_CLOSED" => "网站暂未开放注册，请稍后再邀请",
+            "INVITE_INVALID_PAGE" => "页码无效，请刷新后重试",
+            _ if status == StatusCode::NOT_FOUND => "服务正在准备中，请稍后重试或前往官网操作",
             _ if status == StatusCode::UNAUTHORIZED => "登录已失效，请重新登录",
             _ => "服务暂时不可用，请稍后重试",
         };

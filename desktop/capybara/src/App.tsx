@@ -4,6 +4,7 @@ import Plans from "./Plans";
 import Home from "./Home";
 import { useNodes } from "./nodes";
 import DesktopSettings from "./DesktopSettings";
+import Invites from "./Invites";
 import { useEffect, useRef, useState } from "react";
 import {
     ArrowRight,
@@ -25,6 +26,7 @@ import {
     TriangleAlert,
     Copy,
     ShoppingBag,
+    Users,
 } from "lucide-react";
 import { command, errorText, preview } from "./bridge";
 import {
@@ -38,6 +40,7 @@ import {
 const pages = [
     { id: "home", name: "首页", icon: House },
     { id: "plans", name: "套餐", icon: ShoppingBag },
+    { id: "invite", name: "邀请好友", icon: Users },
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
 ];
 export default function App() {
@@ -180,7 +183,10 @@ export default function App() {
                         <small>CAPYBARA</small>
                     </span>
                 </a>
-                <div className="sidebar-tools"><div className="sidebar-caption">你的连接小伙伴</div><Notifications /></div>
+                <div className="sidebar-tools">
+                    <div className="sidebar-caption">你的连接小伙伴</div>
+                    <Notifications />
+                </div>
                 <nav aria-label="主导航">
                     {pages.map((p) => (
                         <button
@@ -268,6 +274,12 @@ export default function App() {
                             <X size={16} />
                         </button>
                     </div>
+                )}
+                {page === "invite" && (
+                    <Invites
+                        view={view}
+                        onLogin={() => void act("begin_browser_login")}
+                    />
                 )}
                 {page === "home" && (
                     <Home

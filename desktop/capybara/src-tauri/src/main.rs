@@ -3,6 +3,7 @@ mod account;
 mod credentials;
 mod desktop;
 mod engine;
+mod invite;
 mod nodes;
 mod notices;
 mod proxy;
@@ -507,6 +508,7 @@ fn open_link(app: tauri::AppHandle, target: String) -> Result<(), Fault> {
         "plans" => "https://taige.us/#/plan",
         "support" => "https://taige.us/#/ticket",
         "register" => "https://taige.us/#/register",
+        "invite" => "https://taige.us/#/invite",
         "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara",
         _ => return Err(Fault::local("不支持的链接")),
     };
@@ -620,6 +622,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            invite::invite_request,
             desktop::desktop_settings,
             desktop::set_autostart,
             snapshot,

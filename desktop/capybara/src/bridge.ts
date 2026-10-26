@@ -43,7 +43,8 @@ if (preview === "exhausted")
 if (preview === "offline") demo = { ...demo, sync_error: "账号服务连接失败" };
 if (preview === "keychain")
     demo = { ...emptyView, platform: "macos", session_needs_unlock: true };
-if (preview === "store-guest") demo = { ...emptyView, platform: "macos" };
+if (preview === "store-guest" || preview === "invite-guest")
+    demo = { ...emptyView, platform: "macos" };
 let demoNodes: NodeView = {
     revision: 1,
     loading: false,
@@ -66,6 +67,27 @@ let demoNodes: NodeView = {
               ]
             : [],
 };
+if (preview === "home-many") {
+    demoNodes.routes = [
+        {
+            group: "默认连接",
+            selected: "自动选择",
+            choices: [
+                "自动选择",
+                ...Array.from(
+                    { length: 30 },
+                    (_, i) =>
+                        `日本${String(i + 1).padStart(2, "0")}｜1×｜用于验证长节点名称和列表滚动的测试线路`,
+                ),
+            ],
+        },
+        {
+            group: "影音分流",
+            selected: "香港影音",
+            choices: ["香港影音", "美国影音"],
+        },
+    ];
+}
 let demoUpdate: UpdateView = {
     phase:
         preview === "update" || preview === "update-deb"
@@ -92,9 +114,17 @@ export async function command<T = View>(
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (name === "invite_request") {
+            const { invitePreview } = await import("./invite-preview");
+            return invitePreview(
+                preview,
+                String(args?.action),
+                Number(args?.page || 1),
+            ) as T;
+        }
         if (name === "fetch_notices") {
             const { noticePreview } = await import("./notice-preview");
-            return await noticePreview(preview, Number(args?.page || 1)) as T;
+            return (await noticePreview(preview, Number(args?.page || 1))) as T;
         }
         if (name === "open_notice_link") return undefined as T;
         if (name === "desktop_settings" || name === "set_autostart") {

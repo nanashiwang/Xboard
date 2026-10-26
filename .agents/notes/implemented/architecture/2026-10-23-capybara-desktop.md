@@ -18,6 +18,8 @@ Status: implemented
 
 官网下载入口由[卡皮巴拉客户端下载](../../implemented/feature/2026-10-23-capybara-client-downloads.md)接管：电脑优先自有客户端，手机与原 Clash 保留第三方流程，复用已发布安装包。
 
+0.1.2 新增[客户端邀请好友](../feature/2026-10-26-capybara-invitations.md)：复用官网统计和邀请码额度，桌面令牌只访问限定接口；分享二维码不含登录凭据，提现与划转仍由官网办理。
+
 ## Existing decisions
 
 检索活跃笔记：Clash Meta DNS 修复部分重叠，继续复用服务端规则与 DNS，不在本任务重写节点；网站独立入口部分重叠，只使用现有 HTTPS API。其他节点部署、香港未提交记录与本任务无关。后端已有桌面认证、设备限额和额度接口，不重复实现账号系统。

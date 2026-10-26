@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉邀请好友与首页适配（2026-10-26）
+
+客户端新增邀请好友：查看本人邀请码、复制邀请链接、展示二维码、主动生成新码，以及注册人数、佣金统计和分页明细。规则与官网共用，无套餐也可使用；提现与余额划转仍在官网办理。首页按窗口高度适配，整页保持固定，仅节点列表内部滚动。明暗主题、760×620 最小窗口及异常状态已验；真实账号、安装和合并发布结果见[进展](./progress-log.md#2026-10-26卡皮巴拉邀请好友与首页适配)，取舍见[邀请决定](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)与[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
+
 ### 卡皮巴拉系统通知（2026-10-26）
 
 客户端侧栏增加通知铃铛，与官网读取同一公开公告源；支持未读红点、详情、分页、刷新和本页已读。启动、打开、回到窗口和每五分钟刷新，内容更新后重新提示；已读只保存在本机，不宣称与网页版已读互通。明暗主题、760×620、空态和失败提示已验，正式公告源当前为空；安装版和发布结果见[进展](./progress-log.md#2026-10-26卡皮巴拉系统通知)，取舍见[通知决定](./.agents/notes/implemented/feature/2026-10-26-capybara-notifications.md)。

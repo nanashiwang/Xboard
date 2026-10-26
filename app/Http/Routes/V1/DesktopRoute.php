@@ -9,6 +9,7 @@ use App\Http\Controllers\V1\Desktop\DeviceController;
 use App\Http\Controllers\V1\Desktop\NoticeController;
 use App\Http\Controllers\V1\Desktop\UserController;
 use App\Http\Controllers\V1\Desktop\StoreController;
+use App\Http\Controllers\V1\Desktop\InviteController;
 use Illuminate\Contracts\Routing\Registrar;
 
 class DesktopRoute
@@ -38,6 +39,9 @@ class DesktopRoute
                 ->middleware('throttle:20,1');
 
             $router->group(['middleware' => 'client.device'], function ($router): void {
+                $router->get('/client/invite', [InviteController::class, 'index'])->middleware('throttle:60,1');
+                $router->get('/client/invite/details', [InviteController::class, 'details'])->middleware('throttle:60,1');
+                $router->post('/client/invite/generate', [InviteController::class, 'generate'])->middleware('throttle:10,1');
                 $router->get('/client/store', [StoreController::class, 'index'])->middleware('throttle:60,1');
                 $router->get('/client/store/order', [StoreController::class, 'detail'])->middleware('throttle:60,1');
                 foreach (['save', 'checkout', 'cancel'] as $action) {
