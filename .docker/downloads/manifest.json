@@ -1,74 +1,74 @@
 [
   {
-    "name": "Capybara_0.1.5_aarch64-apple-darwin.dmg",
-    "size": 42928661,
-    "sha256": "95e1b3d75502a0d82b47f9cab4d6dfb8535574fcd3f4a46bb1109bb363f34d5d",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_aarch64-apple-darwin.dmg"
+    "name": "Capybara_0.1.6_aarch64-apple-darwin.dmg",
+    "size": 42955472,
+    "sha256": "09b2972ce040067569fb6149127c777c96dd1bc6828747adc3e61f23cc5991d9",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_aarch64-apple-darwin.dmg"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-apple-darwin.dmg",
-    "size": 45178073,
-    "sha256": "489dfd07fa9d49591487bc3c4eed7e2cc803a6561a9adec7067bf06e39e51d50",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-apple-darwin.dmg"
+    "name": "Capybara_0.1.6_x86_64-apple-darwin.dmg",
+    "size": 45224862,
+    "sha256": "ad13b30c4b24e0878d535413740d6e2553b379319512ffb3389cca87cc2121ae",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-apple-darwin.dmg"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-pc-windows-msvc.exe",
-    "size": 28530466,
-    "sha256": "743b4eb908e507f9fb067104049b33fda9ed9b0c71459760986d39be1e0eecc5",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-pc-windows-msvc.exe"
+    "name": "Capybara_0.1.6_x86_64-pc-windows-msvc.exe",
+    "size": 28556908,
+    "sha256": "abb1aed967402439cb365bf6ca401cc6f5efb9e19473c50397c09584f4bf3f2e",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-pc-windows-msvc.exe"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-unknown-linux-gnu.AppImage",
-    "size": 116812280,
-    "sha256": "cd2015670dbe668223b6c143f7e54adf52bf95906edf381c90615b408c7b35ab",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-unknown-linux-gnu.AppImage"
+    "name": "Capybara_0.1.6_x86_64-unknown-linux-gnu.AppImage",
+    "size": 116857336,
+    "sha256": "4cf214a0aa002ce6e0c15cff54ba8c7dd01c8fc83a3241f262743c350a198ce6",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-unknown-linux-gnu.AppImage"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-unknown-linux-gnu.deb",
-    "size": 42316974,
-    "sha256": "9850aa109fad591716750f2d52bc633bc195658a5bb7a6d7908bb6572d952c16",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-unknown-linux-gnu.deb"
+    "name": "Capybara_0.1.6_x86_64-unknown-linux-gnu.deb",
+    "size": 42331580,
+    "sha256": "0215d1943cf1fcfedd93306a56a16c4deeeaed0304b8a76af55e4f03d423449b",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-unknown-linux-gnu.deb"
   },
   {
-    "name": "Capybara_0.1.5_aarch64-apple-darwin.app.tar.gz",
-    "size": 40822559,
-    "sha256": "84f8771f671b307997466134e54c25c9dbfead41faebb760375cc0979e0d1a55",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_aarch64-apple-darwin.app.tar.gz",
+    "name": "Capybara_0.1.6_aarch64-apple-darwin.app.tar.gz",
+    "size": 40846999,
+    "sha256": "02690aa6cc59d7d1a1608d796a854b6c14b2c40bdd8074d37c07165d033ee282",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_aarch64-apple-darwin.app.tar.gz",
     "kind": "update"
   },
   {
-    "name": "Capybara_0.1.5_aarch64-apple-darwin.app.tar.gz.sig",
+    "name": "Capybara_0.1.6_aarch64-apple-darwin.app.tar.gz.sig",
     "size": 408,
-    "sha256": "53e22536c9e5f9082308b52c5b95e72fb76cc69805cfcc69ab5078c0b5c2cfbc",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_aarch64-apple-darwin.app.tar.gz.sig",
+    "sha256": "f6f5b6f8b44cd87b54e6c05c1066f8475f1c9ca60c62aa3d1919a18395b7cbf2",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_aarch64-apple-darwin.app.tar.gz.sig",
     "kind": "update"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-apple-darwin.app.tar.gz",
-    "size": 42991353,
-    "sha256": "04db557714c149c3faeb1e3021b2483dbdee6986ee61af8a808ed13a3e97407c",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-apple-darwin.app.tar.gz",
+    "name": "Capybara_0.1.6_x86_64-apple-darwin.app.tar.gz",
+    "size": 43014481,
+    "sha256": "9f7a37a9dd9fafbe342723a03bcac27e1504e0b76ee1adfe330ccd9c61a5a49c",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-apple-darwin.app.tar.gz",
     "kind": "update"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-apple-darwin.app.tar.gz.sig",
+    "name": "Capybara_0.1.6_x86_64-apple-darwin.app.tar.gz.sig",
     "size": 408,
-    "sha256": "04b640fa91a70f578ab5bc619b855e1b6e5b75943627f3872cdb4ab7e826f2ae",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-apple-darwin.app.tar.gz.sig",
+    "sha256": "08e41a2e2fec70b59eeeee51af36cb0aa1274f6ca8452b045192ea8cedb4f01b",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-apple-darwin.app.tar.gz.sig",
     "kind": "update"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-pc-windows-msvc.exe.sig",
+    "name": "Capybara_0.1.6_x86_64-pc-windows-msvc.exe.sig",
     "size": 420,
-    "sha256": "54e17be45bb5a65a7b94ff747016dd3afb57770452737cc589b68ba3f5411130",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-pc-windows-msvc.exe.sig",
+    "sha256": "2ad6b6d314588cfa4c56dc4eb18f7dafd37850bdfed4dae6e329de1ebe34e76b",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-pc-windows-msvc.exe.sig",
     "kind": "update"
   },
   {
-    "name": "Capybara_0.1.5_x86_64-unknown-linux-gnu.AppImage.sig",
+    "name": "Capybara_0.1.6_x86_64-unknown-linux-gnu.AppImage.sig",
     "size": 420,
-    "sha256": "83881d1bb1f717f4a2349d2c41467b5f2550e2556ab7ec1e368d02071faeba7f",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/Capybara_0.1.5_x86_64-unknown-linux-gnu.AppImage.sig",
+    "sha256": "b32bcefc0a16f0c9c2f54608292d8fda74049497c026029df60059f0f22afd52",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/Capybara_0.1.6_x86_64-unknown-linux-gnu.AppImage.sig",
     "kind": "update"
   },
   {
@@ -109,9 +109,9 @@
   },
   {
     "name": "capybara-latest.json",
-    "size": 3244,
-    "sha256": "1fb5fc1e067a172c47eedb271993b71d38d9b0b22422b8442990795cc4ad1c0d",
-    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.5/capybara-latest.json",
+    "size": 3533,
+    "sha256": "fcc7f9d53dc7f11ffc28ddd33a35758b9c506c7cfbfc03917515384e476704f7",
+    "url": "https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.6/capybara-latest.json",
     "kind": "update"
   }
 ]
