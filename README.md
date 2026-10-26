@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 外接节点测速失败排查（2026-10-26）
+
+0.1.5 的现场测速确认部分外接线路失败，故障证据位于第一阶段服务器到第三方上游这一段：扩展服务运行且无重启，AnyTLS 握手大量报 `unrecognized remote public key`，另有上游 TCP 超时。把检测换成 Cloudflare、单项放宽到 12 秒后仍可复现；日本02在两轮中一次成功、一次超时，不能按节点名称推定全部失效。公钥不匹配不等于已证实供应商正常换证，需核对批准的端点/SNI及当前身份后再修复。此次仅诊断，未改变生产出站、证书校验或客户端设置。详情见[诊断记录](./progress-log.md#2026-10-26外接节点测速失败排查)。
+
 ### 卡皮巴拉 0.1.5 官网更新分发（2026-10-26）
 
 用户反馈另一台电脑 0.1.2 手动检查仍显示无新版本；现场读取官网索引确认为 0.1.2，原因是 GitHub Release 已完成但官网静态分发尚未同步。沿用已发布的 0.1.5，先校验并镜像全部版本化安装/更新附件，再原子替换索引，同时同步官网下载页和教程。官网更新源、下载页与教程现已同步 0.1.5，主备域索引、12 文件完整下载和四平台旧公钥验签通过。手动检查立即请求，六小时仅约束后台检查；服务端同步与验证边界见[进展](./progress-log.md#2026-10-26卡皮巴拉015官网更新分发)。
