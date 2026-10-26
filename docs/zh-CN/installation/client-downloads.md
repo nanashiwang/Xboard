@@ -4,7 +4,7 @@
 
 `/clients` 提供独立的中文下载与导入页面。Xboard 默认主题的侧栏增加“客户端下载”，仪表盘增加“下载与导入”入口；不修改压缩后的 `umi.js`。页面会识别操作系统，也允许手动切换，macOS 芯片类型由用户选择，避免浏览器将 Apple 芯片误判为 Intel。
 
-- Windows、macOS、Linux：卡皮巴拉 0.1.0-alpha.3，安装后直接登录本站账号；macOS 12+、Linux GNOME x64，当前为无 TUN 的测试版。每六小时检查应用更新，用户确认后验签安装；DEB 进入下载页后交由系统安装器更新。旧 alpha.1/alpha.2 需先手动升级一次。
+- Windows、macOS、Linux：卡皮巴拉 0.1.5，安装后直接登录本站账号；macOS 12+、Linux GNOME x64，当前为无 TUN 的正式版。每六小时检查应用更新，用户确认后验签安装；DEB 进入下载页后交由系统安装器更新。旧 alpha.1/alpha.2 需先手动升级一次。
 - 第三方桌面兼容入口：`/clients#clash-verge` 保留 Clash Verge Rev 2.4.7 及原订阅导入。
 - Android：Clash Meta for Android 2.11.24，提供 ARM64 和通用包。
 - iPhone/iPad：sing-box 官方 App Store 入口。当前官方要求 iOS 15+ 和中国大陆以外地区的 Apple 账户；安装由用户在 App Store 完成。
@@ -53,7 +53,7 @@ python3 /opt/xboard-knowledge/sync.py \
 
 后续修改教程前重新读取线上正文，并更新清单中的审阅哈希，不要跳过冲突检查。回滚时用快照恢复对应文章的 `body` 和 `updated_at`；先核对当前正文仍匹配快照的 `after_body_sha256`，避免覆盖发布后产生的新编辑。无需重启应用，但已打开的文档需要刷新或重新打开。发布后用真实用户页面检查文章、平台锚点、返回操作和窄屏显示。
 
-主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。清单包含卡皮巴拉 0.1.0-alpha.3 的 5 个桌面安装包，以及 CMFA 2.11.24 的两个安卓包、Clash Verge Rev 2.4.7 的 4 个桌面包；额外的 2 个 macOS 更新归档、4 个签名文件和更新索引用 `kind: update` 标识，不作为网页安装选项。实际镜像同步状态见 progress-log，旧版本文件继续兼容。
+主域名配置完成后，生产下载地址为 `https://taige.us/downloads/`，`https://board.taige.us/downloads/` 继续兼容。文件由宿主机 Nginx 提供，不经过 Xboard 容器。清单包含卡皮巴拉 0.1.5 的 5 个桌面安装包，以及 CMFA 2.11.24 的两个安卓包、Clash Verge Rev 2.4.7 的 4 个桌面包；额外的 2 个 macOS 更新归档、4 个签名文件和更新索引用 `kind: update` 标识，不作为网页安装选项。实际镜像同步状态见 progress-log，旧版本文件继续兼容。
 
 `capybara-latest.json` 必须是下载清单最后一项。同步脚本先逐一验证版本化附件，再核对索引四目标、下载地址、版本及签名附件内容，最后原子替换索引。任一包损坏或缺失保留旧索引；这一步不重启网站。发布过程不能只修改版本索引，也不能将更新签名解释为发行者签名或系统公证。
 
