@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod account;
 mod credentials;
+mod desktop;
 mod engine;
 mod proxy;
 mod updates;
@@ -500,22 +501,26 @@ fn main() {
         std::process::exit(engine::worker_main())
     }
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.show();
-                let _ = w.set_focus();
-            }
+        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            desktop::activate(app, args.into_iter());
         }))
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .app_name("Capybara")
+                .arg(desktop::AUTOSTART_ARG)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                window.app_handle().exit(0);
+                desktop::close_window(window);
             }
         })
         .setup(|app| {
+            desktop::setup(app.handle());
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             #[cfg(unix)]
@@ -591,9 +596,12 @@ fn main() {
                     let _ = rt.sync().await;
                 }
             });
+            desktop::activate(app.handle(), std::env::args());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            desktop::desktop_settings,
+            desktop::set_autostart,
             snapshot,
             begin_browser_login,
             cancel_browser_login,
@@ -618,6 +626,10 @@ fn main() {
         .expect("卡皮巴拉初始化失败");
     let exiting = Arc::new(std::sync::atomic::AtomicU8::new(0));
     app.run(move |handle, event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = event {
+            desktop::show_main(handle);
+        }
         if let tauri::RunEvent::ExitRequested { api, .. } = event {
             if updates::prevent_exit(handle) {
                 api.prevent_exit();

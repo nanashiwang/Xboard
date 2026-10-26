@@ -1,6 +1,7 @@
 import Updates from "./Updates";
 import Plans from "./Plans";
 import Home from "./Home";
+import DesktopSettings from "./DesktopSettings";
 import { useEffect, useRef, useState } from "react";
 import {
     ArrowRight,
@@ -398,6 +399,7 @@ export default function App() {
                             </div>
                             <LifeBuoy size={35} />
                         </div>
+                        <DesktopSettings />
                         <div className="help-grid">
                             <article>
                                 <ShieldCheck />

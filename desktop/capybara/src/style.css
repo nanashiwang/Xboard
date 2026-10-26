@@ -842,6 +842,87 @@ main {
     border-top: 1px solid var(--line);
     padding-top: 25px;
 }
+.startup-settings {
+    margin-top: 24px;
+    padding: 22px 24px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--panel);
+}
+.startup-settings h3 {
+    margin: 0 0 18px;
+    font-size: 16px;
+}
+.startup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.startup-row h4 {
+    margin: 0 0 7px;
+    font-size: 14px;
+    font-weight: 550;
+}
+.startup-row p,
+.background-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+.startup-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+.startup-switch {
+    width: 46px;
+    height: 26px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--line);
+}
+.startup-switch span {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px #0003;
+    transition: transform 0.15s;
+}
+.startup-switch[aria-checked="true"] {
+    background: #3a7bd5;
+    border-color: #3a7bd5;
+}
+.startup-switch[aria-checked="true"] span {
+    transform: translateX(20px);
+}
+.background-hint {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+.startup-error {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+    color: #b26a45;
+    font-size: 12px;
+}
+@media (max-width: 820px) {
+    .startup-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+    }
+}
 .secondary-button {
     border: 1px solid var(--line);
     background: var(--soft);

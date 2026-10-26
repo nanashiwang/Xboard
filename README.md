@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉开机自启与后台运行（2026-10-26）
+
+客户端新增“帮助与设置 → 启动与后台 → 开机自启”，默认关闭；开启后在登录电脑时后台启动，不自动开启系统代理。关闭窗口隐藏到后台，托盘提供打开和退出；明确退出仍恢复代理并停止内核。本地隔离检查为前端 35、网页/发布脚本 12、Rust 17 项通过；macOS 自启启停、注册项实际启动、单实例重开、关闭保留进程和 Cmd+Q 退出已验。按用户授权与节点优化合并为 0.1.1，合并版连接、托盘与发布验收继续由节点任务完成，状态见[进展](./progress-log.md#2026-10-26卡皮巴拉开机自启与后台运行)及[决定](./.agents/notes/implemented/feature/2026-10-26-capybara-background-startup.md)。
+
 ### 卡皮巴拉 0.1.0 正式版（2026-10-26）
 
 生产诊断确认浏览器批准后的令牌兑换遭遇 SQLite WAL 写竞争。修复在完整回滚后有限重试，耗尽时保留批准等待；真实双连接回归覆盖一次兑换、持续竞争和非并发错误。客户端及首屏默认版本统一读取构建版本 **0.1.0 正式版**，每六小时检查更新，发现新版弹出确认，帮助页保留“查看更新”。本地 60 项 Desktop API、30 项前端、12 项脚本和 16 项 Rust 检查通过；[0.1.0 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0) 四目标和 18 附件已完成，生产已升级至 2ebf328 并 Healthy，官网正式下载页、12 个分发文件和签名更新索引已同步；本机已实测 alpha.11 应用内升级到 0.1.0、正式版网页授权登录、退出重开自动恢复和五个套餐加载，见 [进展记录](progress-log.md#2026-10-26卡皮巴拉授权修复与正式版) 和 [修复决定](.agents/notes/implemented/bug-fix/2026-10-26-capybara-browser-sqlite-contention.md)。

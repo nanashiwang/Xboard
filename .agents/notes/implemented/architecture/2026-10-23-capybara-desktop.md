@@ -22,6 +22,8 @@ Status: implemented
 
 检索活跃笔记：Clash Meta DNS 修复部分重叠，继续复用服务端规则与 DNS，不在本任务重写节点；网站独立入口部分重叠，只使用现有 HTTPS API。其他节点部署、香港未提交记录与本任务无关。后端已有桌面认证、设备限额和额度接口，不重复实现账号系统。
 
+关闭窗口与退出由[自启与后台运行决定](../feature/2026-10-26-capybara-background-startup.md)区分：窗口关闭仅隐藏，托盘或系统明确退出才执行恢复代理和停止内核；自启由用户开启。
+
 ## Alternatives considered
 
 - 完整 fork Clash Verge Rev 能复用特权服务和高级设置，但新增的第三方 UI、服务标识和更新渠道需要整体拆分；首版面向自有账号的简单路径，采用自有界面和成熟 Mihomo 核心。

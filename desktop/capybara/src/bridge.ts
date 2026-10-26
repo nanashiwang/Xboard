@@ -63,12 +63,21 @@ let demoUpdate: UpdateView = {
     error: null,
     manual_install: preview === "update-deb",
 };
+let demoDesktop = { autostart_enabled: false, background_available: true };
 export async function command<T = View>(
     name: string,
     args?: Record<string, unknown>,
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (name === "desktop_settings" || name === "set_autostart") {
+            if (name === "set_autostart")
+                demoDesktop = {
+                    ...demoDesktop,
+                    autostart_enabled: args?.enabled === true,
+                };
+            return structuredClone(demoDesktop) as T;
+        }
         if (name === "store_request") {
             const { storePreview } = await import("./store-preview");
             return (await storePreview(
