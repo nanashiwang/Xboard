@@ -10,7 +10,16 @@
 
 - 12 个卡皮巴拉文件的大小、SHA-256 和来源取自正式 Release 元数据，保留 6 个第三方文件与旧包；索引仍为最后一项，附件或签名检查失败不会发布索引。
 - 下载页目录、对应回归与下载教程同步为 0.1.5；文章 5 使用旧正文 SHA-256 防冲突、写前备份，不改其他文章。沿用[既有分发决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)和[更新机制](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
-- 本地下载同步 4 项、教程同步 4 项及 PHP 下载页 13 项 / 131 断言通过，工作流 30 篇笔记与链接检查通过；镜像、静态分发、页面部署及线上更新检测结果随后追加。保留香港入口/TUN 等无关未提交改动，选择性暂存本次内容。
+- 本地下载同步 4 项、教程同步 4 项及 PHP 下载页 13 项 / 131 断言通过，工作流 30 篇笔记与链接检查通过；镜像、静态分发、页面部署及线上更新检测结果如下。保留香港入口/TUN 等无关未提交改动，选择性暂存本次内容。
+
+生产分发终态：
+
+- 分发提交 `ec6d578f5f8dae388e53faeed8e7e5004e201a23` 已推送 master，README / progress-log 按精确 SHA 从 GitHub 回读一致。[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/40307395858)、[网站检查](https://github.com/nanashiwang/Xboard/actions/runs/40307395840)与笔记检查通过；不重发客户端 Release，继续使用 [0.1.5](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.5)。
+- [安装包同步](https://github.com/nanashiwang/Xboard/actions/runs/40307916180) 成功，11 个版本化附件全部校验后最后原子发布更新索引。taige.us 与 board.taige.us 带检查时间戳的索引均与 GitHub 0.1.5 字节一致。主站 12 文件全部完整下载、大小与 SHA-256 一致；用 0.1.2 配置中的公钥校验四平台新包签名通过，旧版与新版使用相同更新地址和公钥。主备域五种安装包共 10 项 Range 均返回 206 / 128 字节且总大小正确。
+- [下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/40308162110) 先验证数据库备份 `before-deploy-imm_sx5e.sqlite`，无新增迁移，容器 Healthy 且实际 revision 为 `ec6d578f5f8dae388e53faeed8e7e5004e201a23`。浏览器正式页确认 Windows/macOS 展示 0.1.5 正式版和正确安装链接；截图保留本机 `.codex/visualizations/2026/10/26/capybara-update-015/downloads.png`。
+- [教程同步](https://github.com/nanashiwang/Xboard/actions/runs/40309882467) 成功，按旧正文哈希和写前备份只更新文章 5，不改其他文章。已安装 0.1.2 可立即手动检查，无需等待六小时；本轮没有操控用户另一台电脑或替用户确认安装，因此不声称远端安装升级已实测。
+- 网络边界：首次 Actions 派发超时后先确认没有创建运行，再重试成功；Linux AppImage 首次公网下载超时，重试后完整摘要与签名通过。初次本地 PHP 使用已有预览容器配置停滞，停止该测试进程后改用独立配置缓存路径与内存 SQLite，13 / 131 通过。未把中途超时当作终态成功，也未跳过任何最终校验。最终仅补验收文档，不再构建、发版或部署。
+
 
 ## 2026-10-26：卡皮巴拉统一页面框架
 
