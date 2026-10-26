@@ -1,10 +1,13 @@
 # 卡皮巴拉桌面客户端
 
-蓝色山水旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.1 正式版**。未登录首页及登录弹窗提供“注册账号”，在官网注册后返回授权页，确认即可登录客户端；沿用官网验证码、邀请码及注册策略。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
+蓝色山水旅行水豚首页与地球头像图标，面向本站账号的 Windows、macOS、Linux 桌面客户端。版本 **0.1.2 正式版**。未登录首页及登录弹窗提供“注册账号”，在官网注册后返回授权页，确认即可登录客户端；沿用官网验证码、邀请码及注册策略。代码位于 Xboard 仓库的独立 desktop/capybara 工程，PHP 镜像不包含桌面构建文件。
 
 ## 已实现
 
-- 山水首页：大连接按钮、当前节点、规则分流说明、真实流量和连接检测；右侧节点列表支持搜索、按节点名称识别地区筛选及多分流组切换。移除独立线路页，有效账号登录后自动加载本人套餐节点，无需先开启系统代理；可预选节点，断开后保留选择。一键测速逐个显示真实 HTTP 延迟或超时/不可达，最多四路并发；未测显示“未测速”，不推断带宽。见[首页决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)与[节点决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
+- 系统通知：侧栏铃铛同步官网公开公告，支持未读红点、详情、分页、刷新和本页已读；启动、打开、回到窗口及每五分钟刷新，公告内容更新后重新提示。已读保存在本机；同内容源不代表网页版已读状态互通，未新增 OS 推送。见[通知决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-notifications.md)。
+- 邀请好友：查看和生成本人邀请码，复制固定官网注册链接与分享二维码，展示注册人数、佣金统计和分页明细；额度、一次性/长期有效、注册状态及比例读取服务器。生成需主动点击，提现和余额划转在官网办理；需要服务器部署配套 `client/invite/*`。见[邀请决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)。
+
+- 山水首页：适配窗口高度，主界面固定，节点列表内部滚动；最小 760×620 保留连接、流量和测速操作。大连接按钮、当前节点、规则分流说明、真实流量和连接检测；右侧节点列表支持搜索、按节点名称识别地区筛选及多分流组切换。移除独立线路页，有效账号登录后自动加载本人套餐节点，无需先开启系统代理；可预选节点，断开后保留选择。一键测速逐个显示真实 HTTP 延迟或超时/不可达，最多四路并发；未测显示“未测速”，不推断带宽。见[首页决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)与[节点决定](../../.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
 
 - 套餐页：公开浏览套餐、登录后选择周期/优惠码并下单，沿用网站余额/折扣/换购计算；恢复待支付订单、选择支付方式、浏览器支付或客户端二维码、取消和完成后同步。账户资料从左下角进入。需要服务器部署 `client/plans` 与 `client/store/*`；支持零元开通，支付平台返回不代表开通成功。见[购买决定](../../.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。
 
@@ -49,6 +52,8 @@ npm run desktop:dev
 
 `core-assets.json` 固定 Mihomo v1.19.33 的官方资产及 SHA-256。`core:prepare` 校验压缩包后解压，不在用户首次连接时下载内核。可通过 `CAPYBARA_CORE_ARCHIVE` 提供预下载的同一官方压缩包，摘要不符即失败。内置 `geoip.metadb` 同样验证固定摘要，避免首次启动依赖远端规则下载。
 
+开发预览支持 `?preview=notices-empty`、`notices-error` 检查通知空态和错误；`?preview=active` 展示模拟公告。邀请支持 `invite-guest`、`invite-empty`、`invite-error` 等场景，全部仅开发环境启用。
+
 开发界面：`npm run dev` 后访问 `http://127.0.0.1:1420/`。套餐预览支持 `?preview=store-guest`、`store-pending`、`store-qr`、`store-processing`、`store-empty`、`store-error`。只有开发服务器支持 `?preview=active`、`?preview=exhausted`、`?preview=offline`，明确标注模拟数据；生产构建关闭模拟桥接，普通浏览器不能登录或修改系统代理。
 
 ## 构建与发布
@@ -57,7 +62,7 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-[Capybara Desktop 工作流](../../.github/workflows/capybara-desktop.yml)在各平台运行前端测试、Rust 测试、真实打包内核的控制接口/配置回退测试，构建四个目标的五个安装包并产生摘要。手动触发且 `publish=true` 时，只有全部目标成功才创建 `capybara-v<version>` 预发布及源码附件；正常 push 仅构建。版本需同步 package.json、Cargo.toml 和 tauri.conf.json，说明写入 RELEASE_NOTES.md。
+[Capybara Desktop 工作流](../../.github/workflows/capybara-desktop.yml)在各平台运行前端测试、Rust 测试、真实打包内核的控制接口/配置回退测试，构建四个目标的五个安装包并产生摘要。手动触发且 `publish=true` 时，只有全部目标成功才创建 `capybara-v<version>` Release 及源码附件（带后缀版本为预发布）；正常 push 仅构建。版本需同步 package.json、Cargo.toml 和 tauri.conf.json，说明写入 RELEASE_NOTES.md。
 
 本地检查、GitHub Actions、安装包发布和生产验证分别记录在[进展日志](../../progress-log.md)。架构约束见[决策笔记](../../.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)；图片说明见 [BRAND.md](BRAND.md)，许可证和来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 

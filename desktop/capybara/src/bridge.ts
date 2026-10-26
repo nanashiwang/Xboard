@@ -97,7 +97,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.2",
+                  version: "0.1.3",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,
