@@ -831,11 +831,14 @@ mod tests {
             }
         }
     }
-    fn read_headers(
+    pub(super) fn read_headers(
         socket: &mut std::net::TcpStream,
         stop: &std::sync::atomic::AtomicBool,
     ) -> std::io::Result<Option<String>> {
         use std::io::Read;
+        // Winsock accepted sockets retain the listener's nonblocking mode. Explicitly
+        // restore blocking reads so the bounded read timeout applies on every platform.
+        socket.set_nonblocking(false)?;
         let started = Instant::now();
         let mut request = Vec::new();
         while started.elapsed() < Duration::from_secs(2)
@@ -931,6 +934,45 @@ mod tests {
             json!({"proxies":{"one":{"type":"Direct"},"group":{"type":"Selector"},"GLOBAL":{"type":"Selector","now":"one","all":["one"]}}}),
             json!({"rules":[{},{}]}),
         )
+    }
+    #[test]
+    fn http_fixture_reads_complete_headers_from_an_initially_nonblocking_socket() {
+        use std::io::Read;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let (accepted, ready) = std::sync::mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket.set_nonblocking(true).unwrap();
+            accepted.send(()).unwrap();
+            let request = read_headers(&mut socket, &std::sync::atomic::AtomicBool::new(false))
+                .unwrap()
+                .expect("complete request headers");
+            assert!(request.ends_with("Host: localhost\r\n\r\n"));
+            socket
+                .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+                .unwrap();
+        });
+        let mut socket = std::net::TcpStream::connect(address).unwrap();
+        ready.recv_timeout(Duration::from_secs(2)).unwrap();
+        socket
+            .set_read_timeout(Some(Duration::from_millis(50)))
+            .unwrap();
+        socket.write_all(b"GET /routing-test HTTP/1.1\r\n").unwrap();
+        let mut buffer = [0; 256];
+        let pending = socket.read(&mut buffer).unwrap_err();
+        assert!(matches!(
+            pending.kind(),
+            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+        ));
+        socket.write_all(b"Host: localhost\r\n\r\n").unwrap();
+        socket
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        let mut response = String::new();
+        socket.read_to_string(&mut response).unwrap();
+        assert!(response.starts_with("HTTP/1.1 204 No Content\r\n"));
+        server.join().unwrap();
     }
     #[test]
     fn readiness_server_waits_for_split_headers_and_discards_cancelled_requests() {
@@ -1241,13 +1283,10 @@ mod integration {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let server = std::thread::spawn(move || {
-            use std::io::Read;
             let (mut socket, _) = listener.accept().unwrap();
-            socket
-                .set_read_timeout(Some(Duration::from_secs(3)))
-                .unwrap();
-            let mut data = [0; 1024];
-            let _ = socket.read(&mut data).unwrap();
+            super::tests::read_headers(&mut socket, &std::sync::atomic::AtomicBool::new(false))
+                .unwrap()
+                .expect("complete delay request headers");
             std::thread::sleep(Duration::from_millis(40));
             socket
                 .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
@@ -1303,23 +1342,26 @@ mod integration {
         listener.set_nonblocking(true).unwrap();
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let finish = stop.clone();
-        let server = std::thread::spawn(move || {
-            use std::io::Read;
+        let server = std::thread::spawn(move || -> Result<(), String> {
             while !finish.load(std::sync::atomic::Ordering::SeqCst) {
                 match listener.accept() {
                     Ok((mut socket, _)) => {
-                        let _ = socket.set_read_timeout(Some(Duration::from_secs(2)));
-                        let mut request = [0; 1024];
-                        let _ = socket.read(&mut request);
+                        if super::tests::read_headers(&mut socket, &finish)
+                            .map_err(|error| error.to_string())?
+                            .is_none()
+                        {
+                            continue;
+                        }
                         let _ = socket
                             .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n");
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(Duration::from_millis(5))
                     }
-                    Err(_) => break,
+                    Err(error) => return Err(error.to_string()),
                 }
             }
+            Ok(())
         });
         let unavailable = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let closed_port = unavailable.local_addr().unwrap().port();
@@ -1328,6 +1370,9 @@ mod integration {
         let proxy_client = reqwest::Client::builder()
             .no_proxy()
             .proxy(reqwest::Proxy::all(format!("http://127.0.0.1:{port}")).unwrap())
+            // Rules apply to new connections. Never carry a proxy connection from
+            // a preceding global/direct/rejected request across a configuration update.
+            .pool_max_idle_per_host(0)
             .timeout(Duration::from_secs(2))
             .build()
             .unwrap();
@@ -1440,6 +1485,6 @@ mod integration {
             saved
         );
         stop.store(true, std::sync::atomic::Ordering::SeqCst);
-        server.join().unwrap();
+        server.join().unwrap().unwrap();
     }
 }
