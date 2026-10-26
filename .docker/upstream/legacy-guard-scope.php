@@ -34,25 +34,32 @@ function directory_metadata(string $path,bool $blocked=false): array {
 }
 function directory_usable(array $meta,string $role): bool {
     if (!$meta['directory'] || $meta['is_symlink'] || !$meta['realpath_matches']) return false;
-    if ($role==='anchor') return true; // Existing Laravel storage may be app-owned and writable.
+    if (in_array($role,['anchor','app'],true)) return true; // Existing Laravel storage/app may be app-owned and writable.
     if ($meta['owner_class']!=='root') return false;
     $mode=octdec($meta['mode']);
     return $role==='scope' ? $mode===0700 : ($mode&0022)===0;
 }
 function scope_directories(string $directory): array {
-    if (basename($directory)!=='upstream-20261022' || basename(dirname($directory))!=='backups') rejected('container_parent_invalid');
-    $anchor=directory_metadata(dirname($directory,2));
+    if (basename($directory)!=='upstream-20261022' || basename(dirname($directory))!=='backups' ||
+        basename(dirname($directory,2))!=='app' ||
+        (!defined('XBOARD_LEGACY_GUARD_SCOPE_LIBRARY_ONLY') && dirname($directory,3)!=='/www/storage')) rejected('container_parent_invalid');
+    $anchor=directory_metadata(dirname($directory,3));
     $anchorSafe=directory_usable($anchor,'anchor');
-    $backups=directory_metadata(dirname($directory),!$anchorSafe);
+    $app=directory_metadata(dirname($directory,2),!$anchorSafe);
+    $appSafe=directory_usable($app,'app');
+    $backups=directory_metadata(dirname($directory),!$appSafe);
     $backupsSafe=directory_usable($backups,'backups');
     $scope=directory_metadata($directory,!$backupsSafe);
     // Missing intermediate directory means its fixed child is also missing;
     // do not traverse an unsafe existing parent to inspect that child.
-    if ($anchorSafe && $backups['classification']==='missing') $scope['classification']='missing';
+    if ($anchorSafe && $app['classification']==='missing') {
+        $backups['classification']='missing';$scope['classification']='missing';
+    } elseif ($appSafe && $backups['classification']==='missing') $scope['classification']='missing';
     $scopeSafe=directory_usable($scope,'scope');
-    $creatable=$anchorSafe && ($backupsSafe || $backups['classification']==='missing') && $scope['classification']==='missing';
-    return ['directories'=>['anchor'=>$anchor,'backups'=>$backups,'scope'=>$scope],
-            'parent_safe'=>$anchorSafe && $backupsSafe && $scopeSafe,'parent_creatable'=>$creatable];
+    $creatable=$anchorSafe && ($appSafe || ($app['classification']==='missing' && (octdec($anchor['mode'])&07000)===0)) &&
+               ($backupsSafe || $backups['classification']==='missing') && $scope['classification']==='missing';
+    return ['directories'=>['anchor'=>$anchor,'app'=>$app,'backups'=>$backups,'scope'=>$scope],
+            'parent_safe'=>$anchorSafe && $appSafe && $backupsSafe && $scopeSafe,'parent_creatable'=>$creatable];
 }
 function directory_identity(string $directory): array {
     clearstatcache(true,$directory);
@@ -66,12 +73,38 @@ function sync_parent(string $directory): void {
     try { if (!fsync($handle)) rejected('container_commit_unknown'); }
     finally { fclose($handle); }
 }
+function create_app_inheriting_storage(string $app,array $storage,array &$created): void {
+    foreach (['posix_geteuid','posix_getegid','posix_seteuid','posix_setegid'] as $function)
+        if (!function_exists($function)) rejected('container_parent_invalid');
+    $uid=posix_geteuid();$gid=posix_getegid();
+    if ($uid!==0 || $gid!==0) rejected('container_scope_invalid');
+    if (($storage['mode']&07000)!==0) rejected('container_parent_invalid');
+    $mode=$storage['mode']&0777;$mask=umask(0000);
+    try {
+        // Create with the existing Laravel storage identity/mode directly.
+        // Never chown/chmod an existing path, including a raced-in app entry.
+        if (!posix_setegid($storage['gid']) || !posix_seteuid($storage['uid'])) rejected('container_parent_invalid');
+        if (!mkdir($app,$mode,false)) rejected('container_parent_invalid');
+        $created[]='app';
+    } finally {
+        $restoredUid=posix_seteuid($uid);$restoredGid=posix_setegid($gid);umask($mask);
+        if (!$restoredUid || !$restoredGid) rejected('container_commit_unknown');
+    }
+    $new=directory_identity($app);
+    if ($new['uid']!==$storage['uid'] || $new['gid']!==$storage['gid'] || ($new['mode']&07777)!==$mode ||
+        directory_identity(dirname($app))!==$storage) rejected('container_commit_unknown');
+    sync_parent(dirname($app));
+}
 function create_missing_directories(string $directory,array &$created): void {
     $before=scope_directories($directory);
     if ($before['parent_safe']) return;
     if (!$before['parent_creatable']) rejected('container_parent_invalid');
-    $anchor=dirname($directory,2);
+    $anchor=dirname($directory,3);
     $anchorIdentity=directory_identity($anchor);
+    $app=dirname($directory,2);
+    $appMetadata=directory_metadata($app);
+    if ($appMetadata['classification']==='missing') create_app_inheriting_storage($app,$anchorIdentity,$created);
+    elseif (!directory_usable($appMetadata,'app')) rejected('container_parent_invalid');
     foreach (['backups'=>dirname($directory),'scope'=>$directory] as $role=>$path) {
         $meta=directory_metadata($path);
         if ($meta['classification']==='missing') {

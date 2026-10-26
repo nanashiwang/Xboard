@@ -46,6 +46,14 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 [旧保护器检查40396309980](https://github.com/nanashiwang/Xboard/actions/runs/40396309980)确认线上两脚本SHA与已审阅metadata-only版本完全一致，容器manifest缺失且专用父目录不满足条件。新增固定anchor/backups/scope的白名单权限诊断；在真实Laravel storage anchor下只为缺失的固定backups/scope逐层创建root0700目录，不创建anchor、不跟symlink、不chmod/chown现存目录；现存unsafe拒绝。271项Python、18项真实PHP目录/无覆盖回归及笔记/工作流检查通过，线上清单恢复待执行。
 
+提交`a41cfbf`已推送master、两文档按SHA回读，[专项CI40397964021](https://github.com/nanashiwang/Xboard/actions/runs/40397964021)成功。首轮[隐藏公开验收40397973346](https://github.com/nanashiwang/Xboard/actions/runs/40397973346)34/39通过，U26/U29/U33/U34/U40两目标均失败；加此前健康两条为36/41，不是全部恢复。入口只读guard在实际41配置SHA均符合首轮选择时，AnyTLS25/28通过，三条明确runtime_public_key_mismatch。
+
+对5条固定端点重新核对：三条TCP在两网络各三次共18次身份一致，两条QUIC两网络一致，源端点/有限DNS候选仍匹配。三条新证书生效晚于首轮82次业务试连；后续旧pin隔离重测均明确unrecognized remote public key。仅证明观测间公钥变化，不推定正常周期轮换，也不作为供应商独立认证。根代理显式选择5个新候选摘要，严格保留其他字段的新pin-only业务10/10成功；[fresh准备40399033918](https://github.com/nanashiwang/Xboard/actions/runs/40399033918)及[2条QUIC有限加密导入40400350314](https://github.com/nanashiwang/Xboard/actions/runs/40400350314)成功，原2小时期限保持，生产补修待执行。
+
+新增合并验收账本：显式引用首轮39条apply_hidden、fresh全41隐藏快照与最多5条补修真实回执；重新验证全41来源/状态，不改写历史计划、时间、缓存或回执。新期限只来自fresh准备；初轮过期记录只作不可变历史。发布39条须先绑定隐藏阶段真实公开双目标成功报告，发布后再复验39条才可同步28条AnyTLS映射；原始两条健康线路不改，回退始终恢复首轮原出站并保持隐藏/停用。实际PHP派生117项一致，真实双维护链至verify→publish→verify→sync及失败/漂移回归通过；完整测试与生产执行结果继续记录。
+
+303项Python回归通过；两轮链相关core14/adapter16/control17包含真实工具联动，117项PHP派生对照通过。旧清单修复的第二轮尝试确认`storage/app`本身缺失，前置拒绝且未写入；现仅允许在真实既有`/www/storage`下创建缺失app，直接继承其uid/gid及普通权限，随后创建root0700私有子目录及0600清单。既有目录不chmod/chown，缺storage、symlink、特殊权限位拒绝；25项真实无网络PHP回归含身份恢复/失败边界通过，16项Python旧清单回归、actionlint及31篇笔记检查通过。清单恢复及合并生产验收仍待执行。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。

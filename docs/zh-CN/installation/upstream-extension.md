@@ -73,10 +73,18 @@ python3 .docker/upstream/guard.py --check-identity \
 
 ## 人工恢复工具
 
-候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝；只能单独执行audit-scope，交叉核对现存approved、固定allocation、DB归属/状态，再针对具体审计ID/SHA显式restore-scope。不是自动重建，也不批准新pin。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。工作流按显式阶段操作，公开路径验证绑定维护回执，尚未执行生产恢复；最新事实见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。
+候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝；只能单独执行audit-scope，交叉核对现存approved、固定allocation、DB归属/状态，再针对具体审计ID/SHA显式restore-scope。不是自动重建，也不批准新pin。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。工作流按显式阶段操作，公开路径验证绑定维护回执；生产执行与尚待验收部分见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。
 
 保护器新版撤下传输仅使用经验证的宿主持久manifest与PHP stdin，不再依赖容器存储副本；该代码当前尚未部署。缺映射依然拒绝，不能把重建scope当成公钥批准。
 
 `inspect-environment`只读检查固定探针文件的安全形状和运行环境类别；不打印凭据或URL。`accept-source-address`只接受U01的明确新来源SHA，必须证明还原原server后精确等于旧批准指纹；仅更新该source_sha256且使旧计划失效，不修改或批准pin。两者均不是自动恢复线路。`sync-pins`必须在publish后公开路径通过，绑定返回的验证报告ID/文件SHA与维护执行回执，才同步DB中已核准的28条AnyTLS身份；不探测或学习新pin。`inspect-legacy-guard`/`restore-legacy-guard`仅支持字节匹配已审阅metadata-only版本的原容器清单恢复，不升级保护器。目录随容器丢失时，只允许在固定真实storage anchor下创建缺失backups/scope为root0700；现存unsafe目录、symlink或冲突均拒绝，不更改原目录权限。维护工具接受省略insecure的严格默认并保留省略，null/true/非bool拒绝。
 
 `secure-probe-config`只适用于已核验静态root服务，本次非root服务检查已在写入前拒绝，不能用它破坏专用服务读组。公开验收只读允许root拥有0600，或0640且文件组精确匹配固定静态探针服务有效组；拒绝其他权限、符号链接与读取漂移，不改变服务配置。`recipient`为现存有效计划生成绑定公钥；`import-reviewed`接收有限RSA-OAEP身份密文及双网络观察承诺，只创建新私有候选计划，不批准或应用。它保留原计划期限，严格CA线路不添加pin，导入后仍须显式选择与公开路径验收。现面板无IPv6，外部观察标明入口/独立观察位置，不绕过TLS，也不将新runtime保护器直接部署到不具备对应地址族的检测机。
+
+### 两轮修复的合并验收
+
+本次39条首轮修复后，最多仅允许U26/U29/U33/U34/U40追加人工补修。先用新的prepare计划完成子集withdraw与apply_hidden，再以`aggregate-create`的独立`graph`输入引用首轮plan ID/SHA/execution和新plan ID/SHA/repair execution。工具逐项核对两轮真实回执及全41状态，不改旧记录、原缓存或时间，不接收IP/公钥。返回的ledger有效期来自新计划原始两小时期限，不能续改。
+
+后续`aggregate-verify`、`aggregate-publish`、`aggregate-sync`使用plan_id/plan_sha256字段传递ledger ID/SHA，selection/ciphertext均为空对象，execution_id为空。隐藏阶段39条双目标全部通过才以其verification_id/verification_sha256发布；发布后重新验收39条，再以新报告和原pinned文件SHA（或`absent`）同步28条AnyTLS身份。仍复用最初真实公开缓存、严格TLS与全新内核，无DIRECT；健康两条不修改。
+
+`aggregate-rollback`只需ledger ID/SHA，恢复首轮原出站并维持隐藏/停用，允许计划过期或来源网络不可用，但仍要求图、回执和实际状态完全匹配。新账本保留自己的在线备份、request/intent/receipt；未知结果禁止重放，不整库覆盖业务数据，不使用第二轮中间出站充当原始回退配置。

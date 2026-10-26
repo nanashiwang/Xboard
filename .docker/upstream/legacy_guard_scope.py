@@ -108,7 +108,7 @@ def container_scope(action, manifest_bytes):
     if any(type(value[key]) is not bool for key in expected - {'status', 'manifest_sha256', 'directories', 'directories_created'}):
         fail('container_reply_invalid')
     directories = value['directories']
-    if not isinstance(directories, dict) or set(directories) != {'anchor', 'backups', 'scope'}:
+    if not isinstance(directories, dict) or set(directories) != {'anchor', 'app', 'backups', 'scope'}:
         fail('container_reply_invalid')
     for metadata in directories.values():
         fields = {'classification', 'exists', 'directory', 'is_symlink', 'owner_class', 'mode', 'realpath_matches'}
@@ -119,7 +119,7 @@ def container_scope(action, manifest_bytes):
                 or any(type(metadata[key]) is not bool for key in ('exists', 'directory', 'is_symlink', 'realpath_matches'))):
             fail('container_reply_invalid')
     created = value['directories_created']
-    if (not isinstance(created, list) or any(item not in ('backups', 'scope') for item in created)
+    if (not isinstance(created, list) or any(item not in ('app', 'backups', 'scope') for item in created)
             or len(created) != len(set(created))):
         fail('container_reply_invalid')
     if action == 'inspect' and (value['status'] != 'inspected' or value['manifest_created'] or created):

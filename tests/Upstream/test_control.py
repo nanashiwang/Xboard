@@ -173,5 +173,35 @@ class ControlTest(unittest.TestCase):
         for operation in ('recipient', 'snapshot', 'withdraw'):
             with self.assertRaises(ValueError): c.command(dict(value, operation=operation))
 
+    def test_aggregate_graph_is_reference_only_and_stdin_bound(self):
+        graph = {'schema': 1, 'base': {'plan_id': 'a'*32, 'plan_sha256': 'b'*64, 'execution_id': 'c'*64},
+                 'continuation': {'plan_id': 'd'*32, 'plan_sha256': 'e'*64}, 'repair_execution_id': 'f'*64}
+        value = {'operation': 'aggregate-create', 'plan_id': '', 'plan_sha256': '', 'execution_id': '', 'selection': {}, 'graph': graph}
+        self.assertEqual(c.command(value)[-1], 'prepare')
+        with patch.object(c.subprocess, 'run') as run:
+            run.return_value.returncode = 0; c.execute(value)
+            self.assertEqual(json.loads(run.call_args.kwargs['input']), graph)
+            self.assertNotIn(json.dumps(graph), run.call_args.args[0])
+        for field, content in [('ip', '8.8.8.8'), ('pin', 'secret'), ('path', '/tmp/other')]:
+            bad = dict(value, graph=dict(graph, **{field: content}))
+            with self.assertRaises(ValueError): c.command(bad)
+        with self.assertRaises(ValueError): c.command(dict(value, plan_id='a'*32))
+        with self.assertRaises(ValueError): c.command(dict(value, ciphertext={'source': 'secret'}))
+
+    def test_aggregate_operations_use_ledger_binding_and_finite_verification_inputs(self):
+        value = {'operation': 'aggregate-verify', 'plan_id': 'a'*32, 'plan_sha256': 'b'*64, 'execution_id': '', 'selection': {}}
+        self.assertEqual(c.command(value)[-4:], ['--ledger-id', 'a'*32, '--ledger-sha256', 'b'*64])
+        value['operation'] = 'aggregate-publish'
+        with self.assertRaises(ValueError): c.command(value)
+        value.update(verification_id='c'*32, verification_sha256='d'*64)
+        self.assertEqual(c.command(value)[2], 'publish')
+        with self.assertRaises(ValueError): c.command(dict(value, operation='aggregate-rollback'))
+        value['operation'] = 'aggregate-sync'
+        with self.assertRaises(ValueError): c.command(value)
+        value['pinned_sha256'] = 'absent'
+        self.assertEqual(c.command(value)[-2:], ['--pinned-sha256', 'absent'])
+        for field, bad in [('execution_id', 'e'*64), ('selection', {'U33': 'f'*64}), ('graph', {'schema': 1})]:
+            with self.assertRaises(ValueError): c.command(dict(value, **{field: bad}))
+
 
 if __name__ == '__main__': unittest.main()

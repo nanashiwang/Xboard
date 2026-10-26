@@ -71,7 +71,7 @@ class LegacyScopeTests(unittest.TestCase):
             self.container_exists=self.target_matches=self.target_private=True
             self.parent_safe=True;self.parent_creatable=False
         directories={role:{'classification':'present','exists':True,'directory':True,'is_symlink':False,
-                           'owner_class':'root','mode':'0700','realpath_matches':True} for role in ('anchor','backups','scope')}
+                           'owner_class':'root','mode':'0700','realpath_matches':True} for role in ('anchor','app','backups','scope')}
         return {'status':'restored' if action=='restore' else 'inspected','manifest_sha256':repair.sha(raw),
                 'target_exists':self.container_exists,'target_matches':self.target_matches,'target_private':self.target_private,
                 'parent_safe':self.parent_safe,'parent_creatable':self.parent_creatable,'directories':directories,

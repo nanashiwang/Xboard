@@ -112,7 +112,11 @@ U01的来源指纹变化通过“当前source仅还原server为原生产server�
 
 维护契约接受sing-box既有严格默认：`tls.insecure`省略等同false，保存时仍保留省略；显式null/true/非bool一律拒绝。Python与PHP不能因序列化omitempty差异把已严格试连的配置误判为关闭校验。
 
-[pin同步](../../../../.docker/upstream/sync_pins.py)仅从已发布的显式选择及与其精确相同的当前DB构建完整28条AnyTLS映射；需发布阶段真实公开成功报告的ID/文件SHA、回执链、缓存、全41来源/状态前后复核。先备份并CAS原map或缺失状态，未知结果不重放；永不从运行时握手学习pin。[旧保护器清单修复](../../../../.docker/upstream/legacy_guard_scope.py)仅在已安装代码字节精确匹配已审阅metadata-only版本时，将已确认host最小manifest无覆盖放回原容器路径。固定Laravel storage anchor只要求真实目录，允许现有应用拥有和可写；仅缺失backups/scope可逐层创建root0700，现存目录不chmod/chown、不跟符号链接，unsafe目录输出白名单元数据并拒绝。它不改变检测政策或执行保护器；容器重建可能再次丢失副本的限制仍保留，新stdin传输/运行时检测需独立适配后部署。
+[pin同步](../../../../.docker/upstream/sync_pins.py)仅从已发布的显式选择及与其精确相同的当前DB构建完整28条AnyTLS映射；需发布阶段真实公开成功报告的ID/文件SHA、回执链、缓存、全41来源/状态前后复核。先备份并CAS原map或缺失状态，未知结果不重放；永不从运行时握手学习pin。[旧保护器清单修复](../../../../.docker/upstream/legacy_guard_scope.py)仅在已安装代码字节精确匹配已审阅metadata-only版本时，将已确认host最小manifest无覆盖放回原容器路径。固定Laravel storage anchor只要求真实目录，允许现有应用拥有和可写；仅缺失backups/scope可逐层创建root0700，现存目录不chmod/chown、不跟符号链接，unsafe目录输出白名单元数据并拒绝。它不改变检测政策或执行保护器；容器缺失app时只允许在既有真实storage下以其uid/gid和普通权限直接mkdir，finally恢复root身份；随后私有backups/scope为root0700、manifest0600，既有路径不chmod/chown，symlink与特殊权限位拒绝。容器重建可能再次丢失副本的限制仍保留，新stdin传输/运行时检测需独立适配后部署。
+
+[合并验收账本](../../../../.docker/upstream/finalizer.py)处理本次首轮39条隐藏应用后5条身份再次变化：以显式graph引用两轮原始计划SHA/真实apply_hidden回执，不伪造合并执行、不改旧计划时间。fresh全41快照必须精确等于首轮隐藏状态；补修范围固定为本次5条子集，最终状态由首轮原始字段与显式最终候选派生。旧计划仅作不可变历史，新的两小时边界来自fresh准备。全41实时来源、批准字节、DB、缓存和回执链均复核；未知intent不重放。
+
+[合并公开验收](../../../../.docker/upstream/finalizer_acceptance.py)复用最初缓存的真实公开配置及内核，隐藏与公开各39条双目标严格测试，全新内核且无DIRECT。隐藏成功报告ID/文件SHA才授权恢复最初show，公开成功报告才授权同步实际DB的28条AnyTLS映射。回退始终回到首轮原出站并维持关闭，可在计划过期或来源网络失败时使用，不整库回退业务数据。代价是明确的额外证据链与有界维护时间；不以改旧回执或沿用补修快照的show=false冒充正常发布。
 
 ## Alternatives considered
 

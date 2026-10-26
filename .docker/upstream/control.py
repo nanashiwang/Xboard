@@ -11,8 +11,24 @@ import sys
 
 SIBLING = Path(__file__).resolve().parent
 OPERATIONS = {'inspect-legacy-guard', 'restore-legacy-guard', 'sync-pins', 'recipient', 'import-reviewed', 'secure-probe-config', 'accept-source-address', 'inspect-environment', 'prepare', 'audit-scope', 'restore-scope', 'snapshot', 'verify-success', 'verify-withdrawn', 'verify-baseline',
-              'withdraw', 'apply_hidden', 'publish', 'rollback'}
+              'withdraw', 'apply_hidden', 'publish', 'rollback',
+              'aggregate-create', 'aggregate-verify', 'aggregate-publish', 'aggregate-rollback', 'aggregate-sync'}
 MAX_CONTROL = 65535
+
+
+def validate_graph(graph):
+    if not isinstance(graph, dict) or set(graph) != {'schema', 'base', 'continuation', 'repair_execution_id'} or type(graph['schema']) is not int or graph['schema'] != 1:
+        raise ValueError('graph_invalid')
+    for name, fields in [('base', {'plan_id', 'plan_sha256', 'execution_id'}), ('continuation', {'plan_id', 'plan_sha256'})]:
+        value = graph[name]
+        if not isinstance(value, dict) or set(value) != fields:
+            raise ValueError('graph_invalid')
+        for field, content in value.items():
+            if not isinstance(content, str) or not re.fullmatch('[a-f0-9]{32}' if field == 'plan_id' else '[a-f0-9]{64}', content):
+                raise ValueError('graph_invalid')
+    if graph['base']['plan_id'] == graph['continuation']['plan_id'] or (graph['repair_execution_id'] is not None and
+            (not isinstance(graph['repair_execution_id'], str) or not re.fullmatch('[a-f0-9]{64}', graph['repair_execution_id']))):
+        raise ValueError('graph_invalid')
 
 
 def parse(raw):
@@ -30,7 +46,7 @@ def parse(raw):
 
 def validate(value):
     fields = {'operation', 'plan_id', 'plan_sha256', 'selection', 'execution_id'}
-    optional = {'ciphertext', 'verification_id', 'verification_sha256', 'pinned_sha256'}
+    optional = {'ciphertext', 'verification_id', 'verification_sha256', 'pinned_sha256', 'graph'}
     if not isinstance(value, dict) or not fields <= set(value) <= fields | optional:
         raise ValueError('control_fields_invalid')
     operation = value['operation']
@@ -43,6 +59,32 @@ def validate(value):
         if not re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])', key) or (commitment is not None and
                 (not isinstance(commitment, str) or not re.fullmatch('[a-f0-9]{64}', commitment))):
             raise ValueError('selection_invalid')
+    if operation.startswith('aggregate-'):
+        if selection or value['execution_id'] != '' or value.get('ciphertext', {}) != {}:
+            raise ValueError('aggregate_arguments_invalid')
+        if operation == 'aggregate-create':
+            if value['plan_id'] != '' or value['plan_sha256'] != '':
+                raise ValueError('aggregate_arguments_invalid')
+            validate_graph(value.get('graph'))
+        else:
+            if (not isinstance(value['plan_id'], str) or not re.fullmatch('[a-f0-9]{32}', value['plan_id'])
+                    or not isinstance(value['plan_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', value['plan_sha256'])
+                    or value.get('graph', {}) != {}):
+                raise ValueError('ledger_binding_invalid')
+        if operation in ('aggregate-publish', 'aggregate-sync'):
+            if (not isinstance(value.get('verification_id'), str) or not re.fullmatch('[a-f0-9]{32}', value['verification_id'])
+                    or not isinstance(value.get('verification_sha256'), str) or not re.fullmatch('[a-f0-9]{64}', value['verification_sha256'])):
+                raise ValueError('aggregate_verification_required')
+        elif any(value.get(key, '') != '' for key in ('verification_id', 'verification_sha256')):
+            raise ValueError('unexpected_aggregate_verification')
+        if operation == 'aggregate-sync':
+            if not isinstance(value.get('pinned_sha256'), str) or not re.fullmatch('(?:absent|[a-f0-9]{64})', value['pinned_sha256']):
+                raise ValueError('aggregate_pinned_binding_required')
+        elif value.get('pinned_sha256', '') != '':
+            raise ValueError('unexpected_pinned_binding')
+        return value
+    if value.get('graph', {}) != {}:
+        raise ValueError('unexpected_graph')
     if operation in ('prepare', 'audit-scope', 'inspect-environment', 'secure-probe-config', 'inspect-legacy-guard', 'restore-legacy-guard'):
         if value['plan_id'] != '' or value['plan_sha256'] != '' or selection:
             raise ValueError('prepare_arguments_invalid')
@@ -80,6 +122,16 @@ def validate(value):
 def command(value, quic_sha=None):
     validate(value)
     operation = value['operation']
+    if operation == 'aggregate-create':
+        return [sys.executable, str(SIBLING/'finalizer.py'), 'prepare']
+    if operation.startswith('aggregate-'):
+        action = operation.removeprefix('aggregate-')
+        script = 'finalizer_acceptance.py' if action in ('verify', 'sync') else 'finalizer.py'
+        result = [sys.executable, str(SIBLING/script), action, '--ledger-id', value['plan_id'], '--ledger-sha256', value['plan_sha256']]
+        if action in ('publish', 'sync'):
+            result += ['--verification-id', value['verification_id'], '--verification-sha256', value['verification_sha256']]
+        if action == 'sync': result += ['--pinned-sha256', value['pinned_sha256']]
+        return result
     if operation in ('inspect-legacy-guard', 'restore-legacy-guard'):
         return [sys.executable, str(SIBLING/'legacy_guard_scope.py'),
                 'inspect' if operation == 'inspect-legacy-guard' else 'restore']
@@ -124,24 +176,28 @@ def execute(value, quic_sha=None):
     args = command(value, quic_sha)
     body = (json.dumps(value['ciphertext'], sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
             if value['operation'] == 'import-reviewed' else None)
+    if value['operation'] == 'aggregate-create':
+        body = json.dumps(value['graph'], sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return subprocess.run(args, input=body, check=False).returncode
 
 
 def from_environment():
     names = ('OPERATION', 'PLAN_ID', 'PLAN_SHA256', 'SELECTION', 'EXECUTION_ID', 'CIPHERTEXT',
-             'VERIFICATION_ID', 'VERIFICATION_SHA256', 'PINNED_SHA256')
+             'VERIFICATION_ID', 'VERIFICATION_SHA256', 'PINNED_SHA256', 'GRAPH')
     fields = ('operation', 'plan_id', 'plan_sha256', 'selection', 'execution_id', 'ciphertext',
-              'verification_id', 'verification_sha256', 'pinned_sha256')
-    defaults = {'CIPHERTEXT': '{}', 'VERIFICATION_ID': '', 'VERIFICATION_SHA256': '', 'PINNED_SHA256': ''}
+              'verification_id', 'verification_sha256', 'pinned_sha256', 'graph')
+    defaults = {'CIPHERTEXT': '{}', 'VERIFICATION_ID': '', 'VERIFICATION_SHA256': '', 'PINNED_SHA256': '', 'GRAPH': '{}'}
     inputs = {field: os.environ.get(name, defaults[name]) if name in defaults else os.environ[name]
               for field, name in zip(fields, names)}
     # Conservative serialized-input bound includes quotes/escaping in the
     # workflow_dispatch string field, not merely the decrypted JSON envelope.
     if len(json.dumps(inputs, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()) > MAX_CONTROL:
         raise ValueError('dispatch_inputs_too_large')
-    inputs['selection'] = parse(inputs['selection']); inputs['ciphertext'] = parse(inputs['ciphertext'])
-    if not any(inputs[key] for key in fields[-3:]):
-        for key in fields[-3:]:del inputs[key]
+    inputs['selection'] = parse(inputs['selection']); inputs['ciphertext'] = parse(inputs['ciphertext']); inputs['graph'] = parse(inputs['graph'])
+    if inputs['graph'] == {}: del inputs['graph']
+    extras = ('verification_id', 'verification_sha256', 'pinned_sha256')
+    if not any(inputs[key] for key in extras):
+        for key in extras:del inputs[key]
     return validate(inputs)
 
 
