@@ -4,6 +4,12 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-27：新版运行时保护器部署
+
+用户在41条恢复后明确要求部署新版。核对实际入口具备IPv6、原转发服务PID202530/NRestarts0；面板无IPv6。复用既有guard、公钥批准映射、PHP受限事务，增加证书采集专用SSH worker：入口独立非root用户，root拥有代码和唯一authorized_keys，来源地址限制、forced command、禁止转发，40秒外层期限；只接收已批准AnyTLS的IP/端口/SNI/pin，不传订阅/代理密码，不保存身份，不回传观察公钥。面板响应核对nonce、请求摘要、时间、完整ID/数量及原因，通讯失败不回落本机或DIRECT。
+
+只读预检必须完成28条真实身份与新加坡U04合成错误pin拒绝；测试pin仅在内存中使用。部署备份原代码/服务配置，停止timer并等旧oneshot结束，原子替换限定文件，覆盖ExecStart及180秒期限，立即检查后恢复原timer；回退只恢复本次代码/override，不回滚DB/pin，不重新公开已撤下线路。本地337项Python回归（含14项入口传输/部署回退测试）、工作流actionlint和31篇笔记校验通过。生产前置、启用和自然执行待记录；应用容器、客户端Release和并行香港入口不变。相关[决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)与[运维](./docs/zh-CN/installation/upstream-extension.md#运行时保护器部署与回退)。
+
 ## 2026-10-27：生产外接线路人工恢复
 
 用户明确希望线路实际恢复，进一步授权“修复已核实的生产公钥和地址，逐条验证并保留回退”，替代此前本轮不改生产配置的限制。沿用[第三方线路决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，不自动接纳新公钥、不关闭TLS、不更改用户权限/倍率/原自建线路。

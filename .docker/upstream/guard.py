@@ -302,7 +302,7 @@ def fetch_subscription(root):
     return data['proxies'], usage
 
 
-def check(approved, previous, allocation, mappings, now, fetch, probe=None):
+def check(approved, previous, allocation, mappings, now, fetch, probe=None, identity_evaluator=None):
     try:
         proxies, usage = fetch()
         withdraw = evaluate(approved, proxies, usage, now)
@@ -320,7 +320,7 @@ def check(approved, previous, allocation, mappings, now, fetch, probe=None):
         state['withdraw'] = withdraw
     # Deliberately outside the fetch try/except: metadata grace cannot hide a
     # runtime pin rejection, and a successful fetch is not an identity success.
-    checks = evaluate_identity(approved, allocation, mappings, probe)
+    checks = (identity_evaluator or evaluate_identity)(approved, allocation, mappings, probe)
     state['identity_checks'] = checks
     state['identity_ok'] = bool(checks) and all('reason' not in item for item in checks)
     already = {row['key'] for row in withdraw}
@@ -333,6 +333,7 @@ def main(argv=None):
     parser.add_argument('--root', type=Path, default=ROOT)
     parser.add_argument('--allocation', type=Path, default=ALLOCATION)
     parser.add_argument('--identity-map', type=Path, help='Existing approved pinned.private; never generated here')
+    parser.add_argument('--entry-worker', action='store_true', help='Use the fixed ingress certificate-only SSH worker')
     parser.add_argument('--check-identity', action='store_true', help='Read-only: no subscription, state writes or withdrawal')
     parser.add_argument('--key', action='append', help='Limit read-only checks to approved U keys (repeatable)')
     args = parser.parse_args(argv)
@@ -353,12 +354,15 @@ def main(argv=None):
     allocation = read_json_or_none(args.allocation)
     mappings = read_json_or_none(args.identity_map or args.root / 'pinned.private')
     now = int(time.time())
+    evaluator = evaluate_identity
+    if args.entry_worker:
+        from entry_identity import evaluate_identity as evaluator
     if args.check_identity:
         if args.key:
             if not set(args.key) <= {row['key'] for row in approved}:
                 raise ValueError('unapproved_key')
             approved = [row for row in approved if row['key'] in args.key]
-        checks = evaluate_identity(approved, allocation, mappings)
+        checks = evaluator(approved, allocation, mappings)
         ok = bool(checks) and all('reason' not in item for item in checks)
         print(json.dumps({'checked_at': now, 'identity_ok': ok, 'identity_checks': checks}))
         return 0 if ok else 1
@@ -366,7 +370,7 @@ def main(argv=None):
     if not isinstance(previous, dict):
         previous = {}
     state = check(approved, previous, allocation, mappings, now,
-                  lambda: fetch_subscription(args.root))
+                  lambda: fetch_subscription(args.root), identity_evaluator=evaluator)
     withdraw = state['withdraw']
     if withdraw:
         state['apply'] = apply(withdraw, args.root)

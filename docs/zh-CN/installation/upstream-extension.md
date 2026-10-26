@@ -65,6 +65,14 @@ python3 .docker/upstream/guard.py --check-identity \
 
 检查通过仅说明此检测机在该次握手中看到批准的公钥，不证明供应商独立身份、密码有效、目标站点可用或公开 VLESS 路径成功。入口侧与本机网络差异仍需分别验证。
 
+## 运行时保护器部署与回退
+
+[运行时部署工作流](../../../.github/workflows/upstream-runtime-deploy.yml)分为bootstrap、preflight、deploy、status、rollback。bootstrap仅备份审阅过的旧代码/单位，核对固定批准映射与DB，生成专用SSH身份；只回传公钥。通过入口既有管理通道运行[专用安装器](../../../.docker/upstream/install_entry_identity.py)，固定非root用户只能执行证书worker，root持有文件，禁止转发并绑定面板源地址；不重启转发服务。
+
+preflight经实际入口检查28条，另用内存合成错误pin验证U04明确拒绝；不修改map或DB。deploy绑定备份及源码摘要，停止旧timer并等待oneshot，替换guard.py/guard-apply.php/allocation.json/entry_identity.py，增加固定服务override（entry-worker，180秒），立即检查后恢复原timer。旧metadata周期保持；后续应观察自然运行，并以真实公开路径确认线路。固定备份在`/root/xboard-runtime-guard-deploy/20261027`，专用SSH私钥留在面板`/etc/xboard-upstream-identity`，不得复制进仓库。
+
+status仅返回代码摘要、service/timer状态、检查时间及脱敏原因。rollback先核对现存文件和备份，再仅恢复代码、移除本次override并恢复旧timer；不恢复DB、pin或旧guard-state，不重新启用已撤下线路。若身份或来源漂移，继续走人工核实/验收，不改变此部署的固定批准集合。
+
 ## 验证与回退
 
 本地执行 `python3 -m unittest discover -s tests/Upstream -v`、PHP/Python/shell 语法检查和 `python3 .agents/workflow.py verify`。线上应从实际入口验证每档权限、欠费/到期/封禁拒绝、上游失效不直连、倍率与客户端订阅。不能用服务器在线代替可用性；[独享验收脚本](../../../.docker/dedicated/verify-owned.py)仅核对保留的自建子集，拓展权限另按批准清单验证。

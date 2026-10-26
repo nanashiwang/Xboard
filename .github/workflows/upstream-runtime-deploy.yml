@@ -1,0 +1,42 @@
+name: Upstream Runtime Guard Deployment
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Explicit runtime guard stage (bootstrap prints only the dedicated public key)
+        type: choice
+        required: true
+        options: [bootstrap, preflight, deploy, status, rollback]
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run isolated identity transport regression
+        run: python3 -m unittest discover -s tests/Upstream -p 'test_entry_identity.py' -v
+      - name: Install SSH helper
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Execute fixed runtime deployment stage
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          umask 077
+          case "$OPERATION" in bootstrap|preflight|deploy|status|rollback) ;; *) exit 2;; esac
+          test -n "$SSHPASS"
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'umask 077; mktemp -d /tmp/xboard-runtime-deploy.XXXXXX')
+          [[ "$remote_dir" =~ ^/tmp/xboard-runtime-deploy\.[A-Za-z0-9]+$ ]]
+          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/deploy_runtime.py $remote_dir/entry_identity.py $remote_dir/guard.py $remote_dir/guard-apply.php $remote_dir/allocation.json $remote_dir/prepare.py $remote_dir/snapshot.php; rmdir -- $remote_dir"' EXIT
+          sshpass -e scp "${ssh_opts[@]}" .docker/upstream/{deploy_runtime.py,entry_identity.py,guard.py,guard-apply.php,allocation.json,prepare.py,snapshot.php} "root@107.173.191.23:$remote_dir/"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/deploy_runtime.py' '$OPERATION'"

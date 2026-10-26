@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 运行时保护器生产部署（2026-10-27）
+
+用户已要求部署新版。面板没有IPv6，因此采用实际入口执行证书握手、面板保留元数据和受限撤下事务的方式；专用SSH身份只允许固定检测命令，固定主机公钥，请求/响应绑定nonce、摘要和完整节点范围。代码、回归和限定部署/回退入口已完成，生产启用与自然定时结果待验收，不改变批准pin、不自动恢复。见[部署记录](./progress-log.md#2026-10-27新版运行时保护器部署)。
+
 ### 生产外接线路恢复（2026-10-27）
 
 本次授权范围内的41条外接线路已完成生产修复并恢复原订阅显示：39条修复线路发布前、发布后各完成78次严格HTTPS请求，另两条健康线路发布后4次请求通过，最终41/41、82/82通过；新加坡两条包含在内。首轮23条地址与34条pin的重叠变更集合已核准，维护期间发生的5条、22条再次公钥变化均单独复核后补修；3条公共CA线路保留CA校验，权限、倍率、用户身份和自建线路保持。28条AnyTLS批准映射已从发布后验证一致的数据库同步，原始出站备份与限定回退保留；客户端可更新Xboard订阅后重连，可见数量仍按套餐权限。
