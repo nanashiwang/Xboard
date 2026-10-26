@@ -28,3 +28,24 @@ jobs:
         run: |
           openssl version
           python -m unittest discover -s tests/Upstream -v
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sqlite3, pdo_sqlite, redis, pcntl, bcmath
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Verify bounded transactions without production bootstrap
+        run: |
+          php -l .docker/upstream/snapshot.php
+          php -l .docker/upstream/recovery.php
+          php tests/Upstream/test-recovery.php
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.2'
+          cache-dependency-path: .docker/upstream/quic-observer/go.sum
+      - name: Verify QUIC certificate-only observer
+        working-directory: .docker/upstream/quic-observer
+        run: |
+          go mod download
+          go mod verify
+          go test -mod=readonly -race ./...

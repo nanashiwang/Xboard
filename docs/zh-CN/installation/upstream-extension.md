@@ -70,3 +70,7 @@ python3 .docker/upstream/guard.py --check-identity \
 本地执行 `python3 -m unittest discover -s tests/Upstream -v`、PHP/Python/shell 语法检查和 `python3 .agents/workflow.py verify`。线上应从实际入口验证每档权限、欠费/到期/封禁拒绝、上游失效不直连、倍率与客户端订阅。不能用服务器在线代替可用性；[独享验收脚本](../../../.docker/dedicated/verify-owned.py)仅核对保留的自建子集，拓展权限另按批准清单验证。
 
 生产容器 `storage/app/backups/upstream-20261022/` 保留一致性 SQLite 备份、原字段快照、私有 manifest 和发布结果；宿主同名 backups 目录保留执行/验收结果。回退先隐藏清单中的公开记录、停用对应后端并确认旧链接拒绝，再停用探针 2、保护定时器及拓展服务。Nginx 只移除 `BEGIN/END upstream-extension-20261022` 区段并检查后重载；限速只移除优先级 47000–47007。确认没有监听后可删除专用 nft 表与服务文件。不要整库恢复、替换整个 Nginx 路由文件或修改原 53 条节点、套餐、用户、订单、NAS 探针和独享池。
+
+## 人工恢复工具
+
+候选准备同时覆盖TCP、QUIC与公共CA；宿主固定私有manifest、approved、allocation及当前数据库父子/标签共同限定41条，容器缺失副本不再作为持久存储。缺失宿主映射仍拒绝，不自动重建。`maintain.py`只接受prepare计划ID/SHA与人工选定候选摘要；先在线备份，分步撤下、隐藏应用、验收后公开，漂移/未知结果拒绝重放，回退保持撤下。当前工作流仅开放prepare，尚未执行生产恢复；最新事实见[进展](../../../progress-log.md#2026-10-27生产外接线路人工恢复)。

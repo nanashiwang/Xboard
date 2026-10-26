@@ -24,6 +24,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.2'
+          cache-dependency-path: .docker/upstream/quic-observer/go.sum
+      - name: Test and build pinned QUIC certificate observer
+        working-directory: .docker/upstream/quic-observer
+        run: |
+          set -euo pipefail
+          go mod download
+          go mod verify
+          go test -mod=readonly -race ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o "$RUNNER_TEMP/quic-observer-linux-amd64" .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o "$RUNNER_TEMP/quic-observer-darwin-arm64" .
+          chmod 700 "$RUNNER_TEMP/quic-observer-linux-amd64"
       - name: Install SSH client helper
         run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
       - name: Prepare private candidates without changing production
@@ -40,6 +54,9 @@ jobs:
           sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'cd /root/Xboard && docker compose exec -T xboard php -l' < .docker/upstream/snapshot.php
           remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'umask 077; mktemp -d /tmp/xboard-upstream-prepare.XXXXXX')
           [[ "$remote_dir" =~ ^/tmp/xboard-upstream-prepare\.[A-Za-z0-9]+$ ]]
-          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/prepare.py $remote_dir/snapshot.php $remote_dir/guard.py $remote_dir/allocation.json; rmdir -- $remote_dir"' EXIT
+          quic_sha=$(sha256sum "$RUNNER_TEMP/quic-observer-linux-amd64" | cut -d ' ' -f 1)
+          [[ "$quic_sha" =~ ^[a-f0-9]{64}$ ]]
+          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/prepare.py $remote_dir/snapshot.php $remote_dir/guard.py $remote_dir/allocation.json $remote_dir/quic-observer-linux-amd64; rmdir -- $remote_dir"' EXIT
           sshpass -e scp "${ssh_opts[@]}" .docker/upstream/{prepare.py,snapshot.php,guard.py,allocation.json} "root@107.173.191.23:$remote_dir/"
-          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/prepare.py'"
+          sshpass -e scp "${ssh_opts[@]}" "$RUNNER_TEMP/quic-observer-linux-amd64" "root@107.173.191.23:$remote_dir/"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "chmod 700 '$remote_dir/quic-observer-linux-amd64' && PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/prepare.py' --quic-observer-sha256 '$quic_sha'"

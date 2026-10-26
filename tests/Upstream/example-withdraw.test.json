@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "action": "withdraw",
+  "plan_id": "ff12c1f78aafc5a6298166b117e541a1c165ace553a80716d0167d596b21efba",
+  "routes": [
+    {
+      "key": "U01",
+      "backend_id": 359,
+      "public_id": 360,
+      "original_state": {
+        "backend": {
+          "id": 359,
+          "machine_id": 21,
+          "parent_id": null,
+          "type": "vless",
+          "show": 0,
+          "enabled": 1,
+          "tags": "[\"upstream-extension-backend\"]",
+          "group_ids": "[1,6]",
+          "rate": "1.0000",
+          "protocol_settings": "{\"inbound\":\"unchanged\"}",
+          "custom_routes": "[{\"outbound\":\"fixture-only\"}]",
+          "custom_outbounds": "[{\"protocol\":\"anytls\",\"settings\":{\"password\":\"test-only-not-a-real-secret\",\"server\":\"192.0.2.1\",\"server_port\":443,\"tls\":{\"certificate_public_key_sha256\":[\"YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=\"],\"enabled\":true,\"insecure\":false,\"server_name\":\"approved.test.invalid\"}},\"tag\":\"fixture-only\"}]"
+        },
+        "public": {
+          "id": 360,
+          "machine_id": null,
+          "parent_id": 359,
+          "type": "vless",
+          "show": 1,
+          "enabled": 1,
+          "tags": "[\"upstream-extension-public\"]",
+          "group_ids": "[1,6]",
+          "rate": "1.0000",
+          "protocol_settings": "{\"inbound\":\"unchanged\"}",
+          "custom_routes": null,
+          "custom_outbounds": null
+        }
+      },
+      "original_state_sha256": "cc0662c6ed2b968d50348e6255ff79cde317e1fbc29e9fef93f544a728ae7005",
+      "identity": {
+        "key": "U01",
+        "ip": "8.8.8.8",
+        "port": 443,
+        "sni": "approved.test.invalid",
+        "pin": "YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI="
+      },
+      "candidate_digest": "4dc225b4851f06bde24fa4130779eb1895e16ff0d3c732f595f98c6024cde6d8",
+      "expected_sha256": "cc0662c6ed2b968d50348e6255ff79cde317e1fbc29e9fef93f544a728ae7005"
+    }
+  ]
+}

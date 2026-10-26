@@ -27,6 +27,9 @@ PRIVATE_ROOT = Path('/root/Xboard/backups/upstream-20261022')
 PLAN_ROOT = Path('/root/xboard-upstream-recovery')
 SIBLING = Path(__file__).resolve().parent
 TCP_TYPES = {'anytls', 'trojan'}
+QUIC_TOOL_NAME = 'quic-observer-linux-amd64'
+QUIC_FAILURES = {'invalid_input', 'identity_timeout', 'tls_failed', 'quic_unreachable',
+                 'quic_handshake_failed', 'certificate_invalid'}
 FIELDS = ('key', 'ip', 'port', 'sni', 'pin')
 MAX_DNS = 8
 STAGE = 'startup'
@@ -103,13 +106,16 @@ def validate_scope(allocation, approved, snapshot):
     return scopes, approved_rows, current
 
 
-def snapshot_database(allocation):
+def snapshot_database(allocation, manifest):
     global STAGE, DIAGNOSTICS
     encoded = base64.b64encode(canonical(allocation)).decode()
     program = (SIBLING / 'snapshot.php').read_text()
     if program.count('__ALLOCATION_BASE64__') != 1:
         raise ContractError()
     program = program.replace('__ALLOCATION_BASE64__', encoded)
+    if program.count('__MANIFEST_BASE64__') != 1:
+        raise ContractError()
+    program = program.replace('__MANIFEST_BASE64__', base64.b64encode(manifest).decode())
     result = subprocess.run(['docker', 'compose', 'exec', '-T', 'xboard', 'php'],
                             cwd='/root/Xboard', input=program.encode(), capture_output=True, timeout=60)
     if len(result.stdout) > 5 * 1024 * 1024:
@@ -150,6 +156,23 @@ def hostname(value):
     return value
 
 
+def quic_alpn(source, settings):
+    # This helper cannot model obfuscation or port hopping. Such a change needs
+    # separate review; never reinterpret it as a certificate/address rotation.
+    if (any(source.get(key) for key in ('obfs', 'obfs-password', 'ports', 'hop-interval'))
+            or any(settings.get(key) for key in ('obfs', 'server_ports', 'hop_interval', 'transport'))
+            or source.get('network') not in (None, 'udp')):
+        raise ContractError()
+    source_alpn = source.get('alpn') or ['h3']
+    current_alpn = settings['tls'].get('alpn') or ['h3']
+    if (not isinstance(source_alpn, list) or not 1 <= len(source_alpn) <= 8
+            or source_alpn != current_alpn
+            or any(not isinstance(value, str) or not 1 <= len(value) <= 255
+                   or any(ord(c) < 33 or ord(c) > 126 for c in value) for value in source_alpn)):
+        raise ContractError()
+    return source_alpn
+
+
 def source_target(source, settings):
     host = hostname(source['server'])
     port = source['port']
@@ -162,7 +185,9 @@ def source_target(source, settings):
         raise ContractError()
     # Do not silently reinterpret transport differences as an address rotation.
     network = source.get('network', 'tcp')
-    if network == 'tcp':
+    if source.get('type') == 'hysteria2':
+        quic_alpn(source, settings)
+    elif network == 'tcp':
         if source.get('ws-opts') or settings.get('transport'):
             raise ContractError()
     elif network == 'ws' and source.get('type') == 'trojan':
@@ -183,8 +208,62 @@ def source_target(source, settings):
         value = base64.b64decode(pin, validate=True)
         if len(value) != 32 or base64.b64encode(value).decode() != pin:
             raise ContractError()
-    current_ip = str(ipaddress.ip_address(settings['server']))
+    try:
+        current_ip = str(ipaddress.ip_address(settings['server']))
+    except ValueError:
+        if source.get('type') != 'hysteria2' or settings['server'] != host:
+            raise ContractError()
+        current_ip = None
     return host, port, sni, pins, current_ip
+
+
+def source_target_ca(source, settings):
+    """Preserve the CA VLESS transport/identity contract; discover addresses only."""
+    host = hostname(source['server'])
+    port = source['port']
+    sni = hostname(source.get('sni') or source.get('servername') or host)
+    tls = settings.get('tls')
+    if (type(port) is not int or not 1 <= port <= 65535 or settings.get('server_port') != port
+            or not isinstance(tls, dict) or tls.get('enabled') is not True
+            or tls.get('insecure', False) is not False or tls.get('server_name') != sni
+            or 'certificate_public_key_sha256' in tls or source.get('tls') is not True
+            or source.get('skip-cert-verify', False) is not False
+            or settings.get('uuid') != source.get('uuid') or not isinstance(source.get('uuid'), str)
+            or (settings.get('flow') or '') != (source.get('flow') or '')
+            or source.get('alterId', 0) != 0 or source.get('cipher', 'auto') != 'auto'
+            or any(source.get(key) for key in ('reality-opts', 'ech-opts'))
+            or any(tls.get(key) for key in ('reality', 'ech', 'certificate', 'certificate_path',
+                    'client_certificate', 'client_certificate_path', 'client_key', 'client_key_path'))):
+        raise ContractError()
+    uuid.UUID(source['uuid'])
+    alpn = source.get('alpn') or []
+    if (not isinstance(alpn, list) or len(alpn) > 8 or alpn != (tls.get('alpn') or [])
+            or any(not isinstance(value, str) or not 1 <= len(value) <= 255
+                   or any(ord(c) < 33 or ord(c) > 126 for c in value) for value in alpn)):
+        raise ContractError()
+    network = source.get('network', 'tcp')
+    if network == 'tcp':
+        if source.get('ws-opts') or settings.get('transport'):
+            raise ContractError()
+    elif network == 'ws':
+        opts = source.get('ws-opts', {})
+        if not isinstance(opts, dict) or set(opts) - {'path', 'headers'}:
+            raise ContractError()
+        transport = {'type': 'ws', 'path': opts.get('path', '/')}
+        if 'headers' in opts:
+            transport['headers'] = opts['headers']
+        if settings.get('transport') != transport:
+            raise ContractError()
+    else:
+        raise ContractError()
+    current_server = hostname(settings['server'])
+    try:
+        current_ip = str(ipaddress.ip_address(current_server))
+    except ValueError:
+        if current_server != host:
+            raise ContractError()
+        current_ip = None
+    return host, port, sni, [], current_ip, alpn
 
 
 DNS_PROGRAM = """import socket,json,sys
@@ -265,7 +344,115 @@ def observe(ip, port, sni, timeout=6):
         return {'reason': 'identity_discovery_failed'}
 
 
-def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resolver=resolve, observer=observe):
+def observe_ca(ip, port, sni, alpn=None, timeout=6):
+    """CA validation must succeed before any SPKI observation becomes a candidate."""
+    deadline = time.monotonic() + timeout
+    def remaining():
+        value = deadline - time.monotonic()
+        if value <= 0:
+            raise TimeoutError()
+        return value
+    try:
+        address = ipaddress.ip_address(ip)
+        context = ssl.create_default_context()
+        # No insecure mode, custom trust roots, or arbitrary context is accepted
+        # from a source entry. Dial a fixed IP and verify the original TLS name.
+        if alpn:
+            context.set_alpn_protocols(alpn)
+        with socket.socket(socket.AF_INET6 if address.version == 6 else socket.AF_INET, socket.SOCK_STREAM) as connection:
+            connection.settimeout(remaining())
+            connection.connect((str(address), port))
+            with context.wrap_socket(connection, server_hostname=sni, do_handshake_on_connect=False) as tls:
+                tls.settimeout(remaining())
+                tls.do_handshake()
+                certificate = tls.getpeercert(binary_form=True)
+        pin, before, after = certificate_data(certificate, remaining)
+        return {'pin': pin, 'not_before': before, 'not_after': after,
+                'certificate_time_valid': before <= time.time() <= after, 'ca_validated': True}
+    except (TimeoutError, socket.timeout, subprocess.TimeoutExpired):
+        return {'reason': 'identity_timeout'}
+    except ssl.SSLCertVerificationError:
+        return {'reason': 'ca_validation_failed'}
+    except ssl.SSLError:
+        return {'reason': 'tls_failed'}
+    except FileNotFoundError:
+        return {'reason': 'identity_tool_unavailable'}
+    except (subprocess.CalledProcessError, ContractError, ValueError):
+        return {'reason': 'certificate_invalid'}
+    except OSError:
+        return {'reason': 'tcp_unreachable'}
+    except Exception:
+        return {'reason': 'identity_discovery_failed'}
+
+
+def verify_quic_tool(expected_sha256):
+    """Only run the fixed sibling built by the trusted checkout workflow.
+
+    The hash comes from that build, never workflow_dispatch or the subscription.
+    The private directory prevents another user replacing a verified executable.
+    """
+    if not isinstance(expected_sha256, str) or not re.fullmatch(r'[a-f0-9]{64}', expected_sha256):
+        raise ContractError()
+    directory = SIBLING.lstat()
+    if (not stat.S_ISDIR(directory.st_mode) or directory.st_uid != os.geteuid()
+            or directory.st_mode & 0o077):
+        raise ContractError()
+    path = SIBLING / QUIC_TOOL_NAME
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb') as file:
+        info = os.fstat(file.fileno())
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o700 or not 0 < info.st_size <= 16 * 1024 * 1024):
+            raise ContractError()
+        if hashlib.sha256(file.read()).hexdigest() != expected_sha256:
+            raise ContractError()
+    return path
+
+
+def observe_quic(tool, ip, port, sni, alpn, timeout=8):
+    """Capture private helper stdout; expose only a validated observation/class."""
+    try:
+        result = subprocess.run([str(tool)], input=canonical({'ip': ip, 'port': port, 'sni': sni, 'alpn': alpn}),
+                                capture_output=True, timeout=timeout)
+        if len(result.stdout) > 4096:
+            raise ContractError()
+        def unique_object(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value:
+                    raise ContractError()
+                value[key] = item
+            return value
+        observed = json.loads(result.stdout, object_pairs_hook=unique_object)
+        if not isinstance(observed, dict):
+            raise ContractError()
+        if 'reason' in observed:
+            if (set(observed) != {'reason'} or observed['reason'] not in QUIC_FAILURES
+                    or result.returncode != (2 if observed['reason'] == 'invalid_input' else 1)):
+                raise ContractError()
+            return observed
+        if result.returncode != 0 or set(observed) != {'pin', 'not_before', 'not_after', 'certificate_time_valid'}:
+            raise ContractError()
+        pin = observed['pin']
+        decoded = base64.b64decode(pin, validate=True)
+        start, end = observed['not_before'], observed['not_after']
+        if (len(decoded) != 32 or base64.b64encode(decoded).decode() != pin
+                or type(start) is not int or type(end) is not int or end < start
+                or type(observed['certificate_time_valid']) is not bool):
+            raise ContractError()
+        # The receiving process also checks time; a helper flag can never turn
+        # an already expired / not-yet-valid observation into a valid candidate.
+        observed['certificate_time_valid'] = observed['certificate_time_valid'] and start <= time.time() <= end
+        return observed
+    except subprocess.TimeoutExpired:
+        return {'reason': 'identity_timeout'}
+    except OSError:
+        return {'reason': 'identity_tool_unavailable'}
+    except Exception:
+        return {'reason': 'identity_observer_invalid_output'}
+
+
+def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resolver=resolve, observer=observe,
+                 quic_observer=None, ca_observer=observe_ca):
     now = time.time() if now is None else now
     scopes, approved_rows, current = validate_scope(allocation, approved, snapshot)
     names = {}
@@ -298,13 +485,19 @@ def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resol
         if not quota_ok:
             report['reason'] = 'quota_or_expiry_rejected'
             return private, report
-        if scope['upstream_type'] not in TCP_TYPES:
+        if scope['upstream_type'] not in TCP_TYPES | {'hysteria2', 'vless'}:
             report['reason'] = 'outside_tcp_identity_discovery'
+            return private, report
+        if scope['upstream_type'] == 'hysteria2' and quic_observer is None:
+            report['reason'] = 'identity_tool_unavailable'
             return private, report
         try:
             settings = settings_for(snap, scope['upstream_type'])
-            host, port, sni, pins, current_ip = source_target(matches[0], settings)
-            if not global_unicast(current_ip):
+            if scope['upstream_type'] == 'vless':
+                host, port, sni, pins, current_ip, alpn = source_target_ca(matches[0], settings)
+            else:
+                host, port, sni, pins, current_ip = source_target(matches[0], settings)
+            if current_ip is not None and not global_unicast(current_ip):
                 raise ContractError()
         except Exception:
             report['reason'] = 'current_source_contract_mismatch'
@@ -316,9 +509,16 @@ def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resol
             addresses = []
             report['dns_reason'] = 'dns_resolution_failed'
         # Always inspect the existing approved endpoint, even if DNS fails.
-        endpoints = sorted(set(addresses) | {current_ip})
+        endpoints = sorted(set(addresses) | ({current_ip} if current_ip is not None else set()))
         for ip in endpoints:
-            observation = observer(ip, port, sni)
+            if scope['upstream_type'] == 'hysteria2':
+                observation = quic_observer(ip, port, sni, quic_alpn(matches[0], settings))
+            elif scope['upstream_type'] == 'vless':
+                observation = ca_observer(ip, port, sni, alpn)
+                if 'reason' not in observation and observation.get('ca_validated') is not True:
+                    observation = {'reason': 'ca_validation_failed'}
+            else:
+                observation = observer(ip, port, sni)
             entry = {'current_endpoint': ip == current_ip, 'source_dns_endpoint': ip in addresses}
             if 'reason' in observation:
                 entry['reason'] = observation['reason']
@@ -328,6 +528,8 @@ def prepare_rows(allocation, approved, snapshot, proxies, usage, now=None, resol
             commitment = digest(identity)
             entry.update(candidate_digest=commitment, old_pin_matches=identity['pin'] in pins,
                          certificate_time_valid=observation['certificate_time_valid'], reason='observed_not_approved')
+            if scope['upstream_type'] == 'vless':
+                entry['ca_validated'] = True
             private['candidates'].append({'identity': identity, 'candidate_digest': commitment, **observation,
                                           'old_pin_matches': entry['old_pin_matches'],
                                           'current_endpoint': entry['current_endpoint'], 'source_dns_endpoint': entry['source_dns_endpoint']})
@@ -360,6 +562,8 @@ def main():
     global STAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--allocation', type=Path, default=SIBLING / 'allocation.json')
+    parser.add_argument('--quic-observer-sha256', required=True,
+                        help='SHA256 of the fixed sibling executable from the trusted workflow build')
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise ContractError()
@@ -374,20 +578,29 @@ def main():
     STAGE = 'guard_module'
     guard = load_guard(SIBLING / 'guard.py')
     STAGE = 'database_snapshot'
-    snapshot = snapshot_database(allocation)
+    STAGE = 'manifest_storage'
+    manifest_bytes = private_file(PRIVATE_ROOT / 'manifest.private')
+    STAGE = 'database_snapshot'
+    snapshot = snapshot_database(allocation, manifest_bytes)
     STAGE = 'scope_validation'
     validate_scope(allocation, approved, snapshot)
     STAGE = 'source_fetch'
     proxies, usage = guard.fetch_subscription(PRIVATE_ROOT)
+    STAGE = 'quic_observer_verification'
+    quic_tool = verify_quic_tool(args.quic_observer_sha256)
     STAGE = 'candidate_discovery'
-    private, report_rows = prepare_rows(allocation, approved, snapshot, proxies, usage)
+    private, report_rows = prepare_rows(allocation, approved, snapshot, proxies, usage,
+        quic_observer=lambda ip, port, sni, alpn: observe_quic(quic_tool, ip, port, sni, alpn))
     plan = {'schema': 1, 'prepared_at': int(time.time()), 'allocation_sha256': digest(allocation),
+            'manifest_file_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
             'approved_file_sha256': hashlib.sha256(approved_bytes).hexdigest(), 'usage': usage, 'routes': private,
-            'trust_status': 'candidate_observations_only_not_approved', 'production_mutated': False}
+            'trust_status': 'candidate_observations_only_not_approved', 'production_mutated': False,
+            'tools': {'quic_observer_sha256': args.quic_observer_sha256}}
     STAGE = 'private_plan_storage'
     plan_id, plan_hash, directory = save_plan(PLAN_ROOT, plan)
     report = {'status': 'prepared', 'schema': 1, 'plan_id': plan_id, 'plan_sha256': plan_hash,
-              'production_mutated': False, 'trust_status': 'candidate_observations_only_not_approved', 'routes': report_rows}
+              'production_mutated': False, 'trust_status': 'candidate_observations_only_not_approved', 'routes': report_rows,
+              'tools': {'quic_observer_sha256': args.quic_observer_sha256}}
     (directory / 'report.json').write_bytes(canonical(report))
     print(json.dumps(report, ensure_ascii=False), flush=True)
 

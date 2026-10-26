@@ -96,9 +96,9 @@ Status: implemented
 
 用户在2026-10-27明确授权核实后的生产公钥和地址修复、逐条验证及回退。复用原首次信任边界：源HTTPS订阅证明其声明的端点/凭据，跨网络一致与严格候选pin业务成功支持本次有限人工TOFU复验，不冒充供应商独立签发指纹。优先在源DNS候选中找到原pin，仅更新IP；没有原身份时逐项审定候选，禁止扫描结果直接覆盖批准基线。
 
-[prepare.py](../../../../.docker/upstream/prepare.py)与[快照助手](../../../../.docker/upstream/snapshot.php)是只读入口：以allocation、approved及私有manifest核对41对映射，捕获完整配置状态摘要以识别并发漂移，按精确来源名/指纹检查额度有效性。31条TCP发现候选不发送代理身份或应用数据；候选承诺对key/IP/port/SNI/pin规范JSON取SHA256，公开报告只含承诺、来源名摘要、布尔和分类；快照前置失败仅返回白名单布尔及有界数量以定位存储/结构，不输出原始异常或映射内容。私有计划在面板专用目录0700/0600，观察值不自动成为信任值；Hysteria2和公共CA线路须另按协议验证。[工作流](../../../../.github/workflows/upstream-maintenance.yml)复用已有生产SSH身份，仅允许master和prepare，当前不提供更新或恢复入口。
+[prepare.py](../../../../.docker/upstream/prepare.py)与[快照助手](../../../../.docker/upstream/snapshot.php)是只读入口：以allocation、approved及私有manifest核对41对映射，捕获完整配置状态摘要以识别并发漂移，按精确来源名/指纹检查额度有效性。31条TCP、7条QUIC和3条公共CA观察不发送代理身份或应用数据；候选承诺对key/IP/port/SNI/pin规范JSON取SHA256，公开报告只含承诺、来源名摘要、布尔和分类；快照前置失败仅返回白名单布尔及有界数量以定位存储/结构，不输出原始异常或映射内容。私有计划在面板专用目录0700/0600，观察值不自动成为信任值；Hysteria2使用固定依赖源码构建的仅证书QUIC观察器，严格核对二进制SHA；公共CA线路保持系统CA与SNI验证，观察pin不转为CA线路的固定pin。容器丢失manifest时拒绝继续；生产原映射改从固定宿主持久私有文件读取并验证，缺失不生成。[工作流](../../../../.github/workflows/upstream-maintenance.yml)复用已有生产SSH身份，仅允许master和prepare，当前不提供更新或恢复入口。
 
-真实恢复需备份、限定字段事务、期望状态摘要、私有pin映射一致、先隐藏再验证最后恢复公开；失败维持撤下，回退只恢复受影响字段，不能整库覆盖订单/流量。只读准备初次37项专项CI通过；前置失败后补固定阶段白名单与来源内容摘要交叉核对、多播/保留地址拒绝，38项本地Python回归和PHP语法通过，生产候选/变更/公开路径结果以[进展](../../../../progress-log.md#2026-10-27生产外接线路人工恢复)为准。
+[维护driver](../../../../.docker/upstream/maintain.py)及[事务助手](../../../../.docker/upstream/recovery.php)落实在线SQLite备份、限定字段事务、原状态/候选/计划摘要绑定；分步withdraw、apply_hidden、publish与rollback，候选不在CLI接收自由IP/公钥。私有映射、来源、全配置漂移拒绝继续；intent无receipt不自动重放。回退只恢复本次出站且维持撤下，不能整库覆盖订单/流量。生产执行还需人工核定候选、私有pin映射一致及真实公开路径验收。只读准备初次37项专项CI通过；前置失败后补固定阶段白名单与来源内容摘要交叉核对、多播/保留地址拒绝，38项本地Python回归和PHP语法通过，生产候选/变更/公开路径结果以[进展](../../../../progress-log.md#2026-10-27生产外接线路人工恢复)为准。
 
 ## Alternatives considered
 

@@ -20,7 +20,9 @@ try {
     $allocation = json_decode(base64_decode('__ALLOCATION_BASE64__', true), true, 512, JSON_THROW_ON_ERROR);
     $path = '/www/storage/app/backups/upstream-20261022/manifest.private';
     $diagnostics = ['manifest_exists' => file_exists($path), 'manifest_readable' => is_readable($path)];
-    $manifest = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+    // Host-persisted private bytes are validated by prepare.py and passed on stdin.
+    // Container storage is not an authority: a recreated image can lose that copy.
+    $manifest = json_decode(base64_decode('__MANIFEST_BASE64__', true), true, 512, JSON_THROW_ON_ERROR);
     $diagnostics += ['manifest_object' => is_array($manifest), 'machine_matches' => ($manifest['machine_id'] ?? null) === 21,
         'routes_array' => is_array($manifest['routes'] ?? null), 'route_count' => is_array($manifest['routes'] ?? null) ? count($manifest['routes']) : 0];
     if (($allocation['machine_id'] ?? null) !== 21 || ($manifest['machine_id'] ?? null) !== 21
