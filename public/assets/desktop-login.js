@@ -75,11 +75,20 @@
   function enterWebsite(page) {
     try {
       sessionStorage.setItem(pendingKey, JSON.stringify({ request_id: id, expires_at: Date.parse(context.expires_at) }));
-      location.assign(page === 'register' ? '/#/register' : '/#/login');
+      location.replace(page === 'register' ? '/#/register' : '/#/login');
     } catch (_) { show('浏览器存储不可用，请允许本站存储后重试。', ['retry']); }
   }
   el('login').onclick = function () { enterWebsite('login'); };
   el('register').onclick = function () { enterWebsite('register'); };
+  function closeApprovedPage() {
+    show('授权完成，正在关闭此页面…', []);
+    // A browser may refuse to close a tab with existing navigation history.
+    // That does not undo the approval or stop the client's independent exchange.
+    try { window.close(); } catch (_) {}
+    setTimeout(function () {
+      if (!window.closed) show('授权完成。请关闭此标签页并返回卡皮巴拉客户端。', []);
+    }, 300);
+  }
   async function decide(approved) {
     if (running) return;
     // Never silently approve with a different account than the one displayed.
@@ -87,10 +96,13 @@
     running = true;
     ['approve', 'reject'].forEach(function (name) { el(name).disabled = true; });
     try {
-      await api('auth/browser/approve', selectedToken, { request_id: id, approved: approved });
-      sessionStorage.removeItem(pendingKey);
+      var result = await api('auth/browser/approve', selectedToken, { request_id: id, approved: approved });
+      if (result !== true) throw new Error('尚未确认授权结果，请稍后重试。');
+      // Storage cleanup must not turn an already committed approval into an error.
+      try { sessionStorage.removeItem(pendingKey); } catch (_) {}
       el('details').hidden = true;
-      show(approved ? '授权完成，请返回卡皮巴拉客户端。此页面可以关闭。' : '已取消授权，可以关闭此页面。', []);
+      if (approved) closeApprovedPage();
+      else show('已取消授权，可以关闭此页面。', []);
     } catch (e) {
       show(e.message, e.status === 410 || e.status === 409 ? [] : ['retry']);
     } finally {

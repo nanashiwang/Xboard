@@ -13,21 +13,26 @@ const storage = () => {
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 function harness(script, replies = [], login = '') {
   const dom = new JSDOM(readFileSync(new URL('resources/views/client/browser-login.blade.php', root), 'utf8'));
-  const localStorage = storage(), sessionStorage = storage(), calls = [], redirects = [];
+  const localStorage = storage(), sessionStorage = storage(), calls = [], redirects = [], navigation = [];
   if (login) localStorage.setItem('VUE_NAIVE_ACCESS_TOKEN', JSON.stringify({ value: login }));
-  const intervals = [], events = {};
+  const intervals = [], events = {}, timeouts = new Map();
+  let nextTimer = 0;
+  const window = { closed: false, closeCalls: 0, close() { this.closeCalls++; this.closed = true; } };
   const context = {
-    document: dom.window.document, location: { hash: '#request_id=' + id, assign: (url) => redirects.push(url), replace: (url) => redirects.push(url), reload: () => redirects.push('reload') },
-    localStorage, sessionStorage, URLSearchParams, AbortController, setTimeout, clearTimeout, Date,
+    document: dom.window.document, location: { hash: '#request_id=' + id, assign: (url) => { navigation.push('assign'); redirects.push(url); }, replace: (url) => { navigation.push('replace'); redirects.push(url); }, reload: () => redirects.push('reload') },
+    localStorage, sessionStorage, URLSearchParams, AbortController, Date, window,
+    setTimeout(fn) { timeouts.set(++nextTimer, fn); return nextTimer; }, clearTimeout(timer) { timeouts.delete(timer); },
     setInterval: (fn) => { intervals.push(fn); return intervals.length; }, clearInterval() {}, addEventListener(name, fn) { events[name] = fn; },
     async fetch(path, options) {
       calls.push({ path, options });
-      const reply = replies.shift();
+      const reply = await replies.shift();
       assert.ok(reply, 'unexpected API call: ' + path);
       return { ok: reply.status < 400, status: reply.status, json: async () => ({ data: reply.data }) };
     },
   };
-  return { ...context, calls, redirects, intervals, events, run() { vm.runInNewContext(readFileSync(new URL('public/assets/' + script, root), 'utf8'), context); },
+  return { ...context, calls, redirects, navigation, intervals, events,
+    flushTimeouts() { const pending = [...timeouts.values()]; timeouts.clear(); pending.forEach(fn => fn()); },
+    run() { vm.runInNewContext(readFileSync(new URL('public/assets/' + script, root), 'utf8'), context); },
     el(name) { return context.document.getElementById(name); } };
 }
 const pending = () => ({ status: 200, data: { device_name: '测试电脑', platform: 'macos', expires_at: new Date(Date.now() + 240000).toISOString() } });
@@ -45,7 +50,50 @@ test('existing web login requires explicit approval; desktop tokens never enter 
   assert.equal(h.calls[2].options.headers.Authorization, 'Bearer web-only');
   assert.match(h.el('message').textContent, /授权完成/);
   assert.equal(h.el('approve').hidden, true);
+  assert.equal(h.window.closeCalls, 1);
   assert.deepEqual(h.redirects, []);
+});
+test('approval waits for server confirmation before closing, even if storage cleanup fails', async () => {
+  let confirm;
+  const h = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'test@example.invalid' } },
+    new Promise(resolve => { confirm = resolve; })], 'web-session');
+  h.run(); await settle();
+  h.sessionStorage.removeItem = () => { throw new Error('storage unavailable'); };
+  h.el('approve').click(); await settle();
+  assert.equal(h.window.closeCalls, 0);
+  assert.equal(h.el('approve').disabled, true);
+  confirm({ status: 200, data: true }); await settle();
+  assert.equal(h.window.closeCalls, 1);
+  assert.match(h.el('message').textContent, /授权完成/);
+  assert.equal(h.el('retry').hidden, true);
+});
+test('blocked or throwing window.close keeps successful approval and offers no repeat approval', async () => {
+  for (const throws of [false, true]) {
+    const h = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'test@example.invalid' } }, { status: 200, data: true }], 'web-session');
+    h.window.close = () => { h.window.closeCalls++; if (throws) throw new Error('blocked'); };
+    h.run(); await settle(); h.el('approve').click(); await settle(); h.flushTimeouts();
+    assert.equal(h.window.closeCalls, 1);
+    assert.equal(h.window.closed, false);
+    assert.match(h.el('message').textContent, /授权完成。请关闭此标签页/);
+    assert.equal(h.el('approve').hidden, true);
+    assert.equal(h.el('retry').hidden, true);
+    assert.equal(h.calls.length, 3);
+  }
+});
+test('failed or unconfirmed approvals keep the page open for recovery', async () => {
+  for (const reply of [{ status: 503 }, { status: 401 }, { status: 410 }, { status: 200, data: false }]) {
+    const h = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'test@example.invalid' } }, reply], 'web-session');
+    h.run(); await settle(); h.el('approve').click(); await settle();
+    assert.equal(h.window.closeCalls, 0);
+    assert.doesNotMatch(h.el('message').textContent, /授权完成/);
+  }
+});
+test('rejecting authorization does not close the page or report success', async () => {
+  const h = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'test@example.invalid' } }, { status: 200, data: true }], 'web-session');
+  h.run(); await settle(); h.el('reject').click(); await settle();
+  assert.deepEqual(JSON.parse(h.calls[2].options.body), { request_id: id, approved: false });
+  assert.equal(h.window.closeCalls, 0);
+  assert.match(h.el('message').textContent, /已取消授权/);
 });
 test('signed-out flow stores only request and expiry, then opens the existing website login', async () => {
   const h = harness('desktop-login.js', [pending()]); h.run(); await settle();
@@ -55,6 +103,7 @@ test('signed-out flow stores only request and expiry, then opens the existing we
   assert.deepEqual(Object.keys(marker).sort(), ['expires_at', 'request_id']);
   assert.equal(marker.request_id, id);
   assert.deepEqual(h.redirects, ['/#/login']);
+  assert.deepEqual(h.navigation, ['replace']);
 });
 test('changing the web account requires a fresh confirmation', async () => {
   const h = harness('desktop-login.js', [pending(), { status: 200, data: { email: 'one@example.invalid' } }, pending(), { status: 200, data: { email: 'two@example.invalid' } }], 'first');
@@ -62,15 +111,18 @@ test('changing the web account requires a fresh confirmation', async () => {
   h.localStorage.setItem('VUE_NAIVE_ACCESS_TOKEN', JSON.stringify({ value: 'second' }));
   h.el('approve').click(); await settle();
   assert.equal(h.calls.filter((call) => call.options.method === 'POST').length, 0);
+  assert.equal(h.window.closeCalls, 0);
   assert.equal(h.el('account').textContent, 'two@example.invalid');
 });
 test('expired or malformed requests cannot be approved', async () => {
   const h = harness('desktop-login.js', [{ status: 410 }], 'session'); h.run(); await settle();
   assert.match(h.el('message').textContent, /已结束/);
   assert.equal(h.el('approve').hidden, true);
+  assert.equal(h.window.closeCalls, 0);
   const bad = harness('desktop-login.js'); bad.location.hash = '#request_id=https://evil.invalid'; bad.run(); await settle();
   assert.equal(bad.calls.length, 0);
   assert.match(bad.el('message').textContent, /链接无效/);
+  assert.equal(bad.window.closeCalls, 0);
 });
 test('login return validates new session and only navigates to a fixed same-origin page', async () => {
   const h = harness('desktop-login-return.js', [{ status: 401 }, { status: 200, data: { is_login: true } }], 'expired');

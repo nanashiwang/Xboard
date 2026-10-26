@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉授权页自动关闭（2026-10-26）
+
+官网授权接口确认成功后，授权页自动尝试关闭，客户端继续独立兑换登录结果，无需升级现有 0.1.1 客户端。失败、过期和取消不自动关闭；浏览器限制关闭时保留明确的成功提示，避免重复授权。登录/注册跳转使用 replace 减少临时历史，网页不接触客户端令牌。本地网页 14 项、后端授权及并发 9 项 / 110 断言通过；Chrome 隔离页面确认新标签授权后消失，受限页面保留成功提示。官网构建和生产部署待完成，详见[进展](./progress-log.md#2026-10-26卡皮巴拉授权页自动关闭)与[授权决定](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
+
 ### 卡皮巴拉开机自启与后台运行（2026-10-26）
 
 客户端新增“帮助与设置 → 启动与后台 → 开机自启”，默认关闭；开启后在登录电脑时后台启动，不自动开启系统代理。关闭窗口隐藏到后台，托盘提供打开和退出；明确退出仍恢复代理并停止内核。本地隔离检查为前端 35、网页/发布脚本 12、Rust 17 项通过；macOS 自启启停、注册项实际启动、单实例重开、关闭保留进程和 Cmd+Q 退出已验。按用户授权与节点优化合并为 0.1.1，合并版已验证节点加载/测速、关闭保留三进程、Cmd+Q 清理和重开恢复登录；现有系统代理未改变，托盘点击和开启系统代理后的关闭尚未实测。四目标正式 Release 已通过，官网分发状态见[进展](./progress-log.md#2026-10-26卡皮巴拉开机自启与后台运行)及[决定](./.agents/notes/implemented/feature/2026-10-26-capybara-background-startup.md)。

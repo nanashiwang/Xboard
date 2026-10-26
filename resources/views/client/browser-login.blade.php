@@ -6,7 +6,7 @@
   <title>登录卡皮巴拉客户端</title>
   <link rel="icon" href="/assets/capybara-home/icon.webp">
   <link rel="stylesheet" href="/assets/desktop-login.css?v=1">
-  <script defer src="/assets/desktop-login.js?v=2"></script>
+  <script defer src="/assets/desktop-login.js?v=3"></script>
 </head>
 <body>
   <main>
