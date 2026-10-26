@@ -12,6 +12,10 @@ import { command } from "../src/bridge";
 import { emptyView, type View } from "../src/model";
 
 vi.mock("../src/Updates", () => ({ default: () => null }));
+vi.mock("../src/Routing", () => ({
+    default: () => null,
+    useRouting: () => undefined,
+}));
 vi.mock("../src/bridge", () => ({
     command: vi.fn(),
     preview: null,

@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉分流模式与自定义规则（2026-10-26）
+
+客户端首页补上规则、全局、直连三种模式，以及自定义分流规则管理。全局模式提供独立的出口选择；规则支持域名、域名后缀和 IPv4/IPv6 网段，可走订阅节点/代理组、直连或拦截，并可编辑、删除、调整优先顺序。设置由原生层校验和保存，重新启动与刷新订阅继续使用。应用结果、本地检查、安装包发布和官网分发分别记录在[进展](./progress-log.md#2026-10-26卡皮巴拉分流模式与自定义规则)，取舍见[分流决定](./.agents/notes/implemented/feature/2026-10-26-capybara-routing.md)。分流 0.1.3 的本地合并检查已通过（前端 57、脚本 16、Rust 30，另 1 项既有手工钥匙串测试跳过），最小窗口与三模式内核流量验证通过；通知和邀请 0.1.2 已完成发布上线，本次分流 0.1.3 接续发布；当前本地验证完成，Release 和本机安装结果见进展。
+
 ### 卡皮巴拉邀请好友与首页适配（2026-10-26）
 
 客户端新增邀请好友：查看本人邀请码、复制邀请链接、展示二维码、主动生成新码，以及注册人数、佣金统计和分页明细。规则与官网共用，无套餐也可使用；提现与余额划转仍在官网办理。首页按窗口高度适配，整页保持固定，仅节点列表内部滚动。明暗主题、760×620 最小窗口及异常状态已验；0.1.2 已安装，真实账号邀请读取、二维码和复制通过，官网配套接口已上线；结果见[进展](./progress-log.md#2026-10-26卡皮巴拉邀请好友与首页适配)，取舍见[邀请决定](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)与[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。

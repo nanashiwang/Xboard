@@ -3,6 +3,7 @@ import Notifications from "./Notifications";
 import Plans from "./Plans";
 import Home from "./Home";
 import { useNodes } from "./nodes";
+import { useRouting } from "./Routing";
 import DesktopSettings from "./DesktopSettings";
 import Invites from "./Invites";
 import { useEffect, useRef, useState } from "react";
@@ -45,6 +46,7 @@ const pages = [
 ];
 export default function App() {
     const nodes = useNodes();
+    const routing = useRouting(nodes.refresh);
     const [view, setView] = useState<View>(emptyView),
         [page, setPage] = useState("home"),
         [busy, setBusy] = useState(""),
@@ -284,6 +286,7 @@ export default function App() {
                 {page === "home" && (
                     <Home
                         nodes={nodes}
+                        routing={routing}
                         view={view}
                         busy={busy}
                         eligible={eligible}

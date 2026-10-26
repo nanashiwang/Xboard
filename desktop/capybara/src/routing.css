@@ -1,0 +1,248 @@
+.routing-control {
+    padding: 16px 18px;
+}
+.routing-heading,
+.routing-heading > span,
+.routing-manage,
+.routing-feedback {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.routing-heading {
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.routing-heading strong {
+    font-size: 14px;
+}
+.routing-heading > span > svg {
+    color: var(--accent);
+}
+.routing-manage {
+    color: var(--accent);
+    font-size: 12px;
+    padding: 5px 0 5px 8px;
+}
+.routing-manage span {
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--soft);
+}
+.routing-modes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 4px;
+    gap: 4px;
+    background: var(--soft);
+    border-radius: 12px;
+}
+.routing-modes button {
+    padding: 9px 6px;
+    font-size: 13px;
+    border-radius: 9px;
+    color: var(--muted);
+}
+.routing-modes button[aria-pressed="true"] {
+    background: var(--panel);
+    color: var(--accent);
+    font-weight: 650;
+    box-shadow: 0 2px 7px #223c5810;
+}
+.routing-description {
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.6;
+    margin-top: 10px;
+}
+.routing-scope {
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: 4px;
+}
+.routing-feedback {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--accent);
+    margin-top: 10px;
+    overflow-wrap: anywhere;
+}
+.routing-error {
+    color: var(--danger);
+}
+.routing-dialog {
+    width: min(800px, calc(100vw - 40px));
+    max-height: min(780px, calc(100dvh - 48px));
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel);
+    color: var(--ink);
+    padding: 24px;
+    box-shadow: 0 24px 90px #0e264b40;
+}
+.routing-dialog::backdrop {
+    background: #0d1e4166;
+    backdrop-filter: blur(3px);
+}
+.routing-dialog-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+.routing-dialog-heading h2 {
+    font-size: 20px;
+}
+.routing-dialog-heading p {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: 8px;
+}
+.routing-dialog-heading > button {
+    display: grid;
+    place-items: center;
+    padding: 5px;
+}
+.routing-rule-list {
+    margin-top: 20px;
+}
+.routing-rule {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 0 0 14px;
+    min-width: 0;
+}
+.routing-rule legend {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 6px;
+}
+.routing-rule-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 12px;
+}
+.routing-rule-fields label {
+    display: grid;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 0;
+}
+.routing-rule-fields input,
+.routing-rule-fields select {
+    min-width: 0;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--ink);
+    font: inherit;
+    font-size: 12px;
+    height: 38px;
+    padding: 7px 9px;
+}
+.routing-rule-fields :is(input, select):focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+.routing-rule-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+.routing-rule-actions > span {
+    margin-right: auto;
+    font-size: 11px;
+    color: var(--muted);
+}
+.routing-rule-actions button,
+.routing-add,
+.routing-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
+    padding: 5px;
+}
+.routing-rule-actions .routing-delete {
+    color: var(--danger);
+}
+.routing-add {
+    width: 100%;
+    color: var(--accent);
+    padding: 12px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+}
+.routing-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+}
+.routing-empty strong {
+    display: block;
+    color: var(--ink);
+    font-size: 14px;
+    margin: 10px 0;
+}
+.routing-empty p,
+.routing-hint {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--muted);
+}
+.routing-hint {
+    margin-top: 12px;
+}
+.routing-dialog-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+.routing-dialog-footer > span {
+    margin-right: auto;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.routing-dialog-footer button {
+    flex-shrink: 0;
+    font-size: 13px;
+    border-radius: 9px;
+    padding: 10px 16px;
+}
+.routing-dialog-footer .routing-save {
+    background: var(--accent);
+    color: white;
+}
+@media (max-width: 640px) {
+    .routing-dialog {
+        padding: 18px;
+        width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+    }
+    .routing-rule-fields {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .routing-rule-fields .routing-value {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+    .routing-dialog-footer {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .routing-dialog-footer > span {
+        flex-basis: 100%;
+    }
+}

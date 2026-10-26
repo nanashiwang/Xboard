@@ -88,5 +88,12 @@ export function useNodes() {
             testing.current = false;
         }
     };
-    return { view, pending, error, select, test };
+    const refresh = async () => {
+        try {
+            merge(await command<NodeView>("nodes_snapshot"));
+        } catch (e) {
+            if (alive.current) setError(errorText(e));
+        }
+    };
+    return { view, pending, error, select, test, refresh };
 }

@@ -16,6 +16,7 @@ import {
 import { bytes, quotaPercent, type View } from "./model";
 import "./home.css";
 import { delayLabel, type useNodes } from "./nodes";
+import Routing, { type RoutingState } from "./Routing";
 
 const regions = ["全部", "亚洲", "美洲", "欧洲", "其他"] as const;
 const locations = [
@@ -49,7 +50,8 @@ function NodeSymbol({ name }: { name: string }) {
 }
 type Props = {
     view: View;
-    nodes: ReturnType<typeof useNodes>;
+    nodes: Omit<ReturnType<typeof useNodes>, "refresh">;
+    routing?: RoutingState;
     busy: string;
     eligible: boolean;
     primaryText: string;
@@ -61,6 +63,7 @@ type Props = {
 export default function Home({
     view,
     nodes,
+    routing,
     busy,
     eligible,
     primaryText,
@@ -74,7 +77,16 @@ export default function Home({
     const [group, setGroup] = useState("");
     const search = useRef<HTMLInputElement>(null);
     const connected = view.connection === "connected";
-    const routes = view.logged_in ? nodes.view.routes : [];
+    const mode = routing?.view.settings.mode || "rule";
+    const direct = mode === "direct";
+    const routes =
+        view.logged_in && !direct
+            ? nodes.view.routes.filter((route) =>
+                  mode === "global"
+                      ? route.group === "GLOBAL"
+                      : route.group !== "GLOBAL",
+              )
+            : [];
     const route = routes.find((r) => r.group === group) || routes[0];
     const selected = route?.selected;
     const percent = quotaPercent(view.subscription);
@@ -127,7 +139,9 @@ export default function Home({
                             </span>
                             <h2>
                                 {connected
-                                    ? selected || "轻松连接"
+                                    ? direct
+                                        ? "直连模式"
+                                        : selected || "轻松连接"
                                     : "世界很大，\n一起出发。"}
                             </h2>
                             <p>慢下来，也能和世界靠得很近。</p>
@@ -172,37 +186,39 @@ export default function Home({
                     <button
                         className="current-node glass-card"
                         onClick={showNodes}
+                        disabled={direct}
                         aria-label="查看首页节点列表"
                     >
                         <NodeSymbol name={selected || ""} />
                         <span className="current-node-copy">
                             <strong>
-                                {selected ||
-                                    (connected
-                                        ? "按规则自动分流"
-                                        : "登录后自动同步节点")}
+                                {direct
+                                    ? "直连模式"
+                                    : selected ||
+                                      (connected
+                                          ? "按规则自动分流"
+                                          : "登录后自动同步节点")}
                             </strong>
                             <small>
                                 <Wifi size={14} />
-                                {connected
-                                    ? view.connection_error
-                                        ? "请检测当前连接"
-                                        : "系统代理已开启"
-                                    : "连接前自动检查套餐状态"}
+                                {direct
+                                    ? "流量不经过代理节点"
+                                    : connected
+                                      ? view.connection_error
+                                          ? "请检测当前连接"
+                                          : "系统代理已开启"
+                                      : "连接前自动检查套餐状态"}
                             </small>
                         </span>
                         <ChevronRight size={20} />
                     </button>
+                    {routing && (
+                        <Routing
+                            routing={routing}
+                            disabled={!!busy || !!nodes.pending}
+                        />
+                    )}
                     <div className="home-shortcuts">
-                        <div className="home-shortcut glass-card">
-                            <span className="shortcut-icon">
-                                <ShieldCheck size={25} />
-                            </span>
-                            <span>
-                                <strong>规则分流</strong>
-                                <small>跟随套餐连接规则</small>
-                            </span>
-                        </div>
                         <button
                             className="home-shortcut glass-card"
                             onClick={onPlans}
@@ -302,17 +318,26 @@ export default function Home({
                     aria-label="首页节点列表"
                 >
                     <div className="node-panel-title">
-                        <h2>选择节点</h2>
+                        <h2>
+                            {direct
+                                ? "直连模式"
+                                : mode === "global"
+                                  ? "全局节点"
+                                  : "选择节点"}
+                        </h2>
                         <span>
                             {route
                                 ? `${route.choices.length} 个选项`
-                                : "随套餐同步"}
+                                : direct
+                                  ? "不经过节点"
+                                  : "随套餐同步"}
                         </span>
                     </div>
                     <label className="node-search">
                         <Search size={18} />
                         <input
                             ref={search}
+                            disabled={direct}
                             aria-label="搜索节点"
                             placeholder="搜索国家、地区或节点"
                             value={query}
@@ -342,6 +367,7 @@ export default function Home({
                             <button
                                 key={name}
                                 aria-pressed={region === name}
+                                disabled={direct}
                                 onClick={() => setRegion(name)}
                             >
                                 {name}
@@ -357,25 +383,29 @@ export default function Home({
                                     <Compass size={38} strokeWidth={1.4} />
                                 )}
                                 <h3>
-                                    {!view.logged_in
-                                        ? "登录，开启下一段旅程"
-                                        : nodes.view.loading
-                                          ? "正在加载套餐节点"
-                                          : nodes.view.error
-                                            ? "节点暂时未加载"
-                                            : view.subscription?.status ===
-                                                "active"
-                                              ? "暂无可选节点"
-                                              : "等待可用套餐"}
+                                    {direct
+                                        ? "当前流量直接访问"
+                                        : !view.logged_in
+                                          ? "登录，开启下一段旅程"
+                                          : nodes.view.loading
+                                            ? "正在加载套餐节点"
+                                            : nodes.view.error
+                                              ? "节点暂时未加载"
+                                              : view.subscription?.status ===
+                                                  "active"
+                                                ? "暂无可选节点"
+                                                : "等待可用套餐"}
                                 </h3>
                                 <p>
-                                    {!view.logged_in
-                                        ? "登录后自动读取当前套餐节点，无需先连接。"
-                                        : nodes.view.error ||
-                                          (view.subscription?.status ===
-                                          "active"
-                                              ? "节点会自动同步，可尝试刷新账号。"
-                                              : "开通有效套餐后，这里会自动显示可用节点。")}
+                                    {direct
+                                        ? "直连模式不使用代理节点。切换到规则或全局模式后，可以继续选择节点。"
+                                        : !view.logged_in
+                                          ? "登录后自动读取当前套餐节点，无需先连接。"
+                                          : nodes.view.error ||
+                                            (view.subscription?.status ===
+                                            "active"
+                                                ? "节点会自动同步，可尝试刷新账号。"
+                                                : "开通有效套餐后，这里会自动显示可用节点。")}
                                 </p>
                             </div>
                         ) : choices.length === 0 ? (
@@ -406,7 +436,11 @@ export default function Home({
                                     key={name}
                                     aria-label={`选择节点 ${name}`}
                                     aria-pressed={name === selected}
-                                    disabled={!!busy || !!nodes.pending}
+                                    disabled={
+                                        !!busy ||
+                                        !!nodes.pending ||
+                                        !!routing?.busy
+                                    }
                                     onClick={() =>
                                         void nodes.select(route.group, name)
                                     }
@@ -458,7 +492,10 @@ export default function Home({
                     <button
                         className="node-test-button"
                         disabled={
-                            !routes.length || nodes.view.testing || !!busy
+                            !routes.length ||
+                            nodes.view.testing ||
+                            !!busy ||
+                            !!routing?.busy
                         }
                         onClick={() => void nodes.test()}
                     >
@@ -474,9 +511,11 @@ export default function Home({
                     <div className="node-panel-footer">
                         <ShieldCheck size={16} />
                         <span>
-                            {connected
-                                ? "选择节点即切换 · 延迟随网络变化"
-                                : "可先选节点、测速，再开启连接"}
+                            {direct
+                                ? "直连模式 · 自定义规则暂不生效"
+                                : connected
+                                  ? "选择节点即切换 · 延迟随网络变化"
+                                  : "可先选节点、测速，再开启连接"}
                         </span>
                     </div>
                 </section>

@@ -1,6 +1,11 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { UpdateView } from "./Updates";
 import type { NodeView } from "./nodes";
+import {
+    routingPreview,
+    routingPreviewRoutes,
+    selectPreviewGlobal,
+} from "./routing-preview";
 import { emptyView, type View } from "./model";
 export const native = isTauri();
 export const preview =
@@ -97,7 +102,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.3",
+                  version: "0.1.4",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,
@@ -114,6 +119,11 @@ export async function command<T = View>(
 ): Promise<T> {
     if (native) return invoke<T>(name, args);
     if (preview) {
+        if (name === "fetch_notices") {
+            const { noticePreview } = await import("./notice-preview");
+            return (await noticePreview(preview, Number(args?.page || 1))) as T;
+        }
+        if (name === "open_notice_link") return undefined as T;
         if (name === "invite_request") {
             const { invitePreview } = await import("./invite-preview");
             return invitePreview(
@@ -122,11 +132,6 @@ export async function command<T = View>(
                 Number(args?.page || 1),
             ) as T;
         }
-        if (name === "fetch_notices") {
-            const { noticePreview } = await import("./notice-preview");
-            return (await noticePreview(preview, Number(args?.page || 1))) as T;
-        }
-        if (name === "open_notice_link") return undefined as T;
         if (name === "desktop_settings" || name === "set_autostart") {
             if (name === "set_autostart")
                 demoDesktop = {
@@ -163,7 +168,18 @@ export async function command<T = View>(
                 };
             return structuredClone(demoUpdate) as T;
         }
-        if (name === "nodes_snapshot") return structuredClone(demoNodes) as T;
+        if (name === "routing_snapshot" || name === "save_routing") {
+            const ready =
+                demo.logged_in && demo.subscription?.status === "active";
+            const result = routingPreview(name, args, ready, demoNodes.routes);
+            if (name === "save_routing") demoNodes.revision++;
+            return result as T;
+        }
+        if (name === "nodes_snapshot")
+            return structuredClone({
+                ...demoNodes,
+                routes: routingPreviewRoutes(demoNodes.routes),
+            }) as T;
         if (name === "test_nodes") {
             demoNodes.testing = true;
             demoNodes.revision++;
@@ -193,13 +209,18 @@ export async function command<T = View>(
             demo = { ...demo, connection: "disconnected" };
         if (name === "select_route") {
             await new Promise((resolve) => setTimeout(resolve, 180));
+            if (args?.group === "GLOBAL")
+                selectPreviewGlobal(String(args?.name));
             demoNodes.routes = demoNodes.routes.map((r) =>
                 r.group === args?.group
                     ? { ...r, selected: String(args?.name) }
                     : r,
             );
             demoNodes.revision++;
-            return structuredClone(demoNodes) as T;
+            return structuredClone({
+                ...demoNodes,
+                routes: routingPreviewRoutes(demoNodes.routes),
+            }) as T;
         }
         if (name === "begin_browser_login")
             demo = {
@@ -229,6 +250,8 @@ export async function command<T = View>(
         return structuredClone(demo) as T;
     }
     if (name === "snapshot") return { ...emptyView } as T;
+    if (name === "routing_snapshot")
+        return routingPreview(name, args, false, []) as T;
     if (name === "nodes_snapshot")
         return {
             revision: 0,

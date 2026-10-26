@@ -1,4 +1,7 @@
-use crate::{account, private_write, proxy};
+use crate::{
+    account, private_write, proxy,
+    routing::{RoutingMode, RoutingSettings},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -25,6 +28,8 @@ pub struct Engine {
     worker: Child,
     input: ChildStdin,
     control: Controller,
+    content: String,
+    settings: RoutingSettings,
 }
 #[derive(Clone)]
 pub struct Controller {
@@ -55,6 +60,55 @@ fn port() -> Result<u16, String> {
         .map_err(|_| "无法分配本地连接端口".into())
 }
 pub fn sanitize(content: &str, port: u16, api: u16, secret: &str) -> Result<String, String> {
+    sanitize_routing(content, port, api, secret, &RoutingSettings::default())
+}
+pub fn routing_targets(content: &str) -> Result<Vec<String>, String> {
+    let source: serde_yaml::Mapping =
+        serde_yaml::from_str(content).map_err(|_| "订阅配置格式无效")?;
+    let mut targets = Vec::new();
+    for key in ["proxy-groups", "proxies"] {
+        if let Some(items) = source
+            .get(serde_yaml::Value::String(key.into()))
+            .and_then(|v| v.as_sequence())
+        {
+            for item in items {
+                if let Some(name) = item.get("name").and_then(|v| v.as_str()) {
+                    if !["DIRECT", "REJECT", "GLOBAL"].contains(&name)
+                        && !name.chars().any(|c| c.is_control() || c == ',')
+                        && !targets.iter().any(|v| v == name)
+                    {
+                        targets.push(name.to_owned());
+                    }
+                }
+            }
+        }
+    }
+    Ok(targets)
+}
+pub fn global_targets(content: &str) -> Result<Vec<String>, String> {
+    let source: serde_yaml::Mapping =
+        serde_yaml::from_str(content).map_err(|_| "订阅配置格式无效")?;
+    Ok(source
+        .get(serde_yaml::Value::String("proxies".into()))
+        .and_then(|v| v.as_sequence())
+        .into_iter()
+        .flatten()
+        .filter_map(|proxy| proxy.get("name").and_then(|v| v.as_str()))
+        .filter(|name| {
+            !["DIRECT", "REJECT", "GLOBAL"].contains(name)
+                && !name.chars().any(|c| c.is_control() || c == ',')
+        })
+        .map(str::to_owned)
+        .collect())
+}
+fn sanitize_routing(
+    content: &str,
+    port: u16,
+    api: u16,
+    secret: &str,
+    settings: &RoutingSettings,
+) -> Result<String, String> {
+    settings.validate(Some(&routing_targets(content)?))?;
     let source: serde_yaml::Mapping =
         serde_yaml::from_str(content).map_err(|_| "订阅配置格式无效")?;
     // Keep only subscription data and rule semantics; never inherit listeners, TUN, scripts or local paths.
@@ -95,6 +149,28 @@ pub fn sanitize(content: &str, port: u16, api: u16, secret: &str) -> Result<Stri
     } else {
         return Err("当前套餐没有可用线路".into());
     }
+    // Define GLOBAL in the configuration itself, so a live global-mode reload never briefly
+    // exposes Mihomo's implicit DIRECT default before a later controller selection arrives.
+    let mut global_choices = global_targets(content)?;
+    if let Some(target) = &settings.global_target {
+        if !global_choices.contains(target) {
+            return Err("全局代理目标必须是当前订阅中的节点".into());
+        }
+        global_choices.retain(|name| name != target);
+        global_choices.insert(0, target.clone());
+    }
+    if global_choices.is_empty() {
+        return Err("当前没有可用的代理节点".into());
+    }
+    let groups = output
+        .entry(serde_yaml::Value::String("proxy-groups".into()))
+        .or_insert_with(|| serde_yaml::Value::Sequence(vec![]));
+    let groups = groups.as_sequence_mut().ok_or("订阅分流组格式无效")?;
+    groups.retain(|group| group.get("name").and_then(|value| value.as_str()) != Some("GLOBAL"));
+    groups.push(
+        serde_yaml::to_value(json!({"name":"GLOBAL", "type":"select", "proxies":global_choices}))
+            .map_err(|_| "无法生成全局分流组")?,
+    );
     for (key, value) in [
         ("mixed-port", json!(port)),
         ("port", json!(0)),
@@ -103,7 +179,7 @@ pub fn sanitize(content: &str, port: u16, api: u16, secret: &str) -> Result<Stri
         ("tproxy-port", json!(0)),
         ("allow-lan", json!(false)),
         ("bind-address", json!("127.0.0.1")),
-        ("mode", json!("rule")),
+        ("mode", json!(settings.mode.as_str())),
         ("log-level", json!("silent")),
         ("external-controller", json!(format!("127.0.0.1:{api}"))),
         ("secret", json!(secret)),
@@ -124,20 +200,28 @@ pub fn sanitize(content: &str, port: u16, api: u16, secret: &str) -> Result<Stri
     {
         dns.remove(serde_yaml::Value::String("listen".into()));
     }
-    if let Some(rules) = output
-        .get_mut(serde_yaml::Value::String("rules".into()))
-        .and_then(|v| v.as_sequence_mut())
-    {
-        rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+    // User overrides take precedence, followed by the service access exception and subscription rules.
+    let existing = output
+        .entry(serde_yaml::Value::String("rules".into()))
+        .or_insert_with(|| serde_yaml::Value::Sequence(vec![]));
+    let rules = existing.as_sequence_mut().ok_or("订阅规则格式无效")?;
+    rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+    for rule in settings.rules.iter().rev() {
+        rules.insert(0, rule.line().into());
     }
     serde_yaml::to_string(&output).map_err(|_| "无法生成本地配置".into())
 }
 impl Engine {
-    pub async fn start(dir: &Path, binary: PathBuf, content: &str) -> Result<Self, String> {
+    pub async fn start(
+        dir: &Path,
+        binary: PathBuf,
+        content: &str,
+        settings: &RoutingSettings,
+    ) -> Result<Self, String> {
         let port = port()?;
         let api = port_fn(port)?;
         let secret = uuid::Uuid::new_v4().to_string();
-        let config = sanitize(content, port, api, &secret)?;
+        let config = sanitize_routing(content, port, api, &secret, settings)?;
         private_write(&dir.join("runtime.yaml"), config.as_bytes())?;
         let launch = Launch {
             dir: dir.into(),
@@ -176,11 +260,20 @@ impl Engine {
         .await
         .map_err(|_| "连接进程异常")?;
         match result {
-            Ok(value) if value["ready"] == true => Ok(Self {
-                worker,
-                input,
-                control: Controller { port, api, secret },
-            }),
+            Ok(value) if value["ready"] == true => {
+                let mut engine = Self {
+                    worker,
+                    input,
+                    control: Controller { port, api, secret },
+                    content: content.to_owned(),
+                    settings: settings.clone(),
+                };
+                if let Err(error) = engine.control.confirm_routing(content, settings).await {
+                    let _ = engine.stop();
+                    return Err(error);
+                }
+                Ok(engine)
+            }
             other => {
                 let _ = writeln!(input, "stop");
                 let _ = worker.wait();
@@ -190,6 +283,47 @@ impl Engine {
                     .unwrap_or_else(|| "内核启动失败，请检查网络和系统代理权限".into()))
             }
         }
+    }
+    pub fn checkpoint(&self) -> (String, RoutingSettings) {
+        (self.content.clone(), self.settings.clone())
+    }
+    pub async fn reload(
+        &mut self,
+        content: &str,
+        settings: &RoutingSettings,
+    ) -> Result<(), String> {
+        // Compose and validate before touching the running core. Roll back even on an ambiguous timeout.
+        let config = sanitize_routing(content, self.port, self.api, &self.secret, settings)?;
+        let selected = self.control.all_routes().await?;
+        if let Err(error) = self
+            .control
+            .apply_config(&config, content, settings, &selected)
+            .await
+        {
+            let old = sanitize_routing(
+                &self.content,
+                self.port,
+                self.api,
+                &self.secret,
+                &self.settings,
+            )?;
+            if self
+                .control
+                .apply_config(&old, &self.content, &self.settings, &selected)
+                .await
+                .is_err()
+            {
+                let _ = self.stop();
+                return Err("分流更新失败，旧配置恢复失败，连接组件已停止，请重新连接".into());
+            }
+            return Err(error);
+        }
+        self.content = content.to_owned();
+        self.settings = settings.clone();
+        Ok(())
+    }
+    pub fn remember_global_target(&mut self, target: String) {
+        self.settings.global_target = Some(target);
     }
     pub fn alive(&mut self) -> bool {
         matches!(self.worker.try_wait(), Ok(None))
@@ -229,26 +363,63 @@ impl Controller {
         }
         response.json().await.map_err(|_| "本地连接响应无效".into())
     }
-    pub async fn reload(&self, content: &str) -> Result<(), String> {
-        let config = sanitize(content, self.port, self.api, &self.secret)?;
-        let selected = self.routes().await.unwrap_or_default();
+    async fn apply_config(
+        &self,
+        config: &str,
+        content: &str,
+        settings: &RoutingSettings,
+        selected: &[Route],
+    ) -> Result<(), String> {
+        let config = selected_config(config, selected)?;
         self.call(
             reqwest::Method::PUT,
             "/configs?force=true",
             Some(json!({"payload": config})),
         )
         .await?;
+        let available = self.all_routes().await?;
         for route in selected {
-            let _ = self.select(&route.group, &route.selected).await;
+            if route.group != "GLOBAL"
+                && available
+                    .iter()
+                    .any(|r| r.group == route.group && r.choices.contains(&route.selected))
+            {
+                self.select(&route.group, &route.selected).await?;
+            }
+        }
+        self.confirm_routing(content, settings).await
+    }
+    async fn confirm_routing(
+        &self,
+        content: &str,
+        settings: &RoutingSettings,
+    ) -> Result<(), String> {
+        // Mihomo's built-in GLOBAL selector starts at DIRECT. Always select a real subscription target.
+        let targets = global_targets(content)?;
+        if let Some(target) = settings.global_target.as_ref().or_else(|| targets.first()) {
+            self.select("GLOBAL", target).await?;
+            let routes = self.all_routes().await?;
+            if !routes
+                .iter()
+                .any(|r| r.group == "GLOBAL" && &r.selected == target)
+            {
+                return Err("全局代理目标未能生效".into());
+            }
+        } else if settings.mode == RoutingMode::Global {
+            return Err("当前没有可用的全局代理节点".into());
+        }
+        let config = self.call(reqwest::Method::GET, "/configs", None).await?;
+        if config["mode"].as_str() != Some(settings.mode.as_str()) {
+            return Err("分流模式未能生效".into());
         }
         Ok(())
     }
-    pub async fn routes(&self) -> Result<Vec<Route>, String> {
+    async fn all_routes(&self) -> Result<Vec<Route>, String> {
         let data = self.call(reqwest::Method::GET, "/proxies", None).await?;
         let map = data["proxies"].as_object().ok_or("线路数据无效")?;
         Ok(map
             .iter()
-            .filter(|(name, v)| name.as_str() != "GLOBAL" && v["type"] == "Selector")
+            .filter(|(_, v)| v["type"] == "Selector")
             .map(|(name, v)| Route {
                 group: name.clone(),
                 selected: v["now"].as_str().unwrap_or("").into(),
@@ -262,6 +433,27 @@ impl Controller {
                     .unwrap_or_default(),
             })
             .collect())
+    }
+    pub async fn routes(&self) -> Result<Vec<Route>, String> {
+        let mode = self.call(reqwest::Method::GET, "/configs", None).await?;
+        let global = mode["mode"] == "global";
+        if mode["mode"] == "direct" {
+            return Ok(vec![]);
+        }
+        let mut routes: Vec<Route> = self
+            .all_routes()
+            .await?
+            .into_iter()
+            .filter(|r| (r.group == "GLOBAL") == global)
+            .collect();
+        if global {
+            for route in &mut routes {
+                route
+                    .choices
+                    .retain(|name| name != "DIRECT" && name != "REJECT" && name != "GLOBAL");
+            }
+        }
+        Ok(routes)
     }
     pub async fn select(&self, group: &str, name: &str) -> Result<(), String> {
         let mut url = reqwest::Url::parse("http://localhost").map_err(|_| "地址无效")?;
@@ -330,6 +522,36 @@ impl Controller {
         }
         Ok(())
     }
+}
+fn selected_config(config: &str, selected: &[Route]) -> Result<String, String> {
+    let mut data: serde_yaml::Value =
+        serde_yaml::from_str(config).map_err(|_| "本地分流配置无效")?;
+    if let Some(groups) = data
+        .get_mut("proxy-groups")
+        .and_then(|v| v.as_sequence_mut())
+    {
+        for group in groups {
+            let Some(name) = group.get("name").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            if name == "GLOBAL" || group.get("type").and_then(|v| v.as_str()) != Some("select") {
+                continue;
+            }
+            let Some(route) = selected.iter().find(|route| route.group == name) else {
+                continue;
+            };
+            if let Some(choices) = group.get_mut("proxies").and_then(|v| v.as_sequence_mut()) {
+                if let Some(index) = choices
+                    .iter()
+                    .position(|v| v.as_str() == Some(&route.selected))
+                {
+                    let current = choices.remove(index);
+                    choices.insert(0, current);
+                }
+            }
+        }
+    }
+    serde_yaml::to_string(&data).map_err(|_| "无法保留已选节点".into())
 }
 fn port_fn(other: u16) -> Result<u16, String> {
     for _ in 0..10 {
@@ -471,6 +693,42 @@ mod tests {
             "x"
         )
         .is_err());
+    }
+    #[test]
+    fn config_places_overrides_and_actual_global_target_before_any_fallback() {
+        use crate::routing::{CustomRule, RuleKind};
+        let raw = "proxies: [{name: one, type: direct}, {name: two, type: direct}]\nproxy-groups: [{name: 代理组, type: select, proxies: [DIRECT, one, two]}]\nrules: ['MATCH,DIRECT']";
+        let mut settings = RoutingSettings {
+            mode: RoutingMode::Global,
+            global_target: Some("two".into()),
+            rules: vec![CustomRule {
+                kind: RuleKind::DomainSuffix,
+                value: "example.com".into(),
+                target: "代理组".into(),
+            }],
+        };
+        let config = sanitize_routing(raw, 1, 2, "x", &settings).unwrap();
+        let selected = selected_config(
+            &config,
+            &[Route {
+                group: "代理组".into(),
+                selected: "two".into(),
+                choices: vec![],
+            }],
+        )
+        .unwrap();
+        let data: serde_yaml::Value = serde_yaml::from_str(&selected).unwrap();
+        assert_eq!(data["mode"], "global");
+        assert_eq!(data["rules"][0], "DOMAIN-SUFFIX,example.com,代理组");
+        assert_eq!(data["rules"][1], "DOMAIN,taige.us,DIRECT");
+        assert_eq!(data["proxy-groups"][0]["proxies"][0], "two");
+        assert_eq!(data["proxy-groups"][1]["name"], "GLOBAL");
+        assert_eq!(
+            data["proxy-groups"][1]["proxies"],
+            serde_yaml::to_value(vec!["two", "one"]).unwrap()
+        );
+        settings.global_target = Some("代理组".into());
+        assert!(sanitize_routing(raw, 1, 2, "x", &settings).is_err());
     }
 }
 
@@ -627,5 +885,152 @@ mod integration {
             .await
             .unwrap();
         assert!(response.status().is_success());
+
+        // End-to-end routing: use a local HTTP server and a deliberately unavailable proxy.
+        // These requests go through the bundled core's mixed port, never through system settings.
+        use crate::routing::{CustomRule, RuleKind};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let target = format!("http://{}/routing-test", listener.local_addr().unwrap());
+        listener.set_nonblocking(true).unwrap();
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let finish = stop.clone();
+        let server = std::thread::spawn(move || {
+            use std::io::Read;
+            while !finish.load(std::sync::atomic::Ordering::SeqCst) {
+                match listener.accept() {
+                    Ok((mut socket, _)) => {
+                        let _ = socket.set_read_timeout(Some(Duration::from_secs(2)));
+                        let mut request = [0; 1024];
+                        let _ = socket.read(&mut request);
+                        let _ = socket
+                            .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n");
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(5))
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+        let unavailable = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let closed_port = unavailable.local_addr().unwrap().port();
+        drop(unavailable);
+        let raw = format!("proxies: [{{name: 测试线路, type: direct}}, {{name: 阻断线路, type: http, server: 127.0.0.1, port: {closed_port}}}]\nproxy-groups: [{{name: 订阅组, type: select, proxies: [DIRECT, 测试线路]}}]\nrules: ['MATCH,DIRECT']\n");
+        let proxy_client = reqwest::Client::builder()
+            .no_proxy()
+            .proxy(reqwest::Proxy::all(format!("http://127.0.0.1:{port}")).unwrap())
+            .timeout(Duration::from_secs(2))
+            .build()
+            .unwrap();
+        let mut settings = RoutingSettings {
+            mode: RoutingMode::Global,
+            global_target: Some("阻断线路".into()),
+            rules: vec![CustomRule {
+                kind: RuleKind::IpCidr,
+                value: "127.0.0.1/32".into(),
+                target: "REJECT".into(),
+            }],
+        };
+        let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
+        // Check the immediately loaded GLOBAL choice before any select command can hide a DIRECT window.
+        controller
+            .call(
+                reqwest::Method::PUT,
+                "/configs?force=true",
+                Some(json!({"payload": config})),
+            )
+            .await
+            .unwrap();
+        assert_eq!(controller.routes().await.unwrap()[0].group, "GLOBAL");
+        assert_eq!(controller.routes().await.unwrap()[0].selected, "阻断线路");
+        assert!(!controller.routes().await.unwrap()[0]
+            .choices
+            .contains(&"订阅组".into()));
+        assert!(
+            proxy_client
+                .get(&target)
+                .send()
+                .await
+                .map(|r| r.status() != reqwest::StatusCode::NO_CONTENT)
+                .unwrap_or(true),
+            "global must use the selected unavailable proxy"
+        );
+        settings.mode = RoutingMode::Direct;
+        let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
+        controller
+            .apply_config(&config, &raw, &settings, &[])
+            .await
+            .unwrap();
+        assert!(controller.routes().await.unwrap().is_empty());
+        assert_eq!(
+            proxy_client.get(&target).send().await.unwrap().status(),
+            reqwest::StatusCode::NO_CONTENT,
+            "direct bypasses custom rejection"
+        );
+        settings.mode = RoutingMode::Rule;
+        let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
+        controller
+            .apply_config(&config, &raw, &settings, &[])
+            .await
+            .unwrap();
+        assert!(controller
+            .routes()
+            .await
+            .unwrap()
+            .iter()
+            .all(|route| route.group != "GLOBAL"));
+        assert!(
+            proxy_client
+                .get(&target)
+                .send()
+                .await
+                .map(|r| r.status() != reqwest::StatusCode::NO_CONTENT)
+                .unwrap_or(true),
+            "custom rule must precede subscription MATCH,DIRECT"
+        );
+        settings.rules.insert(
+            0,
+            CustomRule {
+                kind: RuleKind::IpCidr,
+                value: "127.0.0.1/32".into(),
+                target: "DIRECT".into(),
+            },
+        );
+        let refreshed = raw.replace("MATCH,DIRECT", "MATCH,阻断线路");
+        let config = sanitize_routing(&refreshed, port, api, &secret, &settings).unwrap();
+        controller
+            .apply_config(&config, &refreshed, &settings, &[])
+            .await
+            .unwrap();
+        assert_eq!(
+            proxy_client.get(&target).send().await.unwrap().status(),
+            reqwest::StatusCode::NO_CONTENT,
+            "first user rule remains effective after subscription refresh"
+        );
+        let saved = controller
+            .call(reqwest::Method::GET, "/rules", None)
+            .await
+            .unwrap();
+        assert_eq!(saved["rules"][0]["proxy"], "DIRECT");
+        assert_eq!(saved["rules"][1]["proxy"], "REJECT");
+        assert_eq!(
+            controller
+                .call(reqwest::Method::GET, "/configs", None)
+                .await
+                .unwrap()["mode"],
+            "rule"
+        );
+        let mut invalid = settings.clone();
+        invalid.rules[0].target = "不存在".into();
+        assert!(sanitize_routing(&refreshed, port, api, &secret, &invalid).is_err());
+        assert_eq!(
+            controller
+                .call(reqwest::Method::GET, "/rules", None)
+                .await
+                .unwrap(),
+            saved
+        );
+        stop.store(true, std::sync::atomic::Ordering::SeqCst);
+        server.join().unwrap();
     }
 }

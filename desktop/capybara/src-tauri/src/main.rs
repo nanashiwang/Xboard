@@ -7,9 +7,9 @@ mod invite;
 mod nodes;
 mod notices;
 mod proxy;
+mod routing;
 mod updates;
 use account::{Account, BrowserSession, Fault};
-use engine::Engine;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -177,34 +177,18 @@ impl Runtime {
         let mut nodes = self.nodes.lock().await;
         let result = match content {
             Ok(content) => {
-                nodes.invalidate();
-                if let Some(engine) = nodes.engine.as_ref() {
-                    engine.reload(&content).await
-                } else {
-                    match Engine::start(&self.dir, self.binary.clone(), &content).await {
-                        Ok(engine) => {
-                            nodes.engine = Some(engine);
-                            Ok(())
-                        }
-                        Err(error) => Err(error),
-                    }
-                }
+                nodes
+                    .prepare(&self.dir, self.binary.clone(), &content)
+                    .await
             }
             Err(error) => Err(error.message),
         };
         match result {
-            Ok(()) => {
-                if let Some(engine) = nodes.engine.as_ref() {
-                    match engine.routes().await {
-                        Ok(routes) => {
-                            nodes.view.routes = routes;
-                            nodes.synced = Some(std::time::Instant::now());
-                        }
-                        Err(error) => nodes.view.error = Some(error),
-                    }
-                }
+            Ok(()) => nodes.synced = Some(std::time::Instant::now()),
+            Err(error) => {
+                nodes.routing.error = Some(error.clone());
+                nodes.view.error = Some(error);
             }
-            Err(error) => nodes.view.error = Some(error),
         }
         nodes.view.loading = false;
         nodes.changed();
@@ -595,7 +579,7 @@ fn main() {
             };
             let installing = Arc::new(std::sync::atomic::AtomicBool::new(false));
             updates::start(app.handle(), &dir, installing.clone());
-            let nodes = Arc::new(Mutex::new(nodes::Nodes::default()));
+            let nodes = Arc::new(Mutex::new(nodes::Nodes::new(&dir)));
             let state = Arc::new(Mutex::new(Runtime {
                 account,
                 browser_attempt: None,
@@ -634,6 +618,8 @@ fn main() {
             logout,
             connect,
             disconnect,
+            routing::routing_snapshot,
+            routing::save_routing,
             nodes::nodes_snapshot,
             nodes::select_route,
             nodes::test_nodes,
