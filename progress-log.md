@@ -17,9 +17,11 @@
 
 实现提交 `8bbadf7419d39018783efc1a095e45d070d907cd` 已推送master，README/progress按SHA远程回读一致。首轮[发布构建](https://github.com/nanashiwang/Xboard/actions/runs/40364027032)的Windows原生检查在既有热更新集成测试中返回502而非204，未发布，剩余构建取消。测试跨模式及配置复用HTTP代理连接，回环服务只读一次请求就响应；按规则只影响新连接的既有契约，修正测试禁用连接池、完整读取请求头并显式切回blocking，保留204/拒绝/规则顺序/模式严格断言。日志不足以唯一归因于连接复用或短读，未修改生产引擎，也未用重试放宽断言。修复提交 `4d2e3254ce4901a5ecd7806b79dbdc996e872b47` 已推送；新非阻塞分段请求回归、原取消/分段回归及真实内核集成3项本机通过，第二轮Windows原生验证及安装包构建已通过。当前macOS共46用例（45常规、1既有手动忽略）；前次完整原生43通过，后续认证及fixture改动分别执行受影响集合，不将集合合计冒充新的完整运行。
 
-正式[发布构建40365865195](https://github.com/nanashiwang/Xboard/actions/runs/40365865195)的四目标及publish均success，[0.1.6 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.6)已发布。标签与源码精确对应 `4d2e3254ce4901a5ecd7806b79dbdc996e872b47`，18附件完整下载大小及SHA-256、五份校验清单、四目标签名、更新索引和源码归档逐文件比对通过。中文说明在[RELEASE_NOTES](./desktop/capybara/RELEASE_NOTES.md)，README/progress的实现及CI记录已推送并按SHA远程回读一致。
+正式[发布构建40365865195](https://github.com/nanashiwang/Xboard/actions/runs/40365865195)的四目标及publish均success，[0.1.6 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.6)已发布。标签与源码精确对应 `4d2e3254ce4901a5ecd7806b79dbdc996e872b47`，18附件完整下载大小及SHA-256、五份校验清单、四目标签名、更新索引和源码归档103个文件逐文件比对通过。CI原生全套结果：Windows/Linux各44通过、0失败、0忽略，macOS两架构各45通过、0失败、1既有手动钥匙串测试忽略。Linux在Ubuntu依赖下载耗时后正常完成，未降低检查标准。中文说明在[RELEASE_NOTES](./desktop/capybara/RELEASE_NOTES.md)，README/progress的实现及CI记录已推送并按SHA远程回读一致。
 
-官网静态分发清单只替换11个版本化文件和最后的应用更新索引，沿用摘要校验与索引最后原子发布；同步与公开下载核验完成后补记。生产外接节点配置未改，运行时保护器仍未部署，公开路径恢复未验收；本功能不解决服务器端旧pin/旧IP。另一台电脑的原生升级及真实订阅更新仍待用户现场验收。本次保留香港入口/TUN等无关改动。
+分发提交 `71b96a2a6d32b9ce2cb38aa3a1700c209c53104c` 已推送master，README/progress按该SHA远程回读一致；下载同步4项回归、31笔记工作流与改动链接检查通过。限定[静态同步40370716983](https://github.com/nanashiwang/Xboard/actions/runs/40370716983)已success，校验11个版本文件后最后原子替换应用更新索引。公开请求23项全部通过：taige.us的12个文件完整大小/SHA-256一致，两域更新索引字节均与Release一致且为0.1.6，两域五种安装包的128字节Range、总长度与包头均匹配；四目标签名随对应包保持已验证关系。同步前board默认Python请求曾403，使用核验请求头复查200，最终两域验收通过；未修改Cloudflare策略。
+
+另一台电脑可在“帮助与设置→应用更新→立即检查”升级0.1.6，再在首页“更新订阅”；自动订阅周期默认1小时，仅在应用运行期间生效，休眠后到期补检查。此次仅同步静态安装包与应用更新源，没有部署应用容器或更新网站下载介绍页。生产外接节点配置未改，运行时保护器仍未部署，公开路径恢复未验收；本功能不解决服务器端旧pin/旧IP。另一台电脑的原生升级及真实订阅更新仍待用户现场验收。本次保留香港入口/TUN等无关改动。
 
 ## 2026-10-27：供应商原始订阅41条全量复测
 
