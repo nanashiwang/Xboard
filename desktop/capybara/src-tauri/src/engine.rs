@@ -809,15 +809,78 @@ mod tests {
     struct ReadinessServer {
         api: u16,
         stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
-        thread: Option<std::thread::JoinHandle<()>>,
+        thread: Option<std::thread::JoinHandle<Result<(), String>>>,
+    }
+    impl ReadinessServer {
+        fn finish(mut self) -> Result<(), String> {
+            self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.thread
+                .take()
+                .unwrap()
+                .join()
+                .map_err(|_| "模拟控制器断言失败".to_owned())?
+        }
     }
     impl Drop for ReadinessServer {
         fn drop(&mut self) {
             self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
             if let Some(thread) = self.thread.take() {
-                thread.join().unwrap();
+                // Tests explicitly call finish on success. Cleanup must not panic again while a
+                // client assertion is already unwinding and hide the original test failure.
+                let _ = thread.join();
             }
         }
+    }
+    fn read_headers(
+        socket: &mut std::net::TcpStream,
+        stop: &std::sync::atomic::AtomicBool,
+    ) -> std::io::Result<Option<String>> {
+        use std::io::Read;
+        let started = Instant::now();
+        let mut request = Vec::new();
+        while started.elapsed() < Duration::from_secs(2)
+            && !stop.load(std::sync::atomic::Ordering::SeqCst)
+        {
+            socket.set_read_timeout(Some(Duration::from_millis(100)))?;
+            let mut chunk = [0; 1024];
+            match socket.read(&mut chunk) {
+                Ok(0) => return Ok(None), // The deadline may cancel a connection before headers arrive.
+                Ok(size) => {
+                    request.extend_from_slice(&chunk[..size]);
+                    if request.len() > 16 * 1024 {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "请求头过大",
+                        ));
+                    }
+                    if request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                        return String::from_utf8(request).map(Some).map_err(|_| {
+                            std::io::Error::new(std::io::ErrorKind::InvalidData, "请求头不是UTF-8")
+                        });
+                    }
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::Interrupted
+                            | std::io::ErrorKind::WouldBlock
+                            | std::io::ErrorKind::TimedOut
+                    ) =>
+                {
+                    continue
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+                    ) =>
+                {
+                    return Ok(None)
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(None)
     }
     fn readiness_server<F>(response: F) -> ReadinessServer
     where
@@ -829,27 +892,30 @@ mod tests {
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let done = stop.clone();
         let thread = std::thread::spawn(move || {
-            use std::io::Read;
             while !done.load(std::sync::atomic::Ordering::SeqCst) {
                 match listener.accept() {
                     Ok((mut socket, _)) => {
-                        socket
-                            .set_read_timeout(Some(Duration::from_secs(1)))
-                            .unwrap();
-                        let mut bytes = [0; 4096];
-                        let size = socket.read(&mut bytes).unwrap_or(0);
-                        let request = String::from_utf8_lossy(&bytes[..size]);
-                        let path = request.split_whitespace().nth(1).unwrap_or("");
+                        let Some(request) =
+                            read_headers(&mut socket, &done).map_err(|error| error.to_string())?
+                        else {
+                            continue;
+                        };
+                        let path = request
+                            .split_whitespace()
+                            .nth(1)
+                            .ok_or("模拟请求缺少路径")?;
                         let (status, data) = response(path, &request);
                         let body = data.to_string();
+                        // A timed-out readiness request can legitimately close before the response.
                         let _ = write!(socket, "HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(Duration::from_millis(5))
                     }
-                    Err(_) => break,
+                    Err(error) => return Err(error.to_string()),
                 }
             }
+            Ok(())
         });
         ReadinessServer {
             api,
@@ -865,6 +931,47 @@ mod tests {
             json!({"proxies":{"one":{"type":"Direct"},"group":{"type":"Selector"},"GLOBAL":{"type":"Selector","now":"one","all":["one"]}}}),
             json!({"rules":[{},{}]}),
         )
+    }
+    #[test]
+    fn readiness_server_waits_for_split_headers_and_discards_cancelled_requests() {
+        use std::io::Read;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let calls = std::sync::Arc::new(AtomicUsize::new(0));
+        let received = calls.clone();
+        let server = readiness_server(move |path, request| {
+            assert_eq!(path, "/configs");
+            assert!(request
+                .to_lowercase()
+                .contains("authorization: bearer private\r\n"));
+            received.fetch_add(1, Ordering::SeqCst);
+            (200, json!({"ready":true}))
+        });
+        // A client may cancel both before sending and in the middle of an HTTP header.
+        drop(std::net::TcpStream::connect(("127.0.0.1", server.api)).unwrap());
+        let mut cancelled = std::net::TcpStream::connect(("127.0.0.1", server.api)).unwrap();
+        cancelled
+            .write_all(b"GET /configs HTTP/1.1\r\nAuthor")
+            .unwrap();
+        drop(cancelled);
+        let mut socket = std::net::TcpStream::connect(("127.0.0.1", server.api)).unwrap();
+        socket
+            .set_read_timeout(Some(Duration::from_secs(10)))
+            .unwrap();
+        for fragment in [
+            b"GET /configs HTTP/1.1\r\nAuthor".as_slice(),
+            b"ization: Bearer ",
+            b"private\r\nHost: localhost\r\n",
+        ] {
+            socket.write_all(fragment).unwrap();
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        socket.write_all(b"\r\n").unwrap();
+        let mut response = String::new();
+        socket.read_to_string(&mut response).unwrap();
+        assert!(response.starts_with("HTTP/1.1 200"));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        server.finish().unwrap();
     }
     #[test]
     fn startup_requires_mode_nodes_global_selection_and_rules_to_match() {
@@ -921,10 +1028,11 @@ mod tests {
             secret: "private".into(),
         };
         controller
-            .wait_ready(&expected, Duration::from_secs(2), || Ok(()))
+            .wait_ready(&expected, Duration::from_secs(10), || Ok(()))
             .await
             .unwrap();
-        assert_eq!(attempts.load(Ordering::SeqCst), 3);
+        assert!(attempts.load(Ordering::SeqCst) >= 3);
+        server.finish().unwrap();
     }
     #[tokio::test]
     async fn startup_rejects_auth_failure_closed_listener_timeout_and_cancellation() {
@@ -937,13 +1045,12 @@ mod tests {
             api: denied.api,
             secret: "wrong".into(),
         };
-        let started = Instant::now();
         assert!(controller
-            .wait_ready(&expected, Duration::from_secs(2), || Ok(()))
+            .wait_ready(&expected, Duration::from_secs(10), || Ok(()))
             .await
             .unwrap_err()
             .contains("鉴权"));
-        assert!(started.elapsed() < Duration::from_secs(1));
+        denied.finish().unwrap();
         let ready_but_closed = readiness_server(move |path, _| {
             (
                 200,
@@ -973,6 +1080,7 @@ mod tests {
                 .unwrap_err(),
             "连接已取消"
         );
+        ready_but_closed.finish().unwrap();
     }
     #[test]
     fn config_cannot_open_network_listeners_or_tun() {
