@@ -36,7 +36,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 运行时 AnyTLS 公钥身份检测（2026-10-26）
 
-外接[保护器](./.docker/upstream/guard.py)补上已批准固定端点的 SPKI 握手检测，独立于订阅抓取宽限；公钥不符及无法验证均失败关闭，只撤下、不接纳新公钥、不自动恢复。新增只读 `--check-identity`，新加坡 U04/U05 可按 key 单独检查。本机用当天配置快照的旧 pin 实测两个端点，均准确返回 `runtime_public_key_mismatch`；生产脚本、信任映射和服务配置未改，不能据此称节点已恢复。回归、CI与交付状态见[进展](./progress-log.md#2026-10-26运行时-anytls-公钥身份检测)，输入格式和使用方法见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。
+外接[保护器](./.docker/upstream/guard.py)补上已批准固定端点的 SPKI 握手检测，独立于订阅抓取宽限；公钥不符及无法验证均失败关闭，只撤下、不接纳新公钥、不自动恢复。新增只读 `--check-identity`，新加坡 U04/U05 可按 key 单独检查。本机用当天配置快照的旧 pin 实测两个端点，均准确返回 `runtime_public_key_mismatch`；生产脚本、信任映射和服务配置未改，不能据此称节点已恢复。本地25项回归、专项CI、笔记校验与双架构镜像构建通过；代码 `de4ec6e` 已推送 master，交付状态见[进展](./progress-log.md#2026-10-26运行时-anytls-公钥身份检测)，输入格式和使用方法见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。
 
 ### 外接节点测速失败排查（2026-10-26）
 

@@ -4,6 +4,19 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-26：运行时 AnyTLS 公钥身份检测
+
+用户要求补齐外接节点保护器对本次新加坡 `unrecognized remote public key` 的可执行检测，保持失败关闭、不接纳新公钥、不改生产配置。复用[既有决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，在原笔记更新事实与取舍，未另立重复决定。
+
+- 核对 guard.py、guard-apply.php、分配清单、历史 setup_guard/pin_cross/convert 生成逻辑及当天受限出站快照。原 approved.private 只含 key/两层 ID/来源名称与 JSON 摘要，没有运行时 pin；历史 pinned.private 已有 key/ip/port/sni/pin 可复用。公开清单 U04=365→366、U05=367→368，28 条 AnyTLS；未将当前观测公钥升级为批准值。
+- 新检查按旧固定 IP/端口/SNI 握手，提取叶证书 SPKI DER→SHA256→Base64。订阅成功与抓取失败均执行，分类记录公钥不匹配、TCP/TLS/超时、工具/证书失败和映射异常；原元数据理由优先，失败只合并到原受限撤下事务。元数据24小时宽限不遮蔽身份拒绝；成功不自动恢复。非 AnyTLS 不声称已检查，未知 key 不扩大范围，输出不含端点、SNI、完整摘要或异常文本。
+- 增加只读 `--check-identity`/可重复 `--key`，无订阅读取、状态写入或 Docker/数据库操作；操作说明与部署依赖见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。本次不部署；后续需验证私有映射、同步 allocation.json，并评估原120秒service预算至至少180秒，不能只替换脚本后跳过缺失映射。
+- 23:00（Asia/Shanghai）使用此前同日只读配置快照内的旧 pin，在本机执行新检测器检查 U04/U05。两个原端点均返回 `runtime_public_key_mismatch`，进程退出1，且未发送账号或业务请求。临时检查文件仅含旧批准值，执行后删除；未写入 Git。此结果是本机检测器对旧批准身份的现场拒绝，不等于当前入口进程内存快照、线上定时器执行或节点恢复。
+- 本轮 SSH 初次因认证尝试过多被拒，限定唯一密钥后握手超时；未修改认证、服务或生产文件，也未将该失败描述为线上检查成功。检查范围以仓库、既有受限快照及本机TLS证据为准。
+- 回归覆盖合成新加坡两条字段不变/公钥变化、同公钥换证、SNI与零应用字节、TLS/网络/工具/解析异常、缺失重复映射、抓取失败、撤下合并、不恢复、空范围不报成功及脱敏。[Upstream Guard Regression](./.github/workflows/upstream-guard.yml)在相关代码变更时执行，无生产凭据或公网节点依赖。
+
+本地 `python3 -m unittest discover -s tests/Upstream -v` 全部25项通过（含9项真实回环TLS/工具故障检查）；Python语法编译、`python3 .agents/workflow.py verify`（31篇含既有未提交笔记）和diff检查通过。代码提交 `de4ec6ea542a01af1d0bb597c98354e616825419` 已推送 master；[专项回归](https://github.com/nanashiwang/Xboard/actions/runs/40346287483)、[笔记CI](https://github.com/nanashiwang/Xboard/actions/runs/40346286656)、[双架构镜像构建与推送](https://github.com/nanashiwang/Xboard/actions/runs/40346286565)均成功。镜像标签 `ghcr.io/nanashiwang/xboard:de4ec6e` 的远端 manifest 已核验含 linux/amd64 与 linux/arm64，索引摘要 `sha256:597fe240565423b15053df3c35ebb3a7f3f1b2e31b184399cd59d0a504f46332`。README/progress-log 已按该SHA从GitHub回读逐字节一致；24处新增本地文档链接/锚点已校验。远端回读曾遇TLS超时，改用JSON内容接口后完成核验，没有以超时或触发构建代替成功。生产未部署，真实公开路径恢复未验。该宿主保护脚本没有独立版本号、标签规范、附件或 GitHub Release 流程，本次不变更卡皮巴拉0.1.5，不借桌面发布流程制造无关版本；按 master 提交推送并核验既有镜像流水线，构建成功也不代表线上保护器已升级。已有香港入口/TUN等未提交改动保持原归属。
+
 ## 2026-10-26：Windows 0.1.5 美国01连接差异诊断
 
 用户确认 Windows 0.1.5、v2rayN 已关闭退出，故障节点为美国01家宽，在 v2rayN 可用而自有客户端失败。未取得该 Windows 的完整错误和运行日志；不把另一任务的第三方 AnyTLS 公钥错误归因到这条自建节点，不把 macOS 成功当作 Windows 已修复。诊断取舍见[决定](./.agents/notes/implemented/process/2026-10-26-capybara-windows-diagnostics.md)。
@@ -73,19 +86,6 @@
 - [教程同步](https://github.com/nanashiwang/Xboard/actions/runs/40309882467) 成功，按旧正文哈希和写前备份只更新文章 5，不改其他文章。已安装 0.1.2 可立即手动检查，无需等待六小时；本轮没有操控用户另一台电脑或替用户确认安装，因此不声称远端安装升级已实测。
 - 网络边界：首次 Actions 派发超时后先确认没有创建运行，再重试成功；Linux AppImage 首次公网下载超时，重试后完整摘要与签名通过。初次本地 PHP 使用已有预览容器配置停滞，停止该测试进程后改用独立配置缓存路径与内存 SQLite，13 / 131 通过。未把中途超时当作终态成功，也未跳过任何最终校验。最终仅补验收文档，不再构建、发版或部署。
 
-
-## 2026-10-26：运行时 AnyTLS 公钥身份检测
-
-用户要求补齐外接节点保护器对本次新加坡 `unrecognized remote public key` 的可执行检测，保持失败关闭、不接纳新公钥、不改生产配置。复用[既有决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，在原笔记更新事实与取舍，未另立重复决定。
-
-- 核对 guard.py、guard-apply.php、分配清单、历史 setup_guard/pin_cross/convert 生成逻辑及当天受限出站快照。原 approved.private 只含 key/两层 ID/来源名称与 JSON 摘要，没有运行时 pin；历史 pinned.private 已有 key/ip/port/sni/pin 可复用。公开清单 U04=365→366、U05=367→368，28 条 AnyTLS；未将当前观测公钥升级为批准值。
-- 新检查按旧固定 IP/端口/SNI 握手，提取叶证书 SPKI DER→SHA256→Base64。订阅成功与抓取失败均执行，分类记录公钥不匹配、TCP/TLS/超时、工具/证书失败和映射异常；原元数据理由优先，失败只合并到原受限撤下事务。元数据24小时宽限不遮蔽身份拒绝；成功不自动恢复。非 AnyTLS 不声称已检查，未知 key 不扩大范围，输出不含端点、SNI、完整摘要或异常文本。
-- 增加只读 `--check-identity`/可重复 `--key`，无订阅读取、状态写入或 Docker/数据库操作；操作说明与部署依赖见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。本次不部署；后续需验证私有映射、同步 allocation.json，并评估原120秒service预算至至少180秒，不能只替换脚本后跳过缺失映射。
-- 23:00（Asia/Shanghai）使用此前同日只读配置快照内的旧 pin，在本机执行新检测器检查 U04/U05。两个原端点均返回 `runtime_public_key_mismatch`，进程退出1，且未发送账号或业务请求。临时检查文件仅含旧批准值，执行后删除；未写入 Git。此结果是本机检测器对旧批准身份的现场拒绝，不等于当前入口进程内存快照、线上定时器执行或节点恢复。
-- 本轮 SSH 初次因认证尝试过多被拒，限定唯一密钥后握手超时；未修改认证、服务或生产文件，也未将该失败描述为线上检查成功。检查范围以仓库、既有受限快照及本机TLS证据为准。
-- 回归覆盖合成新加坡两条字段不变/公钥变化、同公钥换证、SNI与零应用字节、TLS/网络/工具/解析异常、缺失重复映射、抓取失败、撤下合并、不恢复、空范围不报成功及脱敏。[Upstream Guard Regression](./.github/workflows/upstream-guard.yml)在相关代码变更时执行，无生产凭据或公网节点依赖。
-
-本地 `python3 -m unittest discover -s tests/Upstream -v` 全部25项通过（含9项真实回环TLS/工具故障检查）；Python语法编译、`python3 .agents/workflow.py verify`（31篇含既有未提交笔记）和diff检查通过。GitHub Actions 与交付终态将在推送后补记；生产未部署，真实公开路径恢复未验。该宿主保护脚本没有独立版本号、标签规范、附件或 GitHub Release 流程，本次不变更卡皮巴拉0.1.5，不借桌面发布流程制造无关版本；按 master 提交推送并核验既有镜像流水线，构建成功也不代表线上保护器已升级。已有香港入口/TUN等未提交改动保持原归属。
 
 ## 2026-10-26：卡皮巴拉统一页面框架
 
