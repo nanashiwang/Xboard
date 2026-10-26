@@ -14,6 +14,7 @@ import os
 import re
 import socket
 import ssl
+import stat
 import subprocess
 import time
 import urllib.request
@@ -190,25 +191,89 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+GUARD_WITHDRAW_REASONS = frozenset({
+    'expired_or_near_expiry', 'quota_exhausted', 'missing_or_ambiguous_source',
+    'source_changed_requires_acceptance', 'metadata_stale', 'known_expiry',
+    'runtime_identity_scope_invalid', 'runtime_identity_mapping_invalid',
+    'runtime_public_key_mismatch', 'runtime_identity_timeout', 'runtime_tls_failed',
+    'runtime_identity_tool_unavailable', 'runtime_certificate_invalid',
+    'runtime_tcp_unreachable', 'runtime_identity_check_failed',
+})
+
+
+def private_manifest(root):
+    """Read the durable host manifest; never synthesize missing authority."""
+    descriptor = os.open(root / 'manifest.private', os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077 or info.st_size > 20 * 1024 * 1024:
+            raise ValueError('invalid_private_manifest')
+        with os.fdopen(descriptor, 'rb', closefd=False) as source:
+            raw = source.read(20 * 1024 * 1024 + 1)
+        if len(raw) > 20 * 1024 * 1024:
+            raise ValueError('invalid_private_manifest')
+        def pairs(items):
+            value = {}
+            for key, child in items:
+                if key in value:
+                    raise ValueError('ambiguous_private_manifest')
+                value[key] = child
+            return value
+        value = json.loads(raw, object_pairs_hook=pairs)
+    finally:
+        os.close(descriptor)
+    if not isinstance(value, dict) or type(value.get('machine_id')) is not int or value['machine_id'] != 21 or not isinstance(value.get('routes'), list) or len(value['routes']) != 41:
+        raise ValueError('invalid_manifest_scope')
+    routes = {}
+    for row in value['routes']:
+        if not isinstance(row, dict) or not isinstance(row.get('key'), str) or not re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])', row['key']) or row['key'] in routes:
+            raise ValueError('invalid_manifest_scope')
+        number = int(row['key'][1:])
+        if type(row.get('backend_id')) is not int or type(row.get('public_id')) is not int or row['backend_id'] != 357 + 2 * number or row['public_id'] != 358 + 2 * number:
+            raise ValueError('invalid_manifest_scope')
+        # Only the necessary mapping crosses the container boundary.
+        routes[row['key']] = {name: row[name] for name in ('key', 'backend_id', 'public_id')}
+    return {'machine_id': 21, 'routes': [routes[key] for key in sorted(routes)]}
+
+
+def withdrawal_request(withdraw, manifest):
+    if not isinstance(withdraw, list) or not 1 <= len(withdraw) <= 41:
+        raise ValueError('invalid_withdraw_request')
+    approved = {row['key']: row for row in manifest['routes']}
+    seen = set()
+    for row in withdraw:
+        if not isinstance(row, dict) or set(row) != {'key', 'backend_id', 'public_id', 'reason'} or not isinstance(row.get('key'), str) or row['key'] in seen:
+            raise ValueError('invalid_withdraw_request')
+        expected = approved.get(row['key'])
+        if not expected or any(type(row[name]) is not int or row[name] != expected[name] for name in ('backend_id', 'public_id')) or not isinstance(row['reason'], str) or row['reason'] not in GUARD_WITHDRAW_REASONS:
+            raise ValueError('invalid_withdraw_request')
+        seen.add(row['key'])
+    return {'schema': 1, 'machine_id': 21, 'routes': withdraw}
+
+
 def apply(withdraw, root=ROOT):
-    request = root / 'guard.request.json'
-    request.write_text(json.dumps(withdraw))
-    request.chmod(0o600)
-    container = subprocess.check_output(['docker', 'compose', 'ps', '-q', 'xboard'],
-                                        cwd='/root/Xboard', text=True, timeout=10,
-                                        stderr=subprocess.PIPE).strip()
-    if not container:
-        raise RuntimeError('application_not_running')
-    target = '/www/storage/app/backups/upstream-20261022/guard.request.json'
-    subprocess.run(['docker', 'cp', str(request), container + ':' + target], check=True,
-                   capture_output=True, timeout=30)
+    manifest = private_manifest(root)
+    request = withdrawal_request(withdraw, manifest)
     script = (root / 'guard-apply.php').read_text()
+    for marker, value in [('__XBOARD_GUARD_MANIFEST_BASE64__', manifest),
+                          ('__XBOARD_GUARD_REQUEST_BASE64__', request)]:
+        if script.count(marker) != 1:
+            raise ValueError('invalid_withdraw_template')
+        encoded = base64.b64encode(json.dumps(value, separators=(',', ':'), allow_nan=False).encode()).decode('ascii')
+        script = script.replace(marker, encoded)
+    # PHP and both bounded payloads travel only over stdin. No persistent
+    # container manifest/request, docker cp, private argv, or private log output.
     result = subprocess.run(['docker', 'compose', 'exec', '-T', 'xboard', 'php'],
                             cwd='/root/Xboard', input=script, text=True,
                             capture_output=True, timeout=60)
-    answer = json.loads(result.stdout)
-    if result.returncode or 'error' in answer:
-        raise RuntimeError('withdrawal_failed')
+    try:
+        answer = json.loads(result.stdout)
+        changed = answer['withdrawn']
+        requested = {row['key'] for row in withdraw}
+        if result.returncode or not isinstance(answer, dict) or set(answer) != {'withdrawn'} or not isinstance(changed, list) or not all(isinstance(key, str) and key in requested for key in changed) or len(set(changed)) != len(changed):
+            raise ValueError('invalid_withdraw_response')
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError('withdrawal_failed') from None
     return answer
 
 

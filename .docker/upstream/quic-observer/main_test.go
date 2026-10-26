@@ -84,7 +84,11 @@ func TestInputRejectsCredentialsUnknownFieldsTrailingJSONAndInvalidALPN(t *testi
 func TestRealQUICHandshakeCollectsSPKIWithoutAnyApplicationStream(t *testing.T) {
 	certificate, leaf := testCertificate(t, false)
 	sni := make(chan string, 1)
-	listener, err := quic.ListenAddr("127.0.0.1:0", &tls.Config{
+	// The observer closes as soon as the client has verified receipt of the
+	// server's handshake. A regular listener can miss the server-side completion
+	// before that close. Accept early so the fixture can inspect the connection
+	// without requiring extra application traffic or delaying the observer.
+	listener, err := quic.ListenAddrEarly("127.0.0.1:0", &tls.Config{
 		Certificates: []tls.Certificate{certificate}, NextProtos: []string{"h3"},
 		GetConfigForClient: func(hello *tls.ClientHelloInfo) (*tls.Config, error) { sni <- hello.ServerName; return nil, nil },
 	}, &quic.Config{EnableDatagrams: true})

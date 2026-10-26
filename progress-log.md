@@ -16,7 +16,11 @@
 
 补齐7条Hysteria2的QUIC纯证书观察与3条VLESS公共CA观察；观察器源码、依赖固定并在工作流构建/核SHA，不发送代理身份或应用数据。入口7条HY2当前SPKI均与旧pin不同，本机受DNS混入非公网地址/IPv6经TUN超时影响无法交叉确认，待面板独立观察；3条CA线路当前系统DNS与Cloudflare DoH一致，逐候选严格CA及双HTTPS全部通过，之前DNS失败本轮未复现，生产尚未改。
 
-新增[受限维护driver](./.docker/upstream/maintain.py)与[事务助手](./.docker/upstream/recovery.php)：只接收固定计划SHA和key→候选摘要，先在线SQLite备份并保存字段/批准映射，按withdraw→apply_hidden→publish分步；CAS全配置摘要、并发漂移和未知提交结果拒绝重放，rollback仅恢复原出站且保持撤下。候选不自动成为信任值，CLI不接受任意IP/公钥；工作流目前仍只开放prepare，生产操作待明确候选及公开路径缓存就绪。Python、真实隔离SQLite事务、QUIC真实握手与race回归均在本地执行，专项CI待本轮推送后核验。
+新增[受限维护driver](./.docker/upstream/maintain.py)与[事务助手](./.docker/upstream/recovery.php)：只接收固定计划SHA和key→候选摘要，先在线SQLite备份并保存字段/批准映射，按withdraw→apply_hidden→publish分步；CAS全配置摘要、并发漂移和未知提交结果拒绝重放，rollback仅恢复原出站且保持撤下。候选不自动成为信任值，CLI不接受任意IP/公钥；工作流目前仍只开放prepare，生产操作待明确候选及公开路径缓存就绪。Python、真实隔离SQLite事务、QUIC真实握手与race回归均在本地执行，提交`49ed292`已推送master且两文档按SHA回读一致；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40382304664)80Python、22PHP及Go通过。[第四轮准备](https://github.com/nanashiwang/Xboard/actions/runs/40382305920)首次被QUIC测试中服务端Accept与客户端立即关闭的竞态拦下；仅测试改EarlyListener，8项race重复20轮通过，不延长生产超时。第二次执行进入面板后确认宿主manifest也缺失，仍未修改生产。
+
+补充显式[audit/restore-scope](./.docker/upstream/scope_restore.py)：已有approved字节SHA、仓库固定allocation SHA、41唯一来源名和82条DB实际归属/全配置摘要交叉确认后，由操作者对具体审计ID/SHA执行一次性重建最小scope manifest。原子no-overwrite、复验漂移、私有intent/receipt；不是找回历史文件，也不是缺文件自动fallback，不改来源、公钥或DB。线上审计/重建仍待执行。
+
+保护器撤下传输改为固定宿主manifest验证后与限定request经PHP stdin传输，摆脱容器副本依赖，保留41对ID、父子/标签、事务仅撤下；代码尚未生产部署。公开路径工具缓存探针2真实配置，隐藏后以严格TLS、双HTTPS、全新隔离内核验收，并绑定维护执行回执和实际全配置摘要；测试器失败不算撤销证据。受限工作流提供显式阶段选择，不自动批准候选或恢复公开。 本轮本地160项Python、22项恢复事务、8项撤下事务、Go8项race、PHP语法、actionlint及31篇笔记结构/链接检查通过；真实维护回执覆盖CA/null选择和浮点时间，健康未改节点另以prepare原状态绑定的baseline验收，避免为测试撤下健康项。
 
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 

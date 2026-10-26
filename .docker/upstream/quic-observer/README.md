@@ -22,24 +22,35 @@ logs. Raw errors, endpoints and SNI are not printed. Exit 0 = certificate observ
 reading and the complete handshake. Expired certificates can be observed but are
 explicitly flagged invalid, never approved.
 
-Pinned dependency: official cached `github.com/quic-go/quic-go v0.59.0`; runtime
+Pinned dependency: `github.com/quic-go/quic-go v0.59.0`; runtime
 indirect dependencies are pinned by go.mod/go.sum. No credentials or production
 configuration are read or written.
 
-Verified with Go 1.26.2:
+Build and test with Go 1.26.2. Download the exact pinned modules once, verify their
+checksums, and build with readonly module metadata. `GOPROXY=off` can be used after
+the required modules are already cached:
 
 ```
-GOPROXY=off GOSUMDB=off go mod verify
-GOPROXY=off GOSUMDB=off go test -mod=readonly -race -v ./...
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOPROXY=off GOSUMDB=off go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o bin/quic-observer-linux-amd64 .
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 GOPROXY=off GOSUMDB=off go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o bin/quic-observer-darwin-arm64 .
+go mod download
+go mod verify
+go test -mod=readonly -race -v ./...
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o bin/quic-observer-linux-amd64 .
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -mod=readonly -trimpath -buildvcs=false -ldflags='-s -w' -o bin/quic-observer-darwin-arm64 .
 ```
 
-All 8 local tests passed with race detection. They cover actual IPv4/IPv6 QUIC,
-exact leaf SPKI/time extraction, SNI/ALPN, no application streams/datagrams,
-expired-certificate flagging, shared input/handshake deadlines, restricted input
-and fixed error redaction. Both binaries built; `verification.json` contains their
-sizes and SHA256. No production or external endpoint has been contacted by this
-helper during development. The offline `go mod tidy` attempt requested an uncached
-upstream-test-only gomock module and stopped; this helper's own readonly build,
-tests and dependency verification require no network downloads and all passed.
+The tests use loopback IPv4/IPv6 QUIC to check leaf SPKI/time extraction, SNI/ALPN,
+absence of application streams/datagrams, expired-certificate flagging, shared
+input/handshake deadlines, restricted input, and fixed error redaction. The
+no-application-data fixture accepts the connection with `ListenAddrEarly`: the
+observer intentionally closes immediately after collecting the certificate, so
+the fixture must not require the server's normal handshake-complete accept.
+This changes only the test listener; the observer still sends no application
+data and keeps the same 8-second limit.
+
+The preparation workflow computes the SHA256 of its own Linux build before
+transfer. It installs the fixed sibling filename with mode 0700 in the private
+temporary directory. `prepare.py` checks that hash and the private file ownership
+and permissions before execution, and binds the hash into the private plan.
+Binary hashes are build outputs; no pre-generated local verification file is
+required. Keep compiled binaries out of the repository and do not print the
+helper's private stdout when using it against actual endpoints.
