@@ -17,6 +17,25 @@ MAX_CONTROL = 65535
 
 
 def validate_graph(graph):
+    if isinstance(graph, dict) and type(graph.get('schema')) is int and graph['schema'] == 2:
+        if set(graph) != {'schema', 'base', 'repairs', 'predecessor'} or not isinstance(graph['repairs'], list) or not 1 <= len(graph['repairs']) <= 3:
+            raise ValueError('graph_invalid')
+        predecessor = graph['predecessor']
+        if not isinstance(predecessor, dict) or set(predecessor) != {'ledger_id', 'ledger_sha256'}:
+            raise ValueError('graph_invalid')
+        for field, content in predecessor.items():
+            if not isinstance(content, str) or not re.fullmatch('[a-f0-9]{32}' if field == 'ledger_id' else '[a-f0-9]{64}', content):
+                raise ValueError('graph_invalid')
+        references = [graph['base']] + graph['repairs']
+        for reference in references:
+            if not isinstance(reference, dict) or set(reference) != {'plan_id', 'plan_sha256', 'execution_id'}:
+                raise ValueError('graph_invalid')
+            for field, content in reference.items():
+                if not isinstance(content, str) or not re.fullmatch('[a-f0-9]{32}' if field == 'plan_id' else '[a-f0-9]{64}', content):
+                    raise ValueError('graph_invalid')
+        if len({r['plan_id'] for r in references}) != len(references) or len({r['execution_id'] for r in references}) != len(references):
+            raise ValueError('graph_invalid')
+        return
     if not isinstance(graph, dict) or set(graph) != {'schema', 'base', 'continuation', 'repair_execution_id'} or type(graph['schema']) is not int or graph['schema'] != 1:
         raise ValueError('graph_invalid')
     for name, fields in [('base', {'plan_id', 'plan_sha256', 'execution_id'}), ('continuation', {'plan_id', 'plan_sha256'})]:

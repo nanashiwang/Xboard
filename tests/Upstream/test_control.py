@@ -203,5 +203,22 @@ class ControlTest(unittest.TestCase):
         for field, bad in [('execution_id', 'e'*64), ('selection', {'U33': 'f'*64}), ('graph', {'schema': 1})]:
             with self.assertRaises(ValueError): c.command(dict(value, **{field: bad}))
 
+    def test_ordered_aggregate_graph_is_bounded_reference_only_and_stdin_bound(self):
+        base={'plan_id':'a'*32,'plan_sha256':'b'*64,'execution_id':'c'*64}
+        repair={'plan_id':'d'*32,'plan_sha256':'e'*64,'execution_id':'f'*64}
+        graph={'schema':2,'base':base,'repairs':[repair],'predecessor':{'ledger_id':'1'*32,'ledger_sha256':'2'*64}}
+        value={'operation':'aggregate-create','plan_id':'','plan_sha256':'','execution_id':'','selection':{},'graph':graph}
+        with patch.object(c.subprocess,'run') as run:
+            run.return_value.returncode=0;c.execute(value)
+            self.assertEqual(json.loads(run.call_args.kwargs['input']),graph)
+        for bad in [dict(graph,repairs=[]),dict(graph,repairs=[repair]*4),dict(graph,repairs=[repair,repair]),
+                    dict(graph,predecessor={}),dict(graph,predecessor=dict(graph['predecessor'],pin='secret')),
+                    dict(graph,repairs=[dict(repair,ip='must-not-output')]),dict(graph,schema=True)]:
+            with self.subTest(fields=list(bad)):
+                with self.assertRaises(ValueError):c.command(dict(value,graph=bad))
+        for size in (2,3):
+            rows=[dict(repair,plan_id=str(i)*32,execution_id=str(i)*64) for i in range(3,3+size)]
+            self.assertEqual(c.command(dict(value,graph=dict(graph,repairs=rows)))[-1],'prepare')
+
 
 if __name__ == '__main__': unittest.main()

@@ -62,6 +62,20 @@ class Driver:
 
     @staticmethod
     def graph_contract(graph):
+        if isinstance(graph,dict) and type(graph.get('schema')) is int and graph['schema']==2:
+            exact(graph,('schema','base','repairs','predecessor'))
+            exact(graph['predecessor'],('ledger_id','ledger_sha256'))
+            check(hex_value(graph['predecessor']['ledger_id'],a.ID32) and
+                  hex_value(graph['predecessor']['ledger_sha256'],a.HEX64))
+            check(isinstance(graph['repairs'],list) and 1<=len(graph['repairs'])<=3,'repair_round_limit')
+            references=[graph['base']]+graph['repairs']
+            for reference in references:
+                exact(reference,('plan_id','plan_sha256','execution_id'))
+                check(hex_value(reference['plan_id'],a.ID32) and hex_value(reference['plan_sha256'],a.HEX64) and
+                      hex_value(reference['execution_id'],a.HEX64))
+            check(len({r['plan_id'] for r in references})==len(references) and
+                  len({r['execution_id'] for r in references})==len(references),'duplicate_graph_reference')
+            return
         exact(graph,('schema','base','continuation','repair_execution_id'))
         check(type(graph['schema']) is int and graph['schema']==1)
         exact(graph['base'],('plan_id','plan_sha256','execution_id'));exact(graph['continuation'],('plan_id','plan_sha256'))
@@ -113,6 +127,11 @@ class Driver:
         return binding,self.maintain.unique(resolved),selection,receipt['at']
 
     def resolve_graph(self,graph,rollback=False):
+        self.graph_contract(graph)
+        if graph['schema']==2:return self.resolve_ordered_graph(graph,rollback=rollback)
+        return self.resolve_initial_graph(graph,rollback=rollback)
+
+    def resolve_initial_graph(self,graph,rollback=False):
         self.graph_contract(graph);inputs=self.inputs()
         base_dir,base,base_raw,base_rows,base_expected=self.plan(graph['base'],inputs,historical=True)
         base_binding,base_request,base_selection,base_at=self.execution(base_dir,graph['base'],base,inputs,graph['base']['execution_id'],BASE_KEYS)
@@ -157,15 +176,93 @@ class Driver:
                     latest_apply_at=max(base_at,repair_at or base_at),repair_keys=repair_keys,
                     anytls={key for key,row in inputs['scopes'].items() if row['upstream_type']=='anytls'})
 
+    @staticmethod
+    def repairs(graph):
+        if graph['schema']==2:return graph['repairs']
+        return ([] if graph['repair_execution_id'] is None else
+                [dict(graph['continuation'],execution_id=graph['repair_execution_id'])])
+
+    def predecessor_record(self,graph):
+        reference=graph['predecessor'];directory=self.plan_root/('finalizer-'+reference['ledger_id'])
+        a.private_directory(directory);raw=a.private_read(directory/'ledger.private.json')
+        check(a.bytes_sha(raw)==reference['ledger_sha256'],'predecessor_ledger_drift')
+        ledger=a.parse_json(raw);check(ledger.get('ledger_id')==reference['ledger_id'],'predecessor_ledger_drift')
+        previous=ledger['graph'];self.graph_contract(previous)
+        prefix=self.repairs(previous)
+        check(previous['base']==graph['base'] and len(prefix)+1==len(graph['repairs']) and
+              graph['repairs'][:len(prefix)]==prefix,'predecessor_not_strict_prefix')
+        return directory,previous
+
+    def resolve_ordered_graph(self,graph,rollback=False):
+        # Read historical ledgers without re-entering their locks. The caller
+        # holds one ordered lock set for the complete bounded prefix graph.
+        self.predecessor_record(graph)
+        reference=graph['predecessor']
+        predecessor=self.load(reference['ledger_id'],reference['ledger_sha256'],rollback=True)
+        check(predecessor['phase']=='hidden','predecessor_not_hidden')
+        inputs=self.inputs()
+        base_dir,base,base_raw,base_rows,base_expected=self.plan(graph['base'],inputs,historical=True)
+        base_binding,base_request,_,base_at=self.execution(base_dir,graph['base'],base,inputs,graph['base']['execution_id'],BASE_KEYS)
+        ready=dict(base_expected);ready.update(base_binding['state_hashes'])
+        final=copy.deepcopy(base_request);chosen=dict(base_rows);last_at=base_at;repair_keys=set();chains=[]
+        for index,repair in enumerate(graph['repairs']):
+            historical=index<len(graph['repairs'])-1
+            fresh_dir,fresh,fresh_raw,fresh_rows,fresh_expected=self.plan(repair,inputs,historical=historical,rollback=rollback)
+            check(fresh['prepared_at']>=int(last_at),'continuation_precedes_previous_apply')
+            check(fresh_expected==ready,'continuation_snapshot_not_previous_hidden_state')
+            request=a.parse_json(a.private_read(fresh_dir/('maintenance-'+repair['execution_id'])/'request-apply_hidden.private.json'))
+            keys=set(self.maintain.unique(request['routes']));check(keys and keys<=BASE_KEYS,'repair_scope_invalid')
+            binding,resolved,_,at=self.execution(fresh_dir,repair,fresh,inputs,repair['execution_id'],keys)
+            check(at>=last_at,'repair_precedes_previous_apply')
+            for key in keys:
+                final[key]['identity']=resolved[key]['identity'];final[key]['candidate_digest']=a.digest(final[key]['identity'])
+                check(a.digest(derive(final[key])['hidden'])==binding['state_hashes'][key],'repair_not_derivable_from_initial_state')
+                chosen[key]=fresh_rows[key]
+            ready.update(binding['state_hashes']);repair_keys.update(keys);last_at=at
+            chains.append({'reference':repair,'receipt_chain_sha256':binding['receipt_chain_sha256'],'ready':dict(ready)})
+        rows=[final[key] for key in sorted(BASE_KEYS)];execution=self.maintain.execution_plan_id(rows)
+        derived={phase:dict(base_expected) for phase in ('hidden','publish','rollback')}
+        for row in rows:
+            for phase,state in derive(row).items():derived[phase][row['key']]=a.digest(state)
+        check(derived['hidden']==ready,'aggregate_hidden_state_mismatch')
+        if not rollback:
+            for key,row in final.items():
+                matches=[c for c in chosen[key]['candidates'] if
+                         (dict(c['identity'],pin=None) if inputs['scopes'][key]['upstream_type']=='vless' else c['identity'])==row['identity']]
+                check(len(matches)==1 and matches[0].get('certificate_time_valid') is True and
+                      all(type(matches[0].get(field)) in (int,float) and math.isfinite(matches[0][field]) for field in ('not_before','not_after')) and
+                      matches[0]['not_before']<=self.clock()<=matches[0]['not_after'],'final_certificate_expired')
+        cache_bytes=a.private_read(base_dir/'public-cache.private.json')
+        check(cache_bytes==predecessor['cache_bytes'],'predecessor_cache_drift')
+        source_graph_sha=a.digest({'graph':graph,'base_chain':base_binding['receipt_chain_sha256'],'repair_chains':chains,
+            'predecessor_ledger_sha256':a.bytes_sha(predecessor['ledger_bytes']),
+            'predecessor_binding_sha256':predecessor['binding_sha256'],
+            'base_cache_sha256':a.bytes_sha(cache_bytes),'rows':rows,'ready':ready})
+        return dict(**inputs,rows=rows,derived=derived,expected=ready,phase='hidden',execution_id=execution,
+                    source_graph_sha256=source_graph_sha,base_directory=base_dir,base_plan_id=graph['base']['plan_id'],
+                    base_plan_sha256=graph['base']['plan_sha256'],cache_bytes=cache_bytes,plan=fresh,
+                    base_plan_bytes=base_raw,continuation_plan_bytes=fresh_raw,continuation_directory=fresh_dir,
+                    latest_apply_at=last_at,repair_keys=repair_keys,
+                    anytls={key for key,row in inputs['scopes'].items() if row['upstream_type']=='anytls'})
+
     @contextmanager
     def graph_locks(self,graph,ledger_directory=None):
         self.graph_contract(graph);a.private_directory(self.plan_root)
         with ExitStack() as stack:
             stack.enter_context(a.lock(self.plan_root/'scope-restore.lock'))
-            for plan_id in sorted({graph['base']['plan_id'],graph['continuation']['plan_id']}):
+            plans=set();ledgers=set();current=graph
+            if ledger_directory is not None:ledgers.add(ledger_directory)
+            while True:
+                plans.add(current['base']['plan_id'])
+                if current['schema']==1:
+                    plans.add(current['continuation']['plan_id']);break
+                plans.update(row['plan_id'] for row in current['repairs'])
+                predecessor,current=self.predecessor_record(current)
+                check(predecessor not in ledgers,'predecessor_cycle');ledgers.add(predecessor)
+            for plan_id in sorted(plans):
                 directory=self.plan_root/plan_id;a.private_directory(directory)
                 stack.enter_context(a.lock(directory/'maintenance.lock'))
-            if ledger_directory is not None:stack.enter_context(a.lock(ledger_directory/'finalizer.lock'))
+            for directory in sorted(ledgers):stack.enter_context(a.lock(directory/'finalizer.lock'))
             yield
 
     @contextmanager

@@ -88,3 +88,7 @@ python3 .docker/upstream/guard.py --check-identity \
 后续`aggregate-verify`、`aggregate-publish`、`aggregate-sync`使用plan_id/plan_sha256字段传递ledger ID/SHA，selection/ciphertext均为空对象，execution_id为空。隐藏阶段39条双目标全部通过才以其verification_id/verification_sha256发布；发布后重新验收39条，再以新报告和原pinned文件SHA（或`absent`）同步28条AnyTLS身份。仍复用最初真实公开缓存、严格TLS与全新内核，无DIRECT；健康两条不修改。
 
 `aggregate-rollback`只需ledger ID/SHA，恢复首轮原出站并维持隐藏/停用，允许计划过期或来源网络不可用，但仍要求图、回执和实际状态完全匹配。新账本保留自己的在线备份、request/intent/receipt；未知结果禁止重放，不整库覆盖业务数据，不使用第二轮中间出站充当原始回退配置。
+
+维护期间身份再次变化时，schema2图使用同一`base`、有序`repairs`及`predecessor`；每个repair包含plan_id/plan_sha256/execution_id，predecessor包含ledger_id/ledger_sha256。最多3个repair，必须包含前序全部repair且只追加一轮。前序只能是hidden且无未知提交，每轮准备快照必须精确等于此前累计隐藏状态；候选仍逐项人工核验，不提供自动跟随。仅最新计划的原两小时期限有效，旧记录只读；新账本重新验收全部39条后才可发布。
+
+健康U18/U19可用最初计划及原公开缓存执行`verify-baseline`，只验证这两条的配置/状态摘要和严格双HTTPS，不需要修改时间或重做快照。若同步pin映射后回退，节点关闭并恢复最初出站，新的map仍保留、旧map或缺失事实在私有备份；重新开放须新明确计划。回退后应另验实际缓存路径已拒绝，不能用DB关闭回执代替入口验证。

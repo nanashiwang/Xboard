@@ -1,5 +1,6 @@
 import base64
 import copy
+from contextlib import contextmanager
 import importlib.util
 import json
 from pathlib import Path
@@ -181,6 +182,141 @@ class FinalizerTests(unittest.TestCase):
   pins=json.loads((self.f.private/'pinned.private').read_bytes())
   for row in pins:self.assertEqual(row['pin'],self.third_pin if row['key'] in z.REPAIR_KEYS else self.f.new_pin)
 
+class OrderedFinalizerTests(unittest.TestCase):
+ def setUp(self):
+  self.previous=FinalizerTests();self.previous.setUp();self.addCleanup(self.previous.doCleanups)
+  self.f=self.previous.f;self.driver=self.previous.driver;self.initial=self.previous.initial
+  self.keys={'U01','U02','U03','U04','U05','U20','U21','U22','U23','U24','U26','U27','U28','U29','U30','U31','U32','U33','U34','U35','U38','U40','U41'}
+  self.graph=self.append_round(self.previous.graph,self.previous.created,'3',self.keys)
+  self.created=self.driver.create(self.graph);self.id=self.created['ledger_id'];self.sha=self.created['ledger_sha256']
+
+ def append_round(self,previous_graph,predecessor,digit,keys,expires=None):
+  self.f.now+=100;plan_id=digit*32;directory=self.f.plans/plan_id;directory.mkdir(mode=0o700)
+  plan=copy.deepcopy(self.previous.fresh_plan);plan.update(plan_id=plan_id,prepared_at=self.f.now)
+  for row in plan['routes']:
+   state=copy.deepcopy(self.f.backend.states[row['key']])
+   row['snapshot']={'key':row['key'],'state':state,'state_sha256':z.a.digest(state),
+                    'backend':copy.deepcopy(state['backend']),'public':copy.deepcopy(state['public'])}
+   candidate=row['candidates'][0];candidate['identity']['pin']=base64.b64encode(digit.encode()*32).decode()
+   candidate['candidate_digest']=z.a.digest(candidate['identity']);candidate['old_pin_matches']=False
+   if expires is not None and row['key'] in keys:candidate['not_after']=expires
+  raw=z.a.canonical(plan);z.a.private_write(directory/'plan.private.json',raw);plan_sha=z.a.bytes_sha(raw)
+  selection={r['key']:r['candidates'][0]['candidate_digest'] for r in plan['routes'] if r['key'] in keys}
+  for phase in ('withdraw','apply_hidden'):result=self.f.driver.run(plan_id,plan_sha,selection,phase)
+  return {'schema':2,'base':copy.deepcopy(previous_graph['base']),
+          'repairs':copy.deepcopy(self.driver.repairs(previous_graph))+[{'plan_id':plan_id,'plan_sha256':plan_sha,'execution_id':result['execution_plan_id']}],
+          'predecessor':{'ledger_id':predecessor['ledger_id'],'ledger_sha256':predecessor['ledger_sha256']}}
+
+ def load(self,rollback=False):return self.driver.load(self.id,self.sha,rollback=rollback)
+
+ def test_last_choice_and_original_rollback_with_all_23_real_maintenance_receipts(self):
+  bound=self.load();self.driver.check_current(bound)
+  for row in bound['rows']:
+   self.assertEqual(row['original_state'],self.initial[row['key']])
+   if row['key'] in self.keys:
+    self.assertEqual(row['identity']['pin'],None if bound['scopes'][row['key']]['upstream_type']=='vless' else base64.b64encode(b'3'*32).decode())
+  self.assertEqual(bound['ledger']['valid_until'],1200+7200)
+  before={p:p.read_bytes() for d in (self.f.directory,self.previous.fresh_dir,self.f.plans/('3'*32),self.f.plans/('finalizer-'+self.previous.id)) for p in d.rglob('*.private.json')}
+  self.driver.run('rollback',self.id,self.sha)
+  for key in z.BASE_KEYS:
+   state=self.f.backend.states[key];self.assertEqual(state['backend']['custom_outbounds'],self.initial[key]['backend']['custom_outbounds'])
+   self.assertFalse(state['backend']['enabled']);self.assertFalse(state['public']['show'])
+  self.assertEqual(before,{p:p.read_bytes() for p in before})
+
+ def test_existing_schema1_graph_binding_stays_exact(self):
+  prior=self.driver.load(self.previous.id,self.previous.sha,rollback=True)
+  self.assertEqual(prior['source_graph_sha256'],prior['ledger']['source_graph_sha256'])
+  self.assertEqual(prior['ledger']['graph'],self.previous.graph)
+
+ def test_predecessor_unknown_result_rejects_even_when_database_stays_hidden(self):
+  directory=self.f.plans/('finalizer-'+self.previous.id)
+  z.a.private_write(directory/'intent-publish.private.json',b'{}')
+  with self.assertRaisesRegex(z.FinalizerError,'finalizer_outcome_unknown'):self.load()
+
+ def test_predecessor_published_or_rolled_back_cannot_be_adopted(self):
+  current=copy.deepcopy(self.f.backend.states);prior=self.driver.load(self.previous.id,self.previous.sha,rollback=True)
+  prefix=copy.deepcopy(self.initial)
+  for row in prior['rows']:prefix[row['key']]=z.derive(row)['hidden']
+  self.f.backend.states=prefix;self.previous.publish();published=copy.deepcopy(self.f.backend.states)
+  self.f.backend.states=copy.deepcopy(current)
+  with self.assertRaisesRegex(z.FinalizerError,'predecessor_not_hidden'):self.load()
+  self.f.backend.states=published;self.driver.run('rollback',self.previous.id,self.previous.sha)
+  self.f.backend.states=current
+  with self.assertRaisesRegex(z.FinalizerError,'predecessor_not_hidden'):self.load()
+
+ def test_order_scope_duplicates_and_prefix_are_fail_closed(self):
+  cases=[]
+  reversed_graph=copy.deepcopy(self.graph);reversed_graph['repairs'].reverse();cases.append(reversed_graph)
+  duplicate=copy.deepcopy(self.graph);duplicate['repairs'].append(copy.deepcopy(duplicate['repairs'][0]));cases.append(duplicate)
+  missing=copy.deepcopy(self.graph);del missing['predecessor'];cases.append(missing)
+  wrong_sha=copy.deepcopy(self.graph);wrong_sha['predecessor']['ledger_sha256']='0'*64;cases.append(wrong_sha)
+  skipped=copy.deepcopy(self.graph);skipped['repairs'].append({'plan_id':'4'*32,'plan_sha256':'5'*64,'execution_id':'6'*64});cases.append(skipped)
+  for graph in cases:
+   with self.subTest(graph=graph):
+    with self.assertRaises(z.FinalizerError):self.driver.resolve_graph(graph)
+
+ def test_full_snapshot_drift_on_unselected_healthy_key_rejects(self):
+  ref=self.graph['repairs'][-1];path=self.f.plans/ref['plan_id']/'plan.private.json';plan=json.loads(path.read_bytes())
+  row=next(r for r in plan['routes'] if r['key']=='U18');row['snapshot']['state']['backend']['rate']='drift'
+  row['snapshot']['state_sha256']=z.a.digest(row['snapshot']['state']);raw=z.a.canonical(plan);path.write_bytes(raw)
+  graph=copy.deepcopy(self.graph);graph['repairs'][-1]['plan_sha256']=z.a.bytes_sha(raw)
+  with self.assertRaisesRegex(z.FinalizerError,'continuation_snapshot_not_previous_hidden_state'):self.driver.resolve_graph(graph)
+
+ def test_latest_expiry_does_not_extend_and_offline_rollback_survives(self):
+  self.f.now=8350;self.driver.check_current(self.load())
+  self.f.now=8401
+  with self.assertRaisesRegex(z.FinalizerError,'continuation_expired'):self.load()
+  self.driver.fetch=lambda:(_ for _ in ()).throw(RuntimeError('must-not-output'))
+  self.assertEqual(self.driver.run('rollback',self.id,self.sha)['phase'],'rollback')
+
+ def test_three_repairs_allowed_fourth_refused_and_locks_acquired_once(self):
+  graph=self.append_round(self.graph,self.created,'4',{'U01','U33'})
+  created=self.driver.create(graph)
+  calls=[];original=z.a.lock
+  @contextmanager
+  def once(path):
+   self.assertNotIn(path,calls);calls.append(path)
+   with original(path):yield
+  with patch.object(z.a,'lock',side_effect=once):
+   with self.driver.locked(created['ledger_id']):
+    bound=self.driver.load(created['ledger_id'],created['ledger_sha256']);self.driver.check_current(bound)
+  self.assertEqual(calls[0],self.f.plans/'scope-restore.lock')
+  self.assertEqual(len(calls),8) # global + four plans + three ledgers
+  fourth=copy.deepcopy(graph);fourth['repairs'].append({'plan_id':'5'*32,'plan_sha256':'6'*64,'execution_id':'7'*64})
+  with self.assertRaisesRegex(z.FinalizerError,'repair_round_limit'):self.driver.graph_contract(fourth)
+  self.assertEqual(next(r for r in bound['rows'] if r['key']=='U01')['identity']['pin'],base64.b64encode(b'4'*32).decode())
+
+ def test_final_identity_certificate_comes_from_last_selected_plan(self):
+  graph=self.append_round(self.graph,self.created,'4',{'U01'},expires=1350)
+  created=self.driver.create(graph);self.f.now=1351
+  with self.assertRaisesRegex(z.FinalizerError,'final_certificate_expired'):
+   self.driver.load(created['ledger_id'],created['ledger_sha256'])
+  self.assertEqual(self.driver.run('rollback',created['ledger_id'],created['ledger_sha256'])['phase'],'rollback')
+
+ def test_real_adapter_cycle_keeps_last_identities_and_new_pin_map_after_rollback(self):
+  adapter_module=module('ordered_finalizer_adapter',ROOT/'finalizer_acceptance.py')
+  def measure(row,binary,expect):
+   return {'key':row['key'],'public_config_sha256':row['public_config_sha256'],'status':'passed','classification':'both_targets_passed',
+    'temporary_process_terminated':True,'temporary_directory_removed':True,
+    'checks':[{'target':target,'success':True,'runner_valid':True,'curl_exit':0,'http_status':code,'seconds':.01,
+               'proxy_path_usable':True,'exit_ip_sha256':'b'*64 if target=='cloudflare' else None}
+              for target,code in (('cloudflare',200),('google',204))]}
+  adapter=adapter_module.Driver(self.driver,sibling=ROOT,clock=lambda:self.f.now,measure=measure)
+  cache=json.loads(self.load()['cache_bytes']);cached={r['key']:r for r in cache['routes']}
+  def scope(*args):
+   return {key:{'state_sha256':z.a.digest(state),'enabled':bool(state['backend']['enabled']),'show':bool(state['public']['show']),
+      'public_config_sha256':cached[key]['public_config_sha256']} for key,state in self.f.backend.states.items()}
+  with patch.object(adapter.public,'agent_settings',return_value=self.previous.settings),patch.object(adapter.public,'bound_binary',return_value='/fixture-binary'),patch.object(adapter.public,'scope',side_effect=scope):
+   hidden=adapter.verify(self.id,self.sha);self.assertEqual(hidden['status'],'passed')
+   self.driver.run('publish',self.id,self.sha,hidden['verification_id'],hidden['verification_sha256']);self.f.now+=1
+   published=adapter.verify(self.id,self.sha);self.assertEqual(published['status'],'passed')
+   (self.f.private/'pinned.private').unlink();result=adapter.sync(self.id,self.sha,published['verification_id'],published['verification_sha256'],'absent')
+  self.assertEqual(result['route_count'],28)
+  pins=(self.f.private/'pinned.private').read_bytes();selected={r['key']:r['identity'] for r in self.load()['rows']}
+  for row in json.loads(pins):self.assertEqual(row,selected[row['key']])
+  self.driver.run('rollback',self.id,self.sha);self.assertEqual((self.f.private/'pinned.private').read_bytes(),pins)
+
+
 class FinalizerCliInputTests(unittest.TestCase):
  def graph(self):
   return {'schema':1,'base':{'plan_id':'1'*32,'plan_sha256':'2'*64,'execution_id':'3'*64},
@@ -220,6 +356,18 @@ raise SystemExit(m.safe_main(ARGS))
   lines=[json.loads(line) for line in result.stdout.splitlines()]
   self.assertEqual(lines[0],{'backend_entered':True,'remaining_stdin_bytes':0})
   self.assertEqual(lines[1],{'status':'prepared_fixture','received_graph_sha256':z.a.digest(graph)})
+
+ def test_ordered_graph_pipe_is_also_validated_before_draining_backend(self):
+  graph={'schema':2,'base':self.graph()['base'],
+         'repairs':[dict(self.graph()['continuation'],execution_id='6'*64)],
+         'predecessor':{'ledger_id':'7'*32,'ledger_sha256':'8'*64}}
+  result=self.invoke(z.a.canonical(graph));self.assertEqual(result.returncode,0)
+  lines=[json.loads(line) for line in result.stdout.splitlines()]
+  self.assertEqual(lines[0],{'backend_entered':True,'remaining_stdin_bytes':0})
+  self.assertEqual(lines[1]['received_graph_sha256'],z.a.digest(graph))
+  for invalid in [dict(graph,repairs=[]),dict(graph,predecessor={}),dict(graph,repairs=graph['repairs']*4)]:
+   result=self.invoke(z.a.canonical(invalid));self.assertEqual(result.returncode,1)
+   self.assertNotIn(b'backend_entered',result.stdout)
 
  def test_invalid_empty_or_oversized_graph_never_initializes_backend(self):
   cases=[b'',b'x'*4097,b'{}',b'{"schema":1,"schema":1}',

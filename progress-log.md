@@ -60,6 +60,14 @@ U01唯一来源差异已确定为server单字段：当前来源仅将server还�
 
 stdin入口修复提交`5401a8e`完成32项core/adapter及305项全套Python检查，首次push遇GitHub TLS错误，确认后重试成功、两文档按SHA回读。补充`inspect-environment`固定旧guard-state安全采样，只读已完成检查时间/最近抓取成功时间、fetch_ok与有界撤下数量；root0600、文件大小/防链接/双读漂移及JSON契约检查，绝不输出usage、错误原文、URL或凭据，不启动服务。20项inspector专项及311项完整Python回归通过；生产采样与合并公开验收待后续结果。
 
+提交`9c6e1c9`已推送master并按SHA回读，[专项CI40403306088](https://github.com/nanashiwang/Xboard/actions/runs/40403306088)通过；stdin修复CI40403147961也通过，e3215db双架构镜像构建40401997574成功（未部署应用镜像）。[合并账本40403148046](https://github.com/nanashiwang/Xboard/actions/runs/40403148046)成功、未改旧记录；[保护器检查40403306144](https://github.com/nanashiwang/Xboard/actions/runs/40403306144)确认恢复后的自然执行checked_at=1793049497、fetch_ok=true、withdraw_count=0，timer active/waiting且service Result=success。
+
+[隐藏公开验收40403406811](https://github.com/nanashiwang/Xboard/actions/runs/40403406811)在05:20（Asia/Shanghai）仅16/39通过；公开缓存/39配置SHA不变，DB仅原5补修变化，不能把退化归因新验收器。同期入口日志分类为34连接拒绝、4上游超时、6 session EOF、2 HTTP521；本时段无字面pin拒绝，不能把日志统一写为公钥错误。随后28纯TLS检查只13通过、15pin不匹配，DB/API全41精确匹配，PID不变。对本次23失败做两网络各两次观察：22个pin协议（15AnyTLS+7Hysteria2）均取得新身份、4/4一致且有效，与批准pin均不符；not_before集中UTC21:19:19–23，晚于前一次28/28通过，说明观测间同步变化，不证明供应商定期轮换。
+
+第三轮[fresh准备40404707005](https://github.com/nanashiwang/Xboard/actions/runs/40404707005)全41 HTTPS来源/额度一致，22候选来源SHA逐条匹配。根代理逐项明确选择22摘要，严格pin-only隔离试连44/44成功，原字段/服务均保持。U41原固定IP与完整CA策略双目标2/2成功；入口系统DNS EAI_NONAME时CF严格DoH唯一答案仍是当前IP，没有换地址/加pin，先前521仍作为真实暂时故障记录。[健康两条复验40404525902](https://github.com/nanashiwang/Xboard/actions/runs/40404525902)U18/U19双目标通过；首次dispatch在GET workflow阶段TLS超时，确认无run后重发。
+
+新增兼容schema2的有限有序修复链：base不变、最多3个真实repair引用，每次须引用前序ledger ID/SHA并恰追加一轮；前序必须hidden且无unknown intent，每轮全41快照精确接上前轮hidden，最后显式选择决定身份、原始字段始终来自首轮。最新fresh计划保持自己的2小时期限，旧计划仅作历史；所有引用去重排序加锁一次，拒绝循环/乱序/重复/跨范围。323项Python回归及独立351项真实PHP状态、3个execution摘要对照通过，旧schema1摘要完全兼容。第三轮生产应用和最终公开结果待记录，不把44次隔离试连当作公开恢复。
+
 ## 2026-10-27：卡皮巴拉订阅手动更新与自动周期
 
 用户确认另一台电脑导入Xboard订阅，要求客户端有明确更新订阅按钮，并默认每小时自动更新。核对发现已有原生每小时配置更新，但“立即同步流量”调用账号refresh，未到周期不重新下载节点；账号synced_at每30秒更新，也不能代表配置时间。沿用[节点准备与测速决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)，保留[外接节点生产信任边界](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)。
