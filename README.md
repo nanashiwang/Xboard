@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### Windows 0.1.5 美国01连接差异（2026-10-26）
+
+用户确认 v2rayN 已退出，同一美国01家宽在 v2rayN 可用、卡皮巴拉失败；Windows 根因尚待现场证据。本机同版本可用，并复现五秒测速超时、十二秒成功，不能据此把 Windows 代理失败归结为测速期限。新增[只读诊断工具](./scripts/capybara/README.md)，直接用于已安装 0.1.5，分阶段检查回环内核、入口、检测站点和当前代理请求，输出不含凭据的报告；不修改客户端配置或生产。验证及待办见[进展](./progress-log.md#2026-10-26windows-015-美国01连接差异诊断)。
+
 ### 外接节点测速失败排查（2026-10-26）
 
 0.1.5 的现场测速确认部分外接线路失败，故障证据位于第一阶段服务器到第三方上游这一段：扩展服务运行且无重启，AnyTLS 握手大量报 `unrecognized remote public key`，另有上游 TCP 超时。把检测换成 Cloudflare、单项放宽到 12 秒后仍可复现；日本02在两轮中一次成功、一次超时，不能按节点名称推定全部失效。公钥不匹配不等于已证实供应商正常换证，需核对批准的端点/SNI及当前身份后再修复。用户随后反馈同一自有订阅在 v2rayN 真实连接正常；19:39 对运行中卡皮巴拉的新加坡01/02串行指定另一 HTTPS 目标，均503，服务端同目标出现两次公钥拒绝。该专项证据确认当时这两条请求失败，但尚未取得用户 v2rayN 的有效配置/请求证据，不能把客户端差异归因于其证书校验更宽松。此次仅诊断，未改变生产出站、证书校验或客户端设置。详情见[诊断记录](./progress-log.md#2026-10-26外接节点测速失败排查)。
