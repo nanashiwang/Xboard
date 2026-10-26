@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉统一页面框架（2026-10-26）
+
+首页、套餐、邀请、账户和帮助页共用蓝色外框、侧栏与响应式尺寸，切换页面时 Logo、通知铃铛和导航不再跳动。首页保持固定视口及节点内部滚动，其他页面仅内容区滚动，切页回到内容顶部。前端 57 项、脚本 16 项及构建通过，五种窗口尺寸与明暗/未登录/长页预览已验；0.1.5 发布、安装终态见[进展](./progress-log.md#2026-10-26卡皮巴拉统一页面框架)，边界见[首页决定](./.agents/notes/implemented/feature/2026-10-26-capybara-scenic-home.md)。
+
 ### 卡皮巴拉连接按钮恢复左侧（2026-10-26）
 
 根据用户反馈，将首页一键连接按钮恢复到插画左侧，避免遮挡卡皮巴拉。保持首页固定、节点内部滚动；按插画实际高度紧凑排列，小窗口出现错误提示时优先保证连接、登录和注册入口完整可见。前端 57 项、脚本 16 项及类型/构建检查通过；四种窗口和明暗、未登录、同步异常预览已验。0.1.4 已正式发布并安装，四目标与 18 附件已核验；本机未登录和已登录首页均确认按钮在左、卡皮巴拉无遮挡。官网更新源仍为 0.1.2，完整终态见[进展](./progress-log.md#2026-10-26卡皮巴拉连接按钮恢复左侧)。

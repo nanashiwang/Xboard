@@ -58,6 +58,7 @@ export default function App() {
     const loginOpen = !!view.browser_login;
     const registering = view.browser_login?.registration === true;
     const loginRef = useRef<HTMLDialogElement>(null),
+        mainRef = useRef<HTMLElement>(null),
         polling = useRef(false),
         mounted = useRef(true);
     useEffect(() => {
@@ -89,6 +90,9 @@ export default function App() {
         if (loginOpen) loginRef.current?.showModal();
         else loginRef.current?.close();
     }, [loginOpen]);
+    useEffect(() => {
+        if (mainRef.current) mainRef.current.scrollTop = 0;
+    }, [page]);
     const act = async (name: string, args?: Record<string, unknown>) => {
         if (busy) return;
         setBusy(name);
@@ -166,7 +170,7 @@ export default function App() {
         </section>
     );
     return (
-        <div className={"app-shell" + (page === "home" ? " scenic-shell" : "")}>
+        <div className="app-shell scenic-shell">
             <aside className="sidebar">
                 <a
                     className="brand"
@@ -254,7 +258,10 @@ export default function App() {
                     </button>
                 </div>
             </aside>
-            <main>
+            <main
+                ref={mainRef}
+                className={page === "home" ? "home-main" : "page-main"}
+            >
                 <h1 className="sr-only">
                     {page === "account"
                         ? "我的账户"
