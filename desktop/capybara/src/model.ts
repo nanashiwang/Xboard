@@ -28,7 +28,6 @@ export type View = {
     sync_error: string | null;
     connection: "connected" | "disconnected";
     connection_error: string | null;
-    routes: { group: string; selected: string; choices: string[] }[];
     version: string;
     platform: string;
 };
@@ -42,7 +41,6 @@ export const emptyView: View = {
     sync_error: null,
     connection: "disconnected",
     connection_error: null,
-    routes: [],
     version,
     platform: "",
 };
@@ -156,7 +154,7 @@ export function statusMessage(view: View) {
                 : "准备好了，随时出发",
         text:
             view.connection === "connected"
-                ? "系统代理已开启，线路连通检测已通过。"
+                ? "系统代理已开启，可以随时切换节点或检测连接。"
                 : "点击连接，卡皮巴拉为你打理接下来的连接。",
     };
 }

@@ -3,10 +3,11 @@ mod account;
 mod credentials;
 mod desktop;
 mod engine;
+mod nodes;
 mod proxy;
 mod updates;
 use account::{Account, BrowserSession, Fault};
-use engine::{Engine, Route};
+use engine::Engine;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -62,7 +63,6 @@ struct View {
     sync_error: Option<String>,
     connection: String,
     connection_error: Option<String>,
-    routes: Vec<Route>,
     version: String,
     platform: String,
 }
@@ -78,7 +78,6 @@ impl Default for View {
             sync_error: None,
             connection: "disconnected".into(),
             connection_error: None,
-            routes: vec![],
             version: account::VERSION.into(),
             platform: account::platform().into(),
         }
@@ -88,11 +87,10 @@ struct Runtime {
     account: Account,
     browser_attempt: Option<String>,
     browser_session: Option<BrowserSession>,
-    engine: Option<Engine>,
+    nodes: Arc<Mutex<nodes::Nodes>>,
     dir: PathBuf,
     binary: PathBuf,
     view: View,
-    config_synced: Option<std::time::Instant>,
     app: tauri::AppHandle,
     installing: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -131,32 +129,10 @@ impl Runtime {
                 self.view.subscription = Some(subscription);
                 self.view.synced_at = Some(now());
                 self.view.sync_error = None;
-                if !active && self.engine.is_some() {
-                    self.disconnect()?;
-                }
-                if active
-                    && self
-                        .config_synced
-                        .is_some_and(|t| t.elapsed() >= Duration::from_secs(3600))
-                {
-                    if let Some(engine) = self.engine.as_ref() {
-                        // Keep status polling independent of hourly node refresh.
-                        let result = match self.account.config().await {
-                            Ok(content) => engine.reload(&content).await.map_err(Fault::from),
-                            Err(error) => Err(error),
-                        };
-                        match result {
-                            Ok(()) => {
-                                self.config_synced = Some(std::time::Instant::now());
-                                self.view.routes = engine.routes().await.unwrap_or_default();
-                            }
-                            Err(_) => {
-                                self.view.connection_error = Some(
-                                    "线路更新暂时失败，继续使用上次配置；稍后会自动重试".into(),
-                                )
-                            }
-                        }
-                    }
+                if !active {
+                    self.shutdown().await?;
+                } else {
+                    self.prepare_nodes().await;
                 }
                 if self.view.profile.is_none() {
                     self.view.profile = self.account.get("user/profile").await.ok();
@@ -167,7 +143,7 @@ impl Runtime {
                 self.view.logged_in = self.account.logged_in();
                 self.view.sync_error = Some(e.message.clone());
                 if !self.view.logged_in {
-                    let _ = self.disconnect();
+                    let _ = self.shutdown().await;
                     self.view.profile = None;
                     self.view.subscription = None;
                     self.view.synced_at = None;
@@ -176,19 +152,78 @@ impl Runtime {
             }
         }
     }
-    fn disconnect(&mut self) -> Result<(), Fault> {
-        let result = if let Some(mut engine) = self.engine.take() {
-            engine.stop()
-        } else {
-            proxy::recover(&self.dir)
+    async fn prepare_nodes(&mut self) {
+        let needs_config = {
+            let mut nodes = self.nodes.lock().await;
+            nodes.check_process();
+            nodes.engine.is_none()
+                || nodes
+                    .synced
+                    .is_none_or(|t| t.elapsed() >= Duration::from_secs(3600))
         };
+        if !needs_config || self.installing.load(std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
+        {
+            let mut nodes = self.nodes.lock().await;
+            nodes.view.loading = true;
+            nodes.view.error = None;
+            nodes.changed();
+        }
+        // Download outside the node lock: cached routes remain responsive during account requests.
+        let content = self.account.config().await;
+        let mut nodes = self.nodes.lock().await;
+        let result = match content {
+            Ok(content) => {
+                nodes.invalidate();
+                if let Some(engine) = nodes.engine.as_ref() {
+                    engine.reload(&content).await
+                } else {
+                    match Engine::start(&self.dir, self.binary.clone(), &content).await {
+                        Ok(engine) => {
+                            nodes.engine = Some(engine);
+                            Ok(())
+                        }
+                        Err(error) => Err(error),
+                    }
+                }
+            }
+            Err(error) => Err(error.message),
+        };
+        match result {
+            Ok(()) => {
+                if let Some(engine) = nodes.engine.as_ref() {
+                    match engine.routes().await {
+                        Ok(routes) => {
+                            nodes.view.routes = routes;
+                            nodes.synced = Some(std::time::Instant::now());
+                        }
+                        Err(error) => nodes.view.error = Some(error),
+                    }
+                }
+            }
+            Err(error) => nodes.view.error = Some(error),
+        }
+        nodes.view.loading = false;
+        nodes.changed();
+    }
+    fn disconnect(&mut self) -> Result<(), Fault> {
+        let result = proxy::recover(&self.dir);
         self.view.connection = "disconnected".into();
-        self.view.routes.clear();
         self.view.connection_error = result.as_ref().err().cloned();
         result.map_err(Fault::from)
     }
-    fn check_process(&mut self) {
-        if self.engine.as_mut().is_some_and(|e| !e.alive()) {
+    async fn shutdown(&mut self) -> Result<(), Fault> {
+        let recovery = self.disconnect();
+        let stopped = self.nodes.lock().await.stop().map_err(Fault::from);
+        // Expired/revoked accounts cannot keep using a live core even if proxy restoration fails.
+        recovery.and(stopped)
+    }
+    async fn check_process(&mut self) {
+        let mut nodes = self.nodes.lock().await;
+        nodes.check_process();
+        if nodes.engine.is_none() && self.view.connection == "connected" {
+            drop(nodes);
             let _ = self.disconnect();
             self.view
                 .connection_error
@@ -196,11 +231,12 @@ impl Runtime {
         }
     }
 }
-struct AppState(Arc<Mutex<Runtime>>);
+struct AppState(Arc<Mutex<Runtime>>, Arc<Mutex<nodes::Nodes>>);
+
 #[tauri::command]
 async fn snapshot(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
-    rt.check_process();
+    rt.check_process().await;
     Ok(rt.view.clone())
 }
 // Network waits stay outside Runtime's lock so cancel and UI snapshots remain responsive.
@@ -398,7 +434,7 @@ async fn refresh(state: State<'_, AppState>) -> Result<View, Fault> {
 #[tauri::command]
 async fn logout(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
-    rt.disconnect()?;
+    rt.shutdown().await?;
     rt.account.logout().await?;
     rt.view = View::default();
     Ok(rt.view.clone())
@@ -409,7 +445,7 @@ async fn connect(state: State<'_, AppState>) -> Result<View, Fault> {
     if rt.installing.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(Fault::local("正在更新，请稍候再连接"));
     }
-    if rt.engine.is_some() {
+    if rt.view.connection == "connected" {
         return Ok(rt.view.clone());
     }
     rt.sync().await?;
@@ -421,24 +457,20 @@ async fn connect(state: State<'_, AppState>) -> Result<View, Fault> {
     {
         return Err(Fault::local("当前套餐不可用，请查看首页提示"));
     }
-    let content = rt.account.config().await?;
-    let engine = match Engine::start(&rt.dir, rt.binary.clone(), &content).await {
-        Ok(e) => e,
-        Err(e) => {
-            rt.view.connection_error = Some(e.clone());
-            return Err(e.into());
-        }
+    let control = {
+        let nodes = rt.nodes.lock().await;
+        let engine = nodes
+            .engine
+            .as_ref()
+            .ok_or_else(|| Fault::local("节点尚未准备好，请稍后重试"))?;
+        std::ops::Deref::deref(engine).clone()
     };
+    proxy::enable(&rt.dir, control.port)?;
     rt.view.connection = "connected".into();
-    rt.view.connection_error = engine.check().await.err();
-    rt.view.routes = engine.routes().await.unwrap_or_default();
-    rt.engine = Some(engine);
-    rt.config_synced = Some(std::time::Instant::now());
-    if rt.view.connection_error.is_some() {
-        let _ = rt.sync().await;
-    }
+    rt.view.connection_error = control.check().await.err();
     Ok(rt.view.clone())
 }
+
 #[tauri::command]
 async fn disconnect(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
@@ -446,37 +478,24 @@ async fn disconnect(state: State<'_, AppState>) -> Result<View, Fault> {
     Ok(rt.view.clone())
 }
 #[tauri::command]
-async fn select_route(
-    state: State<'_, AppState>,
-    group: String,
-    name: String,
-) -> Result<View, Fault> {
-    let mut rt = state.0.lock().await;
-    let engine = rt
-        .engine
-        .as_ref()
-        .ok_or_else(|| Fault::local("请先连接，再切换线路"))?;
-    engine.select(&group, &name).await?;
-    let error = engine.check().await.err();
-    let routes = engine.routes().await?;
-    rt.view.connection_error = error;
-    rt.view.routes = routes;
-    if rt.view.connection_error.is_some() {
-        let _ = rt.sync().await;
-    }
-    Ok(rt.view.clone())
-}
-#[tauri::command]
 async fn check_connection(state: State<'_, AppState>) -> Result<View, Fault> {
+    let control = {
+        let rt = state.0.lock().await;
+        if rt.view.connection != "connected" {
+            return Err(Fault::local("请先连接"));
+        }
+        let nodes = state.1.lock().await;
+        let engine = nodes
+            .engine
+            .as_ref()
+            .ok_or_else(|| Fault::local("请先连接"))?;
+        std::ops::Deref::deref(engine).clone()
+    };
+    let error = control.check().await.err();
     let mut rt = state.0.lock().await;
-    rt.view.connection_error = rt
-        .engine
-        .as_ref()
-        .ok_or_else(|| Fault::local("请先连接"))?
-        .check()
-        .await
-        .err();
-    let _ = rt.sync().await;
+    if rt.view.connection == "connected" {
+        rt.view.connection_error = error;
+    }
     Ok(rt.view.clone())
 }
 #[tauri::command]
@@ -573,26 +592,26 @@ fn main() {
             };
             let installing = Arc::new(std::sync::atomic::AtomicBool::new(false));
             updates::start(app.handle(), &dir, installing.clone());
+            let nodes = Arc::new(Mutex::new(nodes::Nodes::default()));
             let state = Arc::new(Mutex::new(Runtime {
                 account,
                 browser_attempt: None,
                 browser_session: None,
-                engine: None,
+                nodes: nodes.clone(),
                 dir,
                 binary,
                 view,
-                config_synced: None,
                 installing,
                 app: app.handle().clone(),
             }));
-            app.manage(AppState(state.clone()));
+            app.manage(AppState(state.clone(), nodes));
             tauri::async_runtime::spawn(async move {
                 let mut ticks = tokio::time::interval(Duration::from_secs(30));
                 ticks.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
                 loop {
                     ticks.tick().await;
                     let mut rt = state.lock().await;
-                    rt.check_process();
+                    rt.check_process().await;
                     let _ = rt.sync().await;
                 }
             });
@@ -611,7 +630,9 @@ fn main() {
             logout,
             connect,
             disconnect,
-            select_route,
+            nodes::nodes_snapshot,
+            nodes::select_route,
+            nodes::test_nodes,
             check_connection,
             open_link,
             store::store_request,
@@ -651,7 +672,7 @@ fn main() {
             let flag = exiting.clone();
             tauri::async_runtime::spawn(async move {
                 let mut rt = state.lock().await;
-                if rt.disconnect().is_ok() {
+                if rt.shutdown().await.is_ok() {
                     flag.store(2, Ordering::SeqCst);
                     app.exit(0);
                 } else {

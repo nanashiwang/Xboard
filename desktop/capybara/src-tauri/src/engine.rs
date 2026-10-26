@@ -24,9 +24,19 @@ pub struct Route {
 pub struct Engine {
     worker: Child,
     input: ChildStdin,
+    control: Controller,
+}
+#[derive(Clone)]
+pub struct Controller {
     pub port: u16,
     api: u16,
     secret: String,
+}
+impl std::ops::Deref for Engine {
+    type Target = Controller;
+    fn deref(&self) -> &Controller {
+        &self.control
+    }
 }
 #[allow(unused_mut)]
 fn cmd(binary: impl AsRef<std::ffi::OsStr>) -> Command {
@@ -169,9 +179,7 @@ impl Engine {
             Ok(value) if value["ready"] == true => Ok(Self {
                 worker,
                 input,
-                port,
-                api,
-                secret,
+                control: Controller { port, api, secret },
             }),
             other => {
                 let _ = writeln!(input, "stop");
@@ -195,6 +203,8 @@ impl Engine {
             Err("连接已停止，但代理恢复未完成，请重启应用修复".into())
         }
     }
+}
+impl Controller {
     async fn call(
         &self,
         method: reqwest::Method,
@@ -203,7 +213,8 @@ impl Engine {
     ) -> Result<Value, String> {
         let mut request = account::http()?
             .request(method, format!("http://127.0.0.1:{}{path}", self.api))
-            .bearer_auth(&self.secret);
+            .bearer_auth(&self.secret)
+            .timeout(Duration::from_secs(3));
         if let Some(body) = body {
             request = request.json(&body);
         }
@@ -253,13 +264,6 @@ impl Engine {
             .collect())
     }
     pub async fn select(&self, group: &str, name: &str) -> Result<(), String> {
-        let routes = self.routes().await?;
-        if !routes
-            .iter()
-            .any(|r| r.group == group && r.choices.iter().any(|n| n == name))
-        {
-            return Err("这条线路已变更，请重新连接".into());
-        }
         let mut url = reqwest::Url::parse("http://localhost").map_err(|_| "地址无效")?;
         url.path_segments_mut().map_err(|_| "地址无效")?.push(group);
         let encoded = url.path();
@@ -270,6 +274,41 @@ impl Engine {
         )
         .await?;
         Ok(())
+    }
+    pub async fn delay(&self, name: &str) -> Result<u64, String> {
+        self.delay_at(name, "https://www.gstatic.com/generate_204")
+            .await
+    }
+    async fn delay_at(&self, name: &str, target: &str) -> Result<u64, String> {
+        let mut url = reqwest::Url::parse(&format!("http://127.0.0.1:{}", self.api))
+            .map_err(|_| "测速地址无效")?;
+        url.path_segments_mut()
+            .map_err(|_| "测速地址无效")?
+            .extend(["proxies", name, "delay"]);
+        url.query_pairs_mut()
+            .append_pair("url", target)
+            .append_pair("timeout", "5000")
+            .append_pair("expected", "204");
+        let response = account::http()?
+            .get(url)
+            .bearer_auth(&self.secret)
+            .timeout(Duration::from_secs(6))
+            .send()
+            .await
+            .map_err(|_| "测速超时")?;
+        if response.status() == reqwest::StatusCode::GATEWAY_TIMEOUT {
+            return Err("超时".into());
+        }
+        let data: Value = response
+            .error_for_status()
+            .map_err(|_| "不可达")?
+            .json()
+            .await
+            .map_err(|_| "测速响应无效")?;
+        data["delay"]
+            .as_u64()
+            .filter(|v| *v > 0)
+            .ok_or_else(|| "不可达".into())
     }
     pub async fn check(&self) -> Result<(), String> {
         let proxy = reqwest::Proxy::all(format!("http://127.0.0.1:{}", self.port))
@@ -372,7 +411,8 @@ pub fn worker_main() -> i32 {
             }
             tokio::time::sleep(Duration::from_millis(200)).await;
         }
-        proxy::enable(&launch.dir, launch.port)
+        // Preparing nodes must never change system proxy settings.
+        Ok(())
     });
     if let Err(error) = ready {
         let _ = core.kill();
@@ -523,6 +563,41 @@ mod integration {
             .await
             .unwrap();
         assert!(before["proxies"]["卡皮巴拉"].is_object());
+        let controller = Controller {
+            port,
+            api,
+            secret: secret.clone(),
+        };
+        controller.select("卡皮巴拉", "测试线路").await.unwrap();
+        assert!(controller.select("卡皮巴拉", "not-a-node").await.is_err());
+        // Real bundled core measures a controlled HTTP target, without setting the system proxy.
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            use std::io::Read;
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(3)))
+                .unwrap();
+            let mut data = [0; 1024];
+            let _ = socket.read(&mut data).unwrap();
+            std::thread::sleep(Duration::from_millis(40));
+            socket
+                .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+                .unwrap();
+        });
+        let delay = controller
+            .delay_at("测试线路", &format!("http://{address}/generate_204"))
+            .await
+            .unwrap();
+        assert!(delay >= 30 && delay < 5000);
+        server.join().unwrap();
+        assert!(controller
+            .delay_at("missing / %?", "http://127.0.0.1:1/")
+            .await
+            .is_err());
+        assert_eq!(controller.routes().await.unwrap()[0].selected, "测试线路");
+        assert!(!core.1.join("proxy-recovery.json").exists());
         let response = client
             .put(format!("{base}/configs?force=true"))
             .bearer_auth(&secret)

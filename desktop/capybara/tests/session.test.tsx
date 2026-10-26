@@ -53,7 +53,9 @@ describe("钥匙串授权由用户发起", () => {
         expect(
             vi
                 .mocked(command)
-                .mock.calls.every(([name]) => name === "snapshot"),
+                .mock.calls.every(([name]) =>
+                    ["snapshot", "nodes_snapshot"].includes(name),
+                ),
         ).toBe(true);
         expect(document.querySelector("dialog")?.open).toBe(false);
     });

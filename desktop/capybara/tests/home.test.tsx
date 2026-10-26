@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import Home, { nodeLocation } from "../src/Home";
 import { emptyView, type View } from "../src/model";
+import { emptyNodes } from "../src/nodes";
 
 afterEach(cleanup);
 function setup(overrides: Partial<View> = {}) {
@@ -15,24 +16,34 @@ function setup(overrides: Partial<View> = {}) {
         ...emptyView,
         logged_in: true,
         connection: "connected",
-        routes: [
-            {
-                group: "默认连接",
-                selected: "新加坡 01",
-                choices: ["新加坡 01", "日本 02", "美国 03", "自动选择"],
-            },
-            {
-                group: "影音分流",
-                selected: "日本影音",
-                choices: ["日本影音", "香港影音"],
-            },
-        ],
         ...overrides,
+    };
+    const nodes = {
+        view: {
+            ...emptyNodes,
+            routes: [
+                {
+                    group: "默认连接",
+                    selected: "新加坡 01",
+                    choices: ["新加坡 01", "日本 02", "美国 03", "自动选择"],
+                },
+                {
+                    group: "影音分流",
+                    selected: "日本影音",
+                    choices: ["日本影音", "香港影音"],
+                },
+            ],
+        },
+        pending: null,
+        error: "",
+        select: vi.fn(async () => {}),
+        test: vi.fn(async () => {}),
     };
     const onAction = vi.fn(async () => {}),
         onPrimary = vi.fn();
     const props = {
         view,
+        nodes,
         busy: "",
         eligible: true,
         primaryText: "断开连接",
@@ -45,7 +56,7 @@ function setup(overrides: Partial<View> = {}) {
     return { ...result, props, onAction, onPrimary };
 }
 it("搜索和地区筛选保留真实名称，切换始终提交对应分流组", () => {
-    const { onAction } = setup();
+    const { props } = setup();
     const panel = within(screen.getByRole("region", { name: "首页节点列表" }));
     fireEvent.click(panel.getByRole("button", { name: "亚洲", exact: true }));
     expect(
@@ -55,10 +66,7 @@ it("搜索和地区筛选保留真实名称，切换始终提交对应分流组"
         target: { value: "日本" },
     });
     fireEvent.click(panel.getByRole("button", { name: "选择节点 日本 02" }));
-    expect(onAction).toHaveBeenLastCalledWith("select_route", {
-        group: "默认连接",
-        name: "日本 02",
-    });
+    expect(props.nodes.select).toHaveBeenLastCalledWith("默认连接", "日本 02");
     fireEvent.change(panel.getByRole("combobox", { name: "选择分流组" }), {
         target: { value: "影音分流" },
     });
@@ -67,31 +75,64 @@ it("搜索和地区筛选保留真实名称，切换始终提交对应分流组"
             .value,
     ).toBe("");
     fireEvent.click(panel.getByRole("button", { name: "选择节点 香港影音" }));
-    expect(onAction).toHaveBeenLastCalledWith("select_route", {
-        group: "影音分流",
-        name: "香港影音",
-    });
+    expect(props.nodes.select).toHaveBeenLastCalledWith("影音分流", "香港影音");
 });
-it("断开后不显示残留节点，重新连接会重置旧搜索", () => {
-    const { props, rerender } = setup();
-    fireEvent.change(screen.getByRole("textbox", { name: "搜索节点" }), {
-        target: { value: "不会匹配" },
-    });
-    expect(screen.getByText("没有找到匹配节点")).toBeTruthy();
+it("登录后未连接即可选节点和测速，断开保留节点，注销不展示旧节点", () => {
+    const { props, rerender } = setup({ connection: "disconnected" });
+    fireEvent.click(screen.getByRole("button", { name: "选择节点 日本 02" }));
+    expect(props.nodes.select).toHaveBeenCalledWith("默认连接", "日本 02");
+    fireEvent.click(screen.getByRole("button", { name: "一键测速" }));
+    expect(props.nodes.test).toHaveBeenCalledTimes(1);
     rerender(
-        <Home
-            {...props}
-            view={{ ...props.view, connection: "disconnected" }}
-        />,
+        <Home {...props} view={{ ...props.view, connection: "connected" }} />,
     );
-    expect(
-        screen.queryByRole("button", { name: "选择节点 新加坡 01" }),
-    ).toBeNull();
-    expect(screen.getByText("连接后，选择你的目的地")).toBeTruthy();
     rerender(<Home {...props} />);
     expect(
         screen.getByRole("button", { name: "选择节点 新加坡 01" }),
     ).toBeTruthy();
+    rerender(<Home {...props} view={{ ...props.view, logged_in: false }} />);
+    expect(
+        screen.queryByRole("button", { name: "选择节点 新加坡 01" }),
+    ).toBeNull();
+});
+it("切换立即提示处理中，确认前保留当前节点；延迟逐项显示", () => {
+    const { props, rerender } = setup();
+    rerender(
+        <Home
+            {...props}
+            nodes={{
+                ...props.nodes,
+                pending: { group: "默认连接", name: "日本 02" },
+                view: {
+                    ...props.nodes.view,
+                    testing: true,
+                    delays: {
+                        "新加坡 01": { status: "ok", ms: 42 },
+                        "日本 02": { status: "pending", ms: null },
+                        "美国 03": { status: "超时", ms: null },
+                    },
+                },
+            }}
+        />,
+    );
+    expect(screen.getByLabelText("正在切换")).toBeTruthy();
+    expect(
+        screen
+            .getByRole("button", { name: "选择节点 新加坡 01" })
+            .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+        screen
+            .getByRole("button", { name: "选择节点 日本 02" })
+            .getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(screen.getByText("42 ms")).toBeTruthy();
+    expect(screen.getByText("超时")).toBeTruthy();
+    expect(
+        screen
+            .getByRole("button", { name: "测速中 2/3" })
+            .hasAttribute("disabled"),
+    ).toBe(true);
 });
 it("资格不可用或正在处理时不能连接与重复切换", () => {
     const { props, rerender, onPrimary, onAction } = setup();

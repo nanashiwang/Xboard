@@ -266,7 +266,7 @@ pub async fn install_update(
     };
     monitor.data.lock().unwrap().view.phase = "installing".into();
     // Keep connections gated until installation has completed; never exit with our proxy set.
-    if runtime.0.lock().await.disconnect().is_err() {
+    if runtime.0.lock().await.shutdown().await.is_err() {
         monitor.fail("系统代理恢复失败，已停止更新。请先断开连接后重试。");
         return Ok(monitor.view());
     }

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { bytes, quotaPercent, type View } from "./model";
 import "./home.css";
+import { delayLabel, type useNodes } from "./nodes";
 
 const regions = ["全部", "亚洲", "美洲", "欧洲", "其他"] as const;
 const locations = [
@@ -48,6 +49,7 @@ function NodeSymbol({ name }: { name: string }) {
 }
 type Props = {
     view: View;
+    nodes: ReturnType<typeof useNodes>;
     busy: string;
     eligible: boolean;
     primaryText: string;
@@ -58,6 +60,7 @@ type Props = {
 };
 export default function Home({
     view,
+    nodes,
     busy,
     eligible,
     primaryText,
@@ -71,7 +74,7 @@ export default function Home({
     const [group, setGroup] = useState("");
     const search = useRef<HTMLInputElement>(null);
     const connected = view.connection === "connected";
-    const routes = connected ? view.routes : [];
+    const routes = view.logged_in ? nodes.view.routes : [];
     const route = routes.find((r) => r.group === group) || routes[0];
     const selected = route?.selected;
     const percent = quotaPercent(view.subscription);
@@ -86,7 +89,7 @@ export default function Home({
         setQuery("");
         setRegion("全部");
         setGroup("");
-    }, [view.logged_in, view.profile?.email, connected]);
+    }, [view.logged_in, view.profile?.email]);
     const showNodes = () => {
         search.current?.scrollIntoView({ block: "nearest" });
         search.current?.focus();
@@ -177,7 +180,7 @@ export default function Home({
                                 {selected ||
                                     (connected
                                         ? "按规则自动分流"
-                                        : "连接后选择节点")}
+                                        : "登录后自动同步节点")}
                             </strong>
                             <small>
                                 <Wifi size={14} />
@@ -346,25 +349,34 @@ export default function Home({
                         ))}
                     </div>
                     <div className="home-node-list">
-                        {!connected ? (
+                        {!route ? (
                             <div className="node-empty">
-                                <Compass size={38} strokeWidth={1.4} />
+                                {nodes.view.loading ? (
+                                    <LoaderCircle className="spin" size={36} />
+                                ) : (
+                                    <Compass size={38} strokeWidth={1.4} />
+                                )}
                                 <h3>
-                                    {view.logged_in
-                                        ? "连接后，选择你的目的地"
-                                        : "登录，开启下一段旅程"}
+                                    {!view.logged_in
+                                        ? "登录，开启下一段旅程"
+                                        : nodes.view.loading
+                                          ? "正在加载套餐节点"
+                                          : nodes.view.error
+                                            ? "节点暂时未加载"
+                                            : view.subscription?.status ===
+                                                "active"
+                                              ? "暂无可选节点"
+                                              : "等待可用套餐"}
                                 </h3>
                                 <p>
-                                    {view.logged_in
-                                        ? "建立连接后，这里会显示当前套餐的可选节点。"
-                                        : "真实节点会随你的套餐同步，登录后即可开始连接。"}
+                                    {!view.logged_in
+                                        ? "登录后自动读取当前套餐节点，无需先连接。"
+                                        : nodes.view.error ||
+                                          (view.subscription?.status ===
+                                          "active"
+                                              ? "节点会自动同步，可尝试刷新账号。"
+                                              : "开通有效套餐后，这里会自动显示可用节点。")}
                                 </p>
-                            </div>
-                        ) : !route ? (
-                            <div className="node-empty">
-                                <ShieldCheck size={36} />
-                                <h3>正在按规则连接</h3>
-                                <p>当前配置没有可手动选择的节点组。</p>
                             </div>
                         ) : choices.length === 0 ? (
                             <div className="node-empty">
@@ -384,22 +396,42 @@ export default function Home({
                                 <button
                                     className={
                                         "home-node " +
-                                        (name === selected ? "selected" : "")
+                                        (nodes.pending?.group === route.group &&
+                                        nodes.pending.name === name
+                                            ? "pending"
+                                            : name === selected
+                                              ? "selected"
+                                              : "")
                                     }
                                     key={name}
                                     aria-label={`选择节点 ${name}`}
                                     aria-pressed={name === selected}
-                                    disabled={!!busy}
+                                    disabled={!!busy || !!nodes.pending}
                                     onClick={() =>
-                                        void onAction("select_route", {
-                                            group: route!.group,
-                                            name,
-                                        })
+                                        void nodes.select(route.group, name)
                                     }
                                 >
                                     <NodeSymbol name={name} />
                                     <span>{name}</span>
-                                    {name === selected ? (
+                                    <small
+                                        className={
+                                            "node-delay " +
+                                            (nodes.view.delays[name]?.status ===
+                                            "ok"
+                                                ? "measured"
+                                                : "")
+                                        }
+                                    >
+                                        {delayLabel(nodes.view.delays[name])}
+                                    </small>
+                                    {nodes.pending?.group === route.group &&
+                                    nodes.pending.name === name ? (
+                                        <LoaderCircle
+                                            size={18}
+                                            className="spin"
+                                            aria-label="正在切换"
+                                        />
+                                    ) : name === selected ? (
                                         <Check
                                             size={18}
                                             aria-label="当前节点"
@@ -411,12 +443,40 @@ export default function Home({
                             ))
                         )}
                     </div>
+                    {(nodes.error ||
+                        (nodes.view.error && routes.length > 0)) && (
+                        <p className="node-feedback" role="alert">
+                            {nodes.error || nodes.view.error}
+                        </p>
+                    )}
+                    {nodes.pending && (
+                        <p className="node-feedback" role="status">
+                            正在{connected ? "切换" : "选择"}{" "}
+                            {nodes.pending.name}…
+                        </p>
+                    )}
+                    <button
+                        className="node-test-button"
+                        disabled={
+                            !routes.length || nodes.view.testing || !!busy
+                        }
+                        onClick={() => void nodes.test()}
+                    >
+                        {nodes.view.testing ? (
+                            <LoaderCircle size={18} className="spin" />
+                        ) : (
+                            <Signal size={18} />
+                        )}
+                        {nodes.view.testing
+                            ? `测速中 ${Object.values(nodes.view.delays).filter((d) => d.status !== "pending").length}/${Object.keys(nodes.view.delays).length}`
+                            : "一键测速"}
+                    </button>
                     <div className="node-panel-footer">
                         <ShieldCheck size={16} />
                         <span>
                             {connected
-                                ? "切换节点后会自动检查连接"
-                                : "你的连接，由你选择"}
+                                ? "选择节点即切换 · 延迟随网络变化"
+                                : "可先选节点、测速，再开启连接"}
                         </span>
                     </div>
                 </section>

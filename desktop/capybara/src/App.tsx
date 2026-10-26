@@ -1,6 +1,7 @@
 import Updates from "./Updates";
 import Plans from "./Plans";
 import Home from "./Home";
+import { useNodes } from "./nodes";
 import DesktopSettings from "./DesktopSettings";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -39,6 +40,7 @@ const pages = [
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
 ];
 export default function App() {
+    const nodes = useNodes();
     const [view, setView] = useState<View>(emptyView),
         [page, setPage] = useState("home"),
         [busy, setBusy] = useState(""),
@@ -268,6 +270,7 @@ export default function App() {
                 )}
                 {page === "home" && (
                     <Home
+                        nodes={nodes}
                         view={view}
                         busy={busy}
                         eligible={eligible}

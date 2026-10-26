@@ -1,5 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { UpdateView } from "./Updates";
+import type { NodeView } from "./nodes";
 import { emptyView, type View } from "./model";
 export const native = isTauri();
 export const preview =
@@ -25,7 +26,6 @@ let demo: View = {
     },
     synced_at: Math.floor(Date.now() / 1000),
     platform: "macos",
-    routes: [],
 };
 if (preview === "exhausted")
     demo = {
@@ -44,6 +44,28 @@ if (preview === "offline") demo = { ...demo, sync_error: "账号服务连接失�
 if (preview === "keychain")
     demo = { ...emptyView, platform: "macos", session_needs_unlock: true };
 if (preview === "store-guest") demo = { ...emptyView, platform: "macos" };
+let demoNodes: NodeView = {
+    revision: 1,
+    loading: false,
+    error: null,
+    testing: false,
+    delays: {},
+    routes:
+        demo.logged_in && demo.subscription?.status === "active"
+            ? [
+                  {
+                      group: "卡皮巴拉",
+                      selected: "自动选择",
+                      choices: [
+                          "自动选择",
+                          "美国01｜2×｜家宽",
+                          "日本01｜1×",
+                          "香港01｜1×",
+                      ],
+                  },
+              ]
+            : [],
+};
 let demoUpdate: UpdateView = {
     phase:
         preview === "update" || preview === "update-deb"
@@ -53,7 +75,7 @@ let demoUpdate: UpdateView = {
     release:
         preview === "update" || preview === "update-deb"
             ? {
-                  version: "0.1.1",
+                  version: "0.1.2",
                   notes: "优化连接体验。\n修复已知问题，提升稳定性。",
               }
             : null,
@@ -106,34 +128,44 @@ export async function command<T = View>(
                 };
             return structuredClone(demoUpdate) as T;
         }
-        if (name === "connect")
-            demo = {
-                ...demo,
-                connection: "connected",
-                routes: [
-                    {
-                        group: "卡皮巴拉",
-                        selected: "自动选择",
-                        choices: [
-                            "自动选择",
-                            "美国01｜2×｜家宽",
-                            "日本01｜1×",
-                            "香港01｜1×",
-                        ],
+        if (name === "nodes_snapshot") return structuredClone(demoNodes) as T;
+        if (name === "test_nodes") {
+            demoNodes.testing = true;
+            demoNodes.revision++;
+            const names = [
+                ...new Set(demoNodes.routes.flatMap((r) => r.choices)),
+            ];
+            demoNodes.delays = Object.fromEntries(
+                names.map((n) => [n, { status: "pending", ms: null }]),
+            );
+            names.forEach((n, i) =>
+                setTimeout(
+                    () => {
+                        demoNodes.delays[n] =
+                            i === 2
+                                ? { status: "超时", ms: null }
+                                : { status: "ok", ms: 35 + i * 22 };
+                        demoNodes.testing = i < names.length - 1;
+                        demoNodes.revision++;
                     },
-                ],
-            };
-        if (name === "disconnect")
-            demo = { ...demo, connection: "disconnected", routes: [] };
-        if (name === "select_route")
-            demo = {
-                ...demo,
-                routes: demo.routes.map((r) =>
-                    r.group === args?.group
-                        ? { ...r, selected: String(args?.name) }
-                        : r,
+                    (i + 1) * 350,
                 ),
-            };
+            );
+            return structuredClone(demoNodes) as T;
+        }
+        if (name === "connect") demo = { ...demo, connection: "connected" };
+        if (name === "disconnect")
+            demo = { ...demo, connection: "disconnected" };
+        if (name === "select_route") {
+            await new Promise((resolve) => setTimeout(resolve, 180));
+            demoNodes.routes = demoNodes.routes.map((r) =>
+                r.group === args?.group
+                    ? { ...r, selected: String(args?.name) }
+                    : r,
+            );
+            demoNodes.revision++;
+            return structuredClone(demoNodes) as T;
+        }
         if (name === "begin_browser_login")
             demo = {
                 ...demo,
@@ -146,13 +178,31 @@ export async function command<T = View>(
             };
         if (name === "cancel_browser_login")
             demo = { ...demo, browser_login: null };
-        if (name === "logout") demo = { ...emptyView };
+        if (name === "logout") {
+            demo = { ...emptyView };
+            demoNodes = {
+                ...demoNodes,
+                revision: demoNodes.revision + 1,
+                routes: [],
+                delays: {},
+                testing: false,
+            };
+        }
         if (name === "restore_session")
             throw { message: "这是模拟预览，不会访问系统钥匙串。" };
         if (name === "open_link") return undefined as T;
         return structuredClone(demo) as T;
     }
     if (name === "snapshot") return { ...emptyView } as T;
+    if (name === "nodes_snapshot")
+        return {
+            revision: 0,
+            routes: [],
+            loading: false,
+            error: null,
+            testing: false,
+            delays: {},
+        } as T;
     if (name === "open_link") {
         const urls: Record<string, string> = {
             account: "https://taige.us/#/dashboard",
