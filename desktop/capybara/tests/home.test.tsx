@@ -36,6 +36,12 @@ function setup(overrides: Partial<View> = {}) {
         },
         pending: null,
         error: "",
+        ready: true,
+        subscriptionPending: null,
+        subscriptionError: "",
+        subscriptionMessage: "",
+        refreshSubscription: vi.fn(async () => {}),
+        setSubscriptionInterval: vi.fn(async () => {}),
         select: vi.fn(async () => {}),
         test: vi.fn(async () => {}),
     };
@@ -150,4 +156,96 @@ it("连接异常不显示成功状态，未测延迟和速度不伪造", () => {
     expect(screen.queryByText("已连接", { exact: true })).toBeNull();
     expect(document.body.textContent).not.toMatch(/\d+\s*(ms|Mbps)/);
     expect(nodeLocation("未命名节点")).toEqual({ flag: "", region: "其他" });
+});
+it("更新订阅入口独立于流量刷新，空列表仍能更新且显示真实配置时间", () => {
+    const { props, rerender, onAction } = setup({
+        synced_at: 1_800_000_000,
+        subscription: {
+            status: "active",
+            plan_name: "测试",
+            expires_at: null,
+            traffic: {
+                total_bytes: 100,
+                used_bytes: 0,
+                remaining_bytes: 100,
+                reset_at: null,
+            },
+            registered_device_count: 1,
+            registered_device_limit: 3,
+        },
+    });
+    rerender(
+        <Home
+            {...props}
+            nodes={{ ...props.nodes, view: { ...emptyNodes, revision: 3 } }}
+        />,
+    );
+    expect(screen.getByText("每 1 小时 自动更新")).toBeTruthy();
+    expect(screen.getByText("上次更新：尚未更新")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "更新订阅" }));
+    expect(props.nodes.refreshSubscription).toHaveBeenCalledTimes(1);
+    expect(onAction).not.toHaveBeenCalled();
+    expect(screen.queryByText(/线路已恢复|节点可用/)).toBeNull();
+});
+it("未登录、套餐不可用、更新或切换处理中不能触发订阅更新", () => {
+    const { props, rerender } = setup({ logged_in: false });
+    fireEvent.click(screen.getByRole("button", { name: "更新订阅" }));
+    expect(props.nodes.refreshSubscription).not.toHaveBeenCalled();
+    rerender(<Home {...props} view={{ ...props.view, logged_in: true }} />);
+    expect(
+        screen
+            .getByRole("button", { name: "更新订阅" })
+            .hasAttribute("disabled"),
+    ).toBe(true);
+    rerender(
+        <Home
+            {...props}
+            view={{ ...props.view, logged_in: true }}
+            nodes={{
+                ...props.nodes,
+                view: { ...props.nodes.view, loading: true },
+            }}
+        />,
+    );
+    expect(
+        screen.getByRole("button", { name: "更新中" }).hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+        screen
+            .getByRole("button", { name: "选择节点 日本 02" })
+            .hasAttribute("disabled"),
+    ).toBe(true);
+});
+it("配置刷新失败保留成功时间和测速错误，不显示连接恢复", () => {
+    const { props, rerender } = setup({ connection_error: "连接检测失败" });
+    const updated = 1_700_000_000;
+    rerender(
+        <Home
+            {...props}
+            nodes={{
+                ...props.nodes,
+                subscriptionError: "订阅更新失败",
+                view: {
+                    ...props.nodes.view,
+                    subscription_synced_at: updated,
+                    error: "订阅更新失败",
+                    delays: { "新加坡 01": { status: "超时", ms: null } },
+                },
+            }}
+        />,
+    );
+    expect(screen.getByRole("alert").textContent).toBe("订阅更新失败");
+    expect(screen.getByText(/上次更新：/).textContent).not.toContain(
+        "尚未更新",
+    );
+    expect(screen.getByText("连接待检查")).toBeTruthy();
+    expect(screen.getByText("超时")).toBeTruthy();
+    rerender(
+        <Home
+            {...props}
+            nodes={{ ...props.nodes, subscriptionMessage: "订阅已更新" }}
+        />,
+    );
+    expect(screen.getByText("订阅已更新")).toBeTruthy();
+    expect(screen.getByText("连接待检查")).toBeTruthy();
 });

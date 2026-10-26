@@ -270,6 +270,12 @@ it("首页全局模式只控制 GLOBAL，直连不展示旧节点", () => {
         },
         pending: null,
         error: "",
+        ready: true,
+        subscriptionPending: null,
+        subscriptionError: "",
+        subscriptionMessage: "",
+        refreshSubscription: vi.fn(async () => {}),
+        setSubscriptionInterval: vi.fn(async () => {}),
         select: vi.fn(async () => {}),
         test: vi.fn(async () => {}),
     };

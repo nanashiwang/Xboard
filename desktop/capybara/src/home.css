@@ -561,6 +561,50 @@
     color: #176cce;
     font-size: 13px;
 }
+.node-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.node-actions .node-test-button {
+    min-width: 0;
+    padding-inline: 5px;
+    gap: 5px;
+    font-size: 12px;
+}
+.subscription-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 3px 8px;
+    margin: 8px 2px 0;
+    color: var(--home-muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+.subscription-confirmation {
+    color: #12835a;
+}
+[data-theme="dark"] .subscription-confirmation {
+    color: #85d6b1;
+}
+.subscription-settings-control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+.subscription-settings-control select {
+    min-width: 125px;
+    padding: 9px 12px;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+}
 .node-feedback {
     font-size: 12px;
     line-height: 1.6;

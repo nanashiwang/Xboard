@@ -388,6 +388,9 @@ impl Account {
             Err(_) => Err(Fault::local("无法清除系统登录记录，请解锁凭据库后重试")),
         }
     }
+    pub fn invalidate_session(&mut self) -> Result<(), Fault> {
+        self.clear(Access::Background)
+    }
     pub async fn logout(&mut self) -> Result<(), Fault> {
         if !self.refresh.is_empty() {
             self.request(Method::POST, "auth/logout")
@@ -552,6 +555,148 @@ mod tests {
         (origin, handle)
     }
     #[tokio::test]
+    async fn subscription_device_rejection_after_token_renewal_invalidates_session() {
+        use crate::subscription::{
+            invalidates_session, propagate_config_error, refresh, RefreshRequest,
+        };
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
+        for code in ["DEVICE_NOT_REGISTERED", "DEVICE_REVOKED"] {
+            let dir = std::env::temp_dir()
+                .join(format!("capybara-device-rejection-test-{}", Uuid::new_v4()));
+            std::fs::create_dir_all(&dir).unwrap();
+            let mut account = Account::new(&dir).unwrap();
+            account.credential = Some(keyring::Entry::new_with_credential(Box::new(
+                keyring::mock::MockCredential::default(),
+            )));
+            account.access = "fake-access".into();
+            account.refresh = "fake-refresh".into();
+            account.expires = Instant::now() + Duration::from_secs(7200);
+            let (origin, server) = self::server(vec![
+                (401, json!({"code": code})),
+                (
+                    200,
+                    json!({"data": {"access_token": "new-access", "refresh_token": "new-refresh", "expires_in": 7200}}),
+                ),
+                (401, json!({"code": code})),
+            ]);
+            account.origin = origin;
+            let applied = Arc::new(AtomicBool::new(false));
+            let observed = applied.clone();
+            let error = refresh(
+                RefreshRequest {
+                    forced: false,
+                    engine_ready: true,
+                    last_success: Some(1000),
+                    interval_seconds: 3600,
+                    now: 4600,
+                },
+                || account.config(),
+                move |_| async move {
+                    observed.store(true, Ordering::SeqCst);
+                    Ok(())
+                },
+                || 4601,
+            )
+            .await
+            .unwrap_err();
+            // The token rotation succeeded, but the actual config request still rejects the device.
+            assert!(account.logged_in());
+            assert_eq!(error.code, code);
+            assert!(invalidates_session(&error));
+            assert!(propagate_config_error(&error, false, account.logged_in()));
+            assert!(!applied.load(Ordering::SeqCst));
+            account.invalidate_session().unwrap();
+            assert!(!account.logged_in());
+            assert_eq!(
+                server.join().unwrap(),
+                vec![
+                    "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
+                    "POST /api/v1/auth/refresh HTTP/1.1",
+                    "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
+                ]
+            );
+            std::fs::remove_dir_all(dir).unwrap();
+        }
+    }
+    #[tokio::test]
+    async fn manual_subscription_update_fetches_verified_content_even_before_due() {
+        use crate::subscription::{refresh, RefreshRequest};
+        use sha2::{Digest, Sha256};
+        use std::sync::{Arc, Mutex};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let content = "proxies: [{name: new-route, type: direct}]\n";
+        let etag = format!("{:x}", Sha256::digest(content.as_bytes()));
+        let server = std::thread::spawn(move || {
+            let mut paths = vec![];
+            for valid in [true, false] {
+                let (mut connection, _) = listener.accept().unwrap();
+                connection
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut request = String::new();
+                let mut buffer = [0; 2048];
+                while !request.contains("\r\n\r\n") {
+                    let count = connection.read(&mut buffer).unwrap();
+                    assert!(count > 0);
+                    request.push_str(&String::from_utf8_lossy(&buffer[..count]));
+                }
+                paths.push(request.lines().next().unwrap().to_owned());
+                let digest = if valid { etag.as_str() } else { "invalid" };
+                write!(connection, "HTTP/1.1 200 OK\r\nContent-Type: text/yaml\r\nETag: \"{digest}\"\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{content}", content.len()).unwrap();
+            }
+            paths
+        });
+        let dir = std::env::temp_dir().join(format!(
+            "capybara-subscription-http-test-{}",
+            Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.origin = origin;
+        account.access = "fake-access".into();
+        account.refresh = "fake-refresh".into();
+        account.expires = Instant::now() + Duration::from_secs(7200);
+        let applied = Arc::new(Mutex::new(Vec::<String>::new()));
+        let mut successes = vec![];
+        for forced in [false, true, true] {
+            let published = applied.clone();
+            successes.push(
+                refresh(
+                    RefreshRequest {
+                        forced,
+                        engine_ready: true,
+                        last_success: Some(1000),
+                        interval_seconds: 3600,
+                        now: 1100,
+                    },
+                    || account.config(),
+                    move |content| async move {
+                        published.lock().unwrap().push(content);
+                        Ok(())
+                    },
+                    || 1101,
+                )
+                .await,
+            );
+        }
+        assert_eq!(successes[0].as_ref().unwrap(), &None);
+        assert_eq!(successes[1].as_ref().unwrap(), &Some(1101));
+        assert!(successes[2].is_err());
+        assert_eq!(*applied.lock().unwrap(), vec![content.to_owned()]);
+        assert_eq!(
+            server.join().unwrap(),
+            vec![
+                "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
+                "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
+            ]
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[tokio::test]
     async fn store_mutation_is_not_retried_on_server_failure() {
         let dir = std::env::temp_dir().join(format!("capybara-store-test-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -637,6 +782,30 @@ mod tests {
             server.join().unwrap(),
             vec!["POST /api/v1/auth/logout HTTP/1.1"]
         );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn invalidating_subscription_auth_clears_memory_even_when_credential_delete_fails() {
+        let dir = std::env::temp_dir().join(format!("capybara-invalidate-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.credential = Some(keyring::Entry::new_with_credential(Box::new(
+            keyring::mock::MockCredential::default(),
+        )));
+        account.access = "fake-access".into();
+        account.refresh = "fake-refresh".into();
+        let mock: &keyring::mock::MockCredential = account
+            .entry()
+            .unwrap()
+            .get_credential()
+            .downcast_ref()
+            .unwrap();
+        mock.set_error(keyring::Error::NoStorageAccess(Box::new(
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "locked"),
+        )));
+        assert!(account.invalidate_session().is_err());
+        assert!(!account.logged_in());
+        assert!(account.access.is_empty());
         std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]

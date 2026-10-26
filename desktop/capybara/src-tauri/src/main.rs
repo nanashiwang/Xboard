@@ -8,6 +8,7 @@ mod nodes;
 mod notices;
 mod proxy;
 mod routing;
+mod subscription;
 mod updates;
 use account::{Account, BrowserSession, Fault};
 use serde::Serialize;
@@ -98,9 +99,16 @@ struct Runtime {
 }
 impl Runtime {
     async fn sync(&mut self) -> Result<(), Fault> {
+        self.sync_subscription(false).await
+    }
+    async fn sync_subscription(&mut self, force_config: bool) -> Result<(), Fault> {
         self.view.logged_in = self.account.logged_in();
         if !self.account.logged_in() {
-            return Ok(());
+            return if force_config {
+                Err(Fault::local("请先登录账号"))
+            } else {
+                Ok(())
+            };
         }
         let result = self.account.get("user/subscription").await;
         match result {
@@ -133,8 +141,20 @@ impl Runtime {
                 self.view.sync_error = None;
                 if !active {
                     self.shutdown().await?;
+                    if force_config {
+                        return Err(Fault::local("套餐当前不可用，请检查流量和到期时间"));
+                    }
                 } else {
-                    self.prepare_nodes().await;
+                    if let Err(error) = self.prepare_nodes(force_config).await {
+                        if subscription::propagate_config_error(
+                            &error,
+                            force_config,
+                            self.account.logged_in(),
+                        ) {
+                            return Err(error);
+                        }
+                        // A transient automatic refresh failure must not disable a valid cached core.
+                    }
                 }
                 if self.view.profile.is_none() {
                     self.view.profile = self.account.get("user/profile").await.ok();
@@ -142,6 +162,9 @@ impl Runtime {
                 Ok(())
             }
             Err(e) => {
+                if subscription::invalidates_session(&e) {
+                    let _ = self.account.invalidate_session();
+                }
                 self.view.logged_in = self.account.logged_in();
                 self.view.sync_error = Some(e.message.clone());
                 if !self.view.logged_in {
@@ -154,17 +177,27 @@ impl Runtime {
             }
         }
     }
-    async fn prepare_nodes(&mut self) {
-        let needs_config = {
+    async fn prepare_nodes(&mut self, forced: bool) -> Result<(), Fault> {
+        let request = {
             let mut nodes = self.nodes.lock().await;
             nodes.check_process();
-            nodes.engine.is_none()
-                || nodes
-                    .synced
-                    .is_none_or(|t| t.elapsed() >= Duration::from_secs(3600))
+            subscription::RefreshRequest {
+                forced,
+                engine_ready: nodes.engine.is_some(),
+                last_success: nodes.view.subscription_synced_at,
+                interval_seconds: nodes.view.subscription_interval_seconds,
+                now: now(),
+            }
         };
-        if !needs_config || self.installing.load(std::sync::atomic::Ordering::SeqCst) {
-            return;
+        if self.installing.load(std::sync::atomic::Ordering::SeqCst) {
+            return if forced {
+                Err(Fault::local("正在安装应用更新，请稍后更新订阅"))
+            } else {
+                Ok(())
+            };
+        }
+        if !request.due() {
+            return Ok(());
         }
         {
             let mut nodes = self.nodes.lock().await;
@@ -173,25 +206,52 @@ impl Runtime {
             nodes.changed();
         }
         // Download outside the node lock: cached routes remain responsive during account requests.
-        let content = self.account.config().await;
-        let mut nodes = self.nodes.lock().await;
-        let result = match content {
-            Ok(content) => {
-                nodes
-                    .prepare(&self.dir, self.binary.clone(), &content)
+        let shared = self.nodes.clone();
+        let dir = self.dir.clone();
+        let binary = self.binary.clone();
+        let result = subscription::refresh(
+            request,
+            || self.account.config(),
+            move |content| async move {
+                shared
+                    .lock()
                     .await
+                    .prepare(&dir, binary, &content)
+                    .await
+                    .map_err(Fault::from)
+            },
+            now,
+        )
+        .await;
+        {
+            let mut nodes = self.nodes.lock().await;
+            match &result {
+                Ok(Some(updated)) => nodes.view.subscription_synced_at = Some(*updated),
+                Err(error) => {
+                    nodes.routing.error = Some(error.message.clone());
+                    nodes.view.error = Some(error.message.clone());
+                }
+                Ok(None) => {}
             }
-            Err(error) => Err(error.message),
-        };
-        match result {
-            Ok(()) => nodes.synced = Some(std::time::Instant::now()),
-            Err(error) => {
-                nodes.routing.error = Some(error.clone());
-                nodes.view.error = Some(error);
+            nodes.view.loading = false;
+            nodes.changed();
+        }
+        if let Err(error) = &result {
+            if subscription::invalidates_session(error) || !self.account.logged_in() {
+                let _ = self.account.invalidate_session();
+                // Credential deletion can fail; stop the live core regardless.
+                let _ = self.shutdown().await;
+                self.view.logged_in = false;
+                self.view.profile = None;
+                self.view.subscription = None;
+                self.view.synced_at = None;
+                self.view.sync_error = Some(error.message.clone());
+            } else if error.code == "SUBSCRIPTION_UNAVAILABLE" {
+                let _ = self.shutdown().await;
+                self.view.sync_error = Some(error.message.clone());
             }
         }
-        nodes.view.loading = false;
-        nodes.changed();
+        result.map(|_| ())
     }
     fn disconnect(&mut self) -> Result<(), Fault> {
         let result = proxy::recover(&self.dir);
@@ -418,6 +478,22 @@ async fn refresh(state: State<'_, AppState>) -> Result<View, Fault> {
     Ok(rt.view.clone())
 }
 #[tauri::command]
+async fn refresh_subscription(state: State<'_, AppState>) -> Result<nodes::NodeView, Fault> {
+    let mut rt = state.0.lock().await;
+    rt.sync_subscription(true).await?;
+    let nodes = rt.nodes.lock().await;
+    Ok(nodes.view.clone())
+}
+#[tauri::command]
+async fn set_subscription_interval(
+    state: State<'_, AppState>,
+    seconds: u64,
+) -> Result<nodes::NodeView, Fault> {
+    let mut nodes = state.1.lock().await;
+    nodes.set_subscription_interval(seconds)?;
+    Ok(nodes.view.clone())
+}
+#[tauri::command]
 async fn logout(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
     rt.shutdown().await?;
@@ -615,6 +691,8 @@ fn main() {
             reopen_browser_login,
             restore_session,
             refresh,
+            refresh_subscription,
+            set_subscription_interval,
             logout,
             connect,
             disconnect,

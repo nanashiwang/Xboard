@@ -5,7 +5,7 @@ use crate::{
     AppState,
 };
 use serde::Serialize;
-use std::{collections::BTreeMap, sync::Arc, time::Instant};
+use std::{collections::BTreeMap, sync::Arc};
 use tokio::{sync::Mutex, task::JoinSet};
 
 #[derive(Clone, Serialize)]
@@ -13,33 +13,66 @@ pub struct Delay {
     status: String,
     ms: Option<u64>,
 }
-#[derive(Clone, Serialize, Default)]
+#[derive(Clone, Serialize)]
 pub struct NodeView {
     pub revision: u64,
     pub routes: Vec<Route>,
     pub loading: bool,
     pub error: Option<String>,
+    pub subscription_synced_at: Option<u64>,
+    pub subscription_interval_seconds: u64,
     testing: bool,
     delays: BTreeMap<String, Delay>,
+}
+impl Default for NodeView {
+    fn default() -> Self {
+        Self {
+            revision: 0,
+            routes: vec![],
+            loading: false,
+            error: None,
+            subscription_synced_at: None,
+            subscription_interval_seconds: crate::subscription::DEFAULT_INTERVAL_SECONDS,
+            testing: false,
+            delays: BTreeMap::new(),
+        }
+    }
 }
 #[derive(Default)]
 pub struct Nodes {
     pub engine: Option<Engine>,
     pub routing: RoutingState,
     pub view: NodeView,
-    pub synced: Option<Instant>,
     generation: u64,
     source: Option<String>,
+    subscription_settings_error: Option<String>,
     dir: std::path::PathBuf,
     binary: Option<std::path::PathBuf>,
 }
 impl Nodes {
     pub fn new(dir: &std::path::Path) -> Self {
+        let (interval, error) = crate::subscription::load_interval(dir);
         Self {
             routing: RoutingState::load(dir),
             dir: dir.to_owned(),
+            subscription_settings_error: error.clone(),
+            view: NodeView {
+                subscription_interval_seconds: interval,
+                error,
+                ..NodeView::default()
+            },
             ..Self::default()
         }
+    }
+    pub fn set_subscription_interval(&mut self, seconds: u64) -> Result<(), Fault> {
+        crate::subscription::save_interval(&self.dir, seconds)?;
+        if self.view.error == self.subscription_settings_error {
+            self.view.error = None;
+        }
+        self.subscription_settings_error = None;
+        self.view.subscription_interval_seconds = seconds;
+        self.changed();
+        Ok(())
     }
     pub async fn prepare(
         &mut self,
@@ -102,7 +135,7 @@ impl Nodes {
         self.routing.settings = settings;
         self.routing.storage_invalid = false;
         self.routing.error = None;
-        self.view.error = None;
+        self.view.error = self.subscription_settings_error.clone();
         if let Some(engine) = self.engine.as_ref() {
             match engine.routes().await {
                 Ok(routes) => self.view.routes = routes,
@@ -129,8 +162,12 @@ impl Nodes {
         self.source = None;
         self.binary = None;
         self.view.loading = false;
-        self.view.error = result.as_ref().err().cloned();
-        self.synced = None;
+        self.view.error = result
+            .as_ref()
+            .err()
+            .cloned()
+            .or_else(|| self.subscription_settings_error.clone());
+        self.view.subscription_synced_at = None;
         result
     }
     pub fn check_process(&mut self) {
@@ -327,6 +364,49 @@ async fn run_probes<F, Fut>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn interval_write_failure_preserves_published_settings_and_refresh_time() {
+        let dir = std::env::temp_dir().join(format!(
+            "capybara-subscription-save-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut nodes = Nodes::new(&dir);
+        nodes.set_subscription_interval(1800).unwrap();
+        nodes.view.subscription_synced_at = Some(1000);
+        std::fs::create_dir(dir.join("subscription.tmp")).unwrap();
+        assert!(nodes.set_subscription_interval(3600).is_err());
+        assert_eq!(nodes.view.subscription_interval_seconds, 1800);
+        assert_eq!(nodes.view.subscription_synced_at, Some(1000));
+        assert_eq!(crate::subscription::load_interval(&dir), (1800, None));
+        nodes.stop().unwrap();
+        assert_eq!(nodes.view.subscription_synced_at, None);
+        assert_eq!(nodes.view.subscription_interval_seconds, 1800);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn corrupt_subscription_settings_remain_visible_until_saved() {
+        let dir = std::env::temp_dir().join(format!(
+            "capybara-subscription-corrupt-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("subscription.json"), b"bad").unwrap();
+        let mut nodes = Nodes::new(&dir);
+        assert_eq!(nodes.view.subscription_interval_seconds, 3600);
+        assert!(nodes.view.error.is_some());
+        nodes
+            .apply_settings(RoutingSettings::default())
+            .await
+            .unwrap();
+        assert!(nodes.view.error.is_some());
+        nodes.set_subscription_interval(3600).unwrap();
+        assert!(nodes.view.error.is_none());
+        assert_eq!(crate::subscription::load_interval(&dir), (3600, None));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
     #[tokio::test]
     async fn removed_targets_leave_the_new_subscription_available_for_editor_repairs() {
         use crate::routing::{CustomRule, RoutingMode, RuleKind};

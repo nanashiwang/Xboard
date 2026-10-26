@@ -15,6 +15,142 @@ vi.mock("../src/bridge", () => ({
 afterEach(() => {
     cleanup();
     vi.resetAllMocks();
+    vi.useRealTimers();
+});
+it("订阅更新用专用命令、阻止重复及竞争操作，成功才推进配置时间", async () => {
+    let resolve!: (view: NodeView) => void;
+    const old = { ...loaded, subscription_synced_at: 100 };
+    vi.mocked(command).mockImplementation(async (name) => {
+        if (name === "refresh_subscription")
+            return (await new Promise<NodeView>((r) => {
+                resolve = r;
+            })) as never;
+        return old as never;
+    });
+    const { result } = renderHook(useNodes);
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    let pending!: Promise<void>;
+    act(() => {
+        pending = result.current.refreshSubscription();
+    });
+    expect(result.current.subscriptionPending).toBe("refresh");
+    expect(result.current.view.subscription_synced_at).toBe(100);
+    await act(async () => {
+        await result.current.refreshSubscription();
+        await result.current.setSubscriptionInterval(1800);
+        await result.current.select("默认", "新节点");
+        await result.current.test();
+    });
+    expect(vi.mocked(command).mock.calls.map(([name]) => name)).toEqual([
+        "nodes_snapshot",
+        "refresh_subscription",
+    ]);
+    await act(async () => {
+        resolve({ ...old, revision: 4, subscription_synced_at: 200 });
+        await pending;
+    });
+    expect(result.current.subscriptionPending).toBeNull();
+    expect(result.current.view.subscription_synced_at).toBe(200);
+    expect(result.current.subscriptionMessage).toBe("订阅已更新");
+    await act(async () => {
+        await result.current.refresh();
+    });
+    expect(result.current.view.subscription_synced_at).toBe(200);
+    expect(result.current.view.revision).toBe(4);
+});
+it("订阅失败保留旧成功时间和节点，可重试且不伪造更新成功", async () => {
+    const old = { ...loaded, subscription_synced_at: 100 };
+    let failed = true;
+    vi.mocked(command).mockImplementation(async (name) => {
+        if (name === "refresh_subscription") {
+            if (failed) throw new Error("更新未应用");
+            return {
+                ...old,
+                revision: 4,
+                subscription_synced_at: 200,
+            } as never;
+        }
+        return old as never;
+    });
+    const { result } = renderHook(useNodes);
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+        await result.current.refreshSubscription();
+    });
+    expect(result.current.subscriptionError).toBe("更新未应用");
+    expect(result.current.subscriptionMessage).toBe("");
+    expect(result.current.view.subscription_synced_at).toBe(100);
+    expect(result.current.view.routes).toEqual(old.routes);
+    expect(result.current.subscriptionPending).toBeNull();
+    failed = false;
+    await act(async () => {
+        await result.current.refreshSubscription();
+    });
+    expect(result.current.subscriptionError).toBe("");
+    expect(result.current.view.subscription_synced_at).toBe(200);
+    expect(
+        vi
+            .mocked(command)
+            .mock.calls.some(
+                ([name]) => name === "connect" || name === "refresh",
+            ),
+    ).toBe(false);
+});
+it("周期保存以原生返回为准，失败不改值，旧轮询不覆盖持久化结果", async () => {
+    let fail = true;
+    vi.mocked(command).mockImplementation(async (name, args) => {
+        if (name === "set_subscription_interval") {
+            if (fail) throw new Error("周期保存失败");
+            return {
+                ...loaded,
+                revision: 5,
+                subscription_interval_seconds: args?.seconds,
+            } as never;
+        }
+        return loaded as never;
+    });
+    const { result } = renderHook(useNodes);
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.view.subscription_interval_seconds).toBe(3600);
+    await act(async () => {
+        await result.current.setSubscriptionInterval(10800);
+    });
+    expect(result.current.subscriptionError).toBe("周期保存失败");
+    expect(result.current.view.subscription_interval_seconds).toBe(3600);
+    fail = false;
+    await act(async () => {
+        await result.current.setSubscriptionInterval(10800);
+    });
+    expect(command).toHaveBeenCalledWith("set_subscription_interval", {
+        seconds: 10800,
+    });
+    expect(result.current.view.subscription_interval_seconds).toBe(10800);
+    await act(async () => {
+        await result.current.refresh();
+    });
+    expect(result.current.view.subscription_interval_seconds).toBe(10800);
+});
+it("后续自动更新成功会清除过期的手动错误，旧快照不能误清除", async () => {
+    let backend = { ...loaded, subscription_synced_at: 100 };
+    vi.mocked(command).mockImplementation(async (name) => {
+        if (name === "refresh_subscription") throw new Error("更新失败");
+        return backend as never;
+    });
+    const { result } = renderHook(useNodes);
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+        await result.current.refreshSubscription();
+    });
+    await act(async () => {
+        await result.current.refresh();
+    });
+    expect(result.current.subscriptionError).toBe("更新失败");
+    backend = { ...backend, revision: 4, subscription_synced_at: 200 };
+    await act(async () => {
+        await result.current.refresh();
+    });
+    expect(result.current.subscriptionError).toBe("");
+    expect(result.current.view.subscription_synced_at).toBe(200);
 });
 const loaded: NodeView = {
     ...emptyNodes,

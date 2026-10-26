@@ -56,6 +56,11 @@ let demoNodes: NodeView = {
     error: null,
     testing: false,
     delays: {},
+    subscription_synced_at:
+        demo.logged_in && demo.subscription?.status === "active"
+            ? Math.floor(Date.now() / 1000)
+            : null,
+    subscription_interval_seconds: 3600,
     routes:
         demo.logged_in && demo.subscription?.status === "active"
             ? [
@@ -175,7 +180,37 @@ export async function command<T = View>(
             if (name === "save_routing") demoNodes.revision++;
             return result as T;
         }
-        if (name === "nodes_snapshot")
+        if (name === "set_subscription_interval") {
+            const seconds = Number(args?.seconds);
+            if (![1800, 3600, 10800, 21600, 43200, 86400].includes(seconds))
+                throw { message: "请选择支持的更新周期" };
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            demoNodes.subscription_interval_seconds = seconds;
+            demoNodes.revision++;
+        }
+        if (name === "refresh_subscription") {
+            if (!demo.logged_in || demo.subscription?.status !== "active")
+                throw { message: "请登录并确认套餐可用后更新订阅" };
+            demoNodes.loading = true;
+            demoNodes.revision++;
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            demoNodes.loading = false;
+            demoNodes.revision++;
+            if (preview === "subscription-error") {
+                demoNodes.error = "订阅更新失败，请稍后重试";
+                throw { message: demoNodes.error };
+            }
+            demoNodes.error = null;
+            demoNodes.subscription_synced_at = Math.floor(Date.now() / 1000);
+            demoNodes.delays = {};
+        }
+        if (
+            [
+                "nodes_snapshot",
+                "refresh_subscription",
+                "set_subscription_interval",
+            ].includes(name)
+        )
             return structuredClone({
                 ...demoNodes,
                 routes: routingPreviewRoutes(demoNodes.routes),
@@ -242,6 +277,7 @@ export async function command<T = View>(
                 routes: [],
                 delays: {},
                 testing: false,
+                subscription_synced_at: null,
             };
         }
         if (name === "restore_session")
@@ -260,6 +296,8 @@ export async function command<T = View>(
             error: null,
             testing: false,
             delays: {},
+            subscription_synced_at: null,
+            subscription_interval_seconds: 3600,
         } as T;
     if (name === "open_link") {
         const urls: Record<string, string> = {

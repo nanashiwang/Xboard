@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉订阅更新（2026-10-27）
+
+0.1.6 在首页节点面板提供“更新订阅”，立即重新下载、校验并应用Xboard配置；单独显示配置成功时间，不再把流量同步时间当作节点更新时间。帮助设置可选30分钟或1/3/6/12/24小时，默认1小时，原生持久化并在后台检查到期；普通网络失败保留有效旧配置，认证或套餐失效继续停止连接。该功能同步服务器当前下发内容，不能自行修复外接节点旧公钥/地址。实现、验证与发布状态见[进展](./progress-log.md#2026-10-27卡皮巴拉订阅手动更新与自动周期)和[节点决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
+
 ### Windows 0.1.5 美国01连接差异（2026-10-26）
 
 用户确认 v2rayN 已退出，同一美国01家宽在 v2rayN 可用、卡皮巴拉失败；Windows 根因尚待现场证据。本机同版本可用，并复现五秒测速超时、十二秒成功，不能据此把 Windows 代理失败归结为测速期限。新增[只读诊断工具](./scripts/capybara/README.md)，直接用于已安装 0.1.5，分阶段检查回环内核、入口、检测站点和当前代理请求，输出不含凭据的报告；不修改客户端配置或生产。工具已通过本机 PowerShell 7 与 Windows PowerShell 5.1 各28项检查。验证及待办见[进展](./progress-log.md#2026-10-26windows-015-美国01连接差异诊断)。

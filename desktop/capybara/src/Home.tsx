@@ -15,7 +15,12 @@ import {
 } from "lucide-react";
 import { bytes, quotaPercent, type View } from "./model";
 import "./home.css";
-import { delayLabel, type useNodes } from "./nodes";
+import {
+    delayLabel,
+    subscriptionIntervalLabel,
+    subscriptionTime,
+    type useNodes,
+} from "./nodes";
 import Routing, { type RoutingState } from "./Routing";
 
 const regions = ["全部", "亚洲", "美洲", "欧洲", "其他"] as const;
@@ -77,6 +82,9 @@ export default function Home({
     const [group, setGroup] = useState("");
     const search = useRef<HTMLInputElement>(null);
     const connected = view.connection === "connected";
+    const updatingSubscription =
+        nodes.subscriptionPending === "refresh" || nodes.view.loading;
+    const subscriptionBusy = !!nodes.subscriptionPending || nodes.view.loading;
     const mode = routing?.view.settings.mode || "rule";
     const direct = mode === "direct";
     const routes =
@@ -88,6 +96,8 @@ export default function Home({
               )
             : [];
     const route = routes.find((r) => r.group === group) || routes[0];
+    const nodeFeedback =
+        nodes.error || (routes.length > 0 ? nodes.view.error : "");
     const selected = route?.selected;
     const percent = quotaPercent(view.subscription);
     const choices = (route?.choices || []).filter(
@@ -215,7 +225,9 @@ export default function Home({
                     {routing && (
                         <Routing
                             routing={routing}
-                            disabled={!!busy || !!nodes.pending}
+                            disabled={
+                                !!busy || !!nodes.pending || subscriptionBusy
+                            }
                         />
                     )}
                     <div className="home-shortcuts">
@@ -401,10 +413,13 @@ export default function Home({
                                         ? "直连模式不使用代理节点。切换到规则或全局模式后，可以继续选择节点。"
                                         : !view.logged_in
                                           ? "登录后自动读取当前套餐节点，无需先连接。"
-                                          : nodes.view.error ||
+                                          : (nodes.view.error ===
+                                            nodes.subscriptionError
+                                                ? null
+                                                : nodes.view.error) ||
                                             (view.subscription?.status ===
                                             "active"
-                                                ? "节点会自动同步，可尝试刷新账号。"
+                                                ? "节点会自动同步，也可以点击下方“更新订阅”。"
                                                 : "开通有效套餐后，这里会自动显示可用节点。")}
                                 </p>
                             </div>
@@ -439,6 +454,7 @@ export default function Home({
                                     disabled={
                                         !!busy ||
                                         !!nodes.pending ||
+                                        subscriptionBusy ||
                                         !!routing?.busy
                                     }
                                     onClick={() =>
@@ -477,37 +493,87 @@ export default function Home({
                             ))
                         )}
                     </div>
-                    {(nodes.error ||
-                        (nodes.view.error && routes.length > 0)) && (
-                        <p className="node-feedback" role="alert">
-                            {nodes.error || nodes.view.error}
-                        </p>
-                    )}
+                    {nodeFeedback &&
+                        nodeFeedback !== nodes.subscriptionError && (
+                            <p className="node-feedback" role="alert">
+                                {nodeFeedback}
+                            </p>
+                        )}
                     {nodes.pending && (
                         <p className="node-feedback" role="status">
                             正在{connected ? "切换" : "选择"}{" "}
                             {nodes.pending.name}…
                         </p>
                     )}
-                    <button
-                        className="node-test-button"
-                        disabled={
-                            !routes.length ||
-                            nodes.view.testing ||
-                            !!busy ||
-                            !!routing?.busy
-                        }
-                        onClick={() => void nodes.test()}
-                    >
-                        {nodes.view.testing ? (
-                            <LoaderCircle size={18} className="spin" />
-                        ) : (
-                            <Signal size={18} />
-                        )}
-                        {nodes.view.testing
-                            ? `测速中 ${Object.values(nodes.view.delays).filter((d) => d.status !== "pending").length}/${Object.keys(nodes.view.delays).length}`
-                            : "一键测速"}
-                    </button>
+                    {nodes.subscriptionError && (
+                        <p className="node-feedback" role="alert">
+                            {nodes.subscriptionError}
+                        </p>
+                    )}
+                    <div className="node-actions">
+                        <button
+                            className="node-test-button node-subscription-button"
+                            disabled={
+                                !view.logged_in ||
+                                view.subscription?.status !== "active" ||
+                                !nodes.ready ||
+                                !!busy ||
+                                subscriptionBusy ||
+                                !!nodes.pending ||
+                                nodes.view.testing ||
+                                !!routing?.busy
+                            }
+                            onClick={() => void nodes.refreshSubscription()}
+                        >
+                            <RefreshCw
+                                size={16}
+                                className={updatingSubscription ? "spin" : ""}
+                            />
+                            {updatingSubscription ? "更新中" : "更新订阅"}
+                        </button>
+                        <button
+                            className="node-test-button"
+                            disabled={
+                                !routes.length ||
+                                nodes.view.testing ||
+                                subscriptionBusy ||
+                                !!busy ||
+                                !!routing?.busy
+                            }
+                            onClick={() => void nodes.test()}
+                        >
+                            {nodes.view.testing ? (
+                                <LoaderCircle size={18} className="spin" />
+                            ) : (
+                                <Signal size={18} />
+                            )}
+                            {nodes.view.testing
+                                ? `测速中 ${Object.values(nodes.view.delays).filter((d) => d.status !== "pending").length}/${Object.keys(nodes.view.delays).length}`
+                                : "一键测速"}
+                        </button>
+                    </div>
+                    <div className="subscription-status" role="status">
+                        <span>
+                            {nodes.ready
+                                ? `每 ${subscriptionIntervalLabel(nodes.view.subscription_interval_seconds)} 自动更新`
+                                : "正在读取更新设置…"}
+                        </span>
+                        <span
+                            className={
+                                nodes.subscriptionMessage
+                                    ? "subscription-confirmation"
+                                    : ""
+                            }
+                        >
+                            {view.logged_in && nodes.subscriptionMessage
+                                ? nodes.subscriptionMessage
+                                : view.logged_in
+                                  ? nodes.ready
+                                      ? `上次更新：${subscriptionTime(nodes.view.subscription_synced_at)}`
+                                      : "正在读取订阅状态…"
+                                  : "登录后同步订阅"}
+                        </span>
+                    </div>
                     <div className="node-panel-footer">
                         <ShieldCheck size={16} />
                         <span>

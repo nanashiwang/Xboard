@@ -5,6 +5,7 @@ import Home from "./Home";
 import { useNodes } from "./nodes";
 import { useRouting } from "./Routing";
 import DesktopSettings from "./DesktopSettings";
+import SubscriptionSettings from "./SubscriptionSettings";
 import Invites from "./Invites";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -426,6 +427,10 @@ export default function App() {
                             <LifeBuoy size={35} />
                         </div>
                         <DesktopSettings />
+                        <SubscriptionSettings
+                            nodes={nodes}
+                            disabled={!!busy || !!routing?.busy}
+                        />
                         <div className="help-grid">
                             <article>
                                 <ShieldCheck />
