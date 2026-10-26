@@ -38,7 +38,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 有效账号登录后自动下载并校验本人套餐配置，首页无需先连接即可显示、预选节点和一键测速；只点击连接才开启系统代理。切换只等待回环内核确认，界面立即反馈处理中，失败不误报成功；断开保留列表与选择。测速最多四路并发、每项五秒，逐个显示真实毫秒或超时/不可达，注销及配置变化丢弃旧结果。与用户授权的自启/后台功能合并为 0.1.1 正式版。
 
-本地合并检查前端 38、脚本 12、Rust 19 项与 Mac 构建/签名通过，明暗及 760px 预览通过。真实账号未连接即加载 17 个节点与分流选项，延迟和超时逐项显示，点击日本节点约 446ms 观察到选中，实际经该节点 HTTPS 204 成功；关闭保留 App/看护/Mihomo，明确退出清理，重开恢复登录及节点。现有系统代理始终未变；托盘菜单点击、接管系统代理后关闭及 Windows/Linux 原生桌面尚未实测。[0.1.1 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.1) 四目标与 18 附件、签名和源码已核验；官网分发待同步，进展见[记录](./progress-log.md#2026-10-26卡皮巴拉节点自动加载与一键测速)，取舍见[节点决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
+本地合并检查前端 38、脚本 12、Rust 19 项与 Mac 构建/签名通过，明暗及 760px 预览通过。真实账号未连接即加载 17 个节点与分流选项，延迟和超时逐项显示，点击日本节点约 446ms 观察到选中，实际经该节点 HTTPS 204 成功；关闭保留 App/看护/Mihomo，明确退出清理，重开恢复登录及节点。现有系统代理始终未变；托盘菜单点击、接管系统代理后关闭及 Windows/Linux 原生桌面尚未实测。[0.1.1 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.1) 四目标与 18 附件、签名和源码已核验；官网安装包、下载页、更新源与文章 5 已同步到 0.1.1，生产 8d39e2c 健康检查通过，进展见[记录](./progress-log.md#2026-10-26卡皮巴拉节点自动加载与一键测速)，取舍见[节点决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
 
 ### 卡皮巴拉 0.1.0 正式版（2026-10-26）
 
