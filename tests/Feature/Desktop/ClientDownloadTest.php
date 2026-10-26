@@ -34,15 +34,15 @@ class ClientDownloadTest extends TestCase
             $client = $catalog[$platform];
             $this->assertSame('capybara', $client['id']);
             $this->assertSame('account', $client['flow']);
-            $this->assertSame('0.1.1', $client['version']);
+            $this->assertSame('0.1.2', $client['version']);
             $this->assertCount($count, $client['packages']);
             $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
             $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
             $this->assertStringContainsString('正式版', $section->textContent);
             $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
             foreach ($client['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.1_', $package['url']);
-                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.1/', $package['official_url']);
+                $this->assertStringStartsWith('/downloads/Capybara_0.1.2_', $package['url']);
+                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.2/', $package['official_url']);
             }
         }
         $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
