@@ -40,7 +40,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 本次 Windows 全局模式 IP 未变，用户确认点击“一键连接”后正常，原因是尚未连接。按新交互要求，0.1.7 点击首页右侧节点就连接；已经连接时直接切换，断开后点击当前节点也能恢复，主按钮仍可手动连接/断开并跟随真实状态。选择和开启代理由原生统一处理，失败不误连旧节点；自动加载、测速及仅切模式不自动连接。
 
-本地前端74项、网页/发布脚本16项、Rust51项通过（1项既有手动钥匙串测试忽略），类型检查、构建及界面模拟通过；Windows真实使用仍待新版安装后验证。[0.1.7正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.7)四目标构建和18附件/签名/源码已核验，应用更新源待同步；完整状态见[进展](./progress-log.md#2026-10-27卡皮巴拉点击节点即连接)，取舍见[决定](./.agents/notes/implemented/feature/2026-10-27-capybara-select-connect.md)。本次反馈与此前美国01连接差异不混为同一已解决问题。
+本地前端74项、网页/发布脚本16项、Rust51项通过（1项既有手动钥匙串测试忽略），类型检查、构建及界面模拟通过；Windows真实使用仍待新版安装后验证。[0.1.7正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.7)四目标构建和18附件/签名/源码已核验，官网应用更新源已同步0.1.7并通过23项公开下载核验；完整状态见[进展](./progress-log.md#2026-10-27卡皮巴拉点击节点即连接)，取舍见[决定](./.agents/notes/implemented/feature/2026-10-27-capybara-select-connect.md)。本次反馈与此前美国01连接差异不混为同一已解决问题。
 
 ### Actions 部署与维护失败复核（2026-10-27）
 

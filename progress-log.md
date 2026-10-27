@@ -26,7 +26,7 @@
 
 实现提交 `ae21fa943ed60416db7febcdf905fd5b7383f476` 已推送master，README/progress按该SHA从GitHub回读一致。[构建40437927940](https://github.com/nanashiwang/Xboard/actions/runs/40437927940)四目标全部success，publish在创建Release时返回GitHub API 403；没有改权限或重建，取回该run四目标全部artifact，经同SHA发布脚本、说明与公钥核验后用现有账号完成[0.1.7正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.7)。
 
-Release的tag/target均精确对应ae21fa9，18附件全部uploaded，GitHub大小/SHA-256逐项与Actions取回的完整文件一致；5份摘要清单、四目标签名、更新索引/中文说明及104个源码文件逐字节比对通过。核验方式为Actions全量附件本地校验+GitHub上传摘要对照，未重复下载同样18个发布文件。并行0.1.8提交未混入本包，未将GitHub latest指针回退。静态分发清单待同步，官网应用更新源仍为0.1.6；服务器应用镜像与官网页面未部署。下载同步4项回归通过。
+Release的tag/target均精确对应ae21fa9，18附件全部uploaded，GitHub大小/SHA-256逐项与Actions取回的完整文件一致；5份摘要清单、四目标签名、更新索引/中文说明及104个源码文件逐字节比对通过。核验方式为Actions全量附件本地校验+GitHub上传摘要对照，未重复下载同样18个发布文件。并行0.1.8提交未混入本包，未将GitHub latest指针回退。分发提交 `d4e542d1a1077244d737a9528a6d36c895d18010` 已推送master，两个记录文件按SHA远程回读一致。[静态同步40441236431](https://github.com/nanashiwang/Xboard/actions/runs/40441236431)成功，head/operation/18项清单顺序均从日志核对，12个卡皮巴拉文件完成且索引最后替换。随后公开验证23/23通过：主域12文件完整大小/SHA-256、主备域索引与已验Release逐字节一致、两域五安装包Range均通过。应用内更新源为0.1.7；服务器应用镜像与官网页面未部署，原版本下载链接继续保留。下载同步4项回归通过。Windows用户实际升级和新交互仍待现场验证，不能把CI和模拟预览写成实机使用验收。
 
 ## 2026-10-27：Actions 部署与维护失败复核
 
