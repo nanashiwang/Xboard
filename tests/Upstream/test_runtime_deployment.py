@@ -35,6 +35,18 @@ class RuntimeDeploymentTest(unittest.TestCase):
             self.assertEqual('preflight_identity_failed',deploy.preflight()['status'])
             writes.assert_not_called();apply.assert_not_called()
 
+    def test_reviewed_unhealthy_keys_enable_guard_but_never_approve_identities(self):
+        failed={'U08':'runtime_identity_timeout','U32':'runtime_tcp_unreachable'}
+        report={'negative_pin_rejected':True,'metadata_ok':True,
+                'identity_checks':[dict(key=k,reason=v) for k,v in failed.items()]}
+        self.assertEqual(failed,deploy.reviewed_failures(report,failed))
+        self.assertEqual({},deploy.reviewed_failures(dict(report,identity_checks=[]),failed))
+        for expected in ({},{'U08':'runtime_public_key_mismatch'},{'U08':'runtime_identity_timeout'}):
+            with self.assertRaises(ValueError):deploy.reviewed_failures(report,expected)
+        for report in (dict(report,negative_pin_rejected=False),dict(report,metadata_ok=False),
+                       dict(report,identity_checks=[{'key':'U01','reason':'runtime_identity_check_failed'}])):
+            with self.assertRaises(ValueError):deploy.reviewed_failures(report,failed)
+
     def test_rollback_rejects_corrupt_backup_before_stopping_guard(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);private=root/'private';record=root/'record';private.mkdir();record.mkdir()

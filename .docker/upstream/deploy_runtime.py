@@ -2,6 +2,7 @@
 """Explicit fixed-host deployment of the reviewed runtime guard; never change pins."""
 import argparse
 import base64
+import concurrent.futures
 import fcntl
 import hashlib
 import json
@@ -140,7 +141,8 @@ def preflight():
     checks=entry_identity.evaluate_identity(approved,allocation,mappings)
     require(len(checks)==28,'identity_count_invalid')
     failures=[r for r in checks if 'reason' in r]
-    if failures:return {'status':'preflight_identity_failed','identity_checks':checks,'files_mutated':False}
+    if any(r['reason'] not in {'runtime_identity_timeout','runtime_tcp_unreachable','runtime_tls_failed','runtime_public_key_mismatch'} for r in failures):
+        return {'status':'preflight_identity_failed','identity_checks':checks,'files_mutated':False}
     proxies,usage=guard.fetch_subscription(PRIVATE)
     require(not guard.evaluate(approved,proxies,usage,int(time.time())),'source_metadata_not_approved')
     # One deliberately wrong synthetic pin verifies rejection end-to-end; never write the map.
@@ -148,8 +150,49 @@ def preflight():
     selected=[r for r in approved if r['key']=='U04']
     negative=entry_identity.evaluate_identity(selected,allocation,[target])
     require(len(negative)==1 and negative[0].get('reason')=='runtime_public_key_mismatch','negative_identity_not_rejected')
-    return {'status':'preflight_passed','identity_checks':checks,'negative_pin_rejected':True,
+    return {'status':'preflight_identity_failed' if failures else 'preflight_passed','identity_checks':checks,'negative_pin_rejected':True,
             'approved_map_unchanged':True,'database_mutated':False,'metadata_ok':True,'checked_at':int(time.time())}
+
+
+def public_check():
+    """Fresh read-only acceptance for this deployment, never a maintenance receipt."""
+    import public_verify as public
+    saved=state();require(saved['phase']=='deployed','guard_not_deployed')
+    approved,mappings,allocation,states=inputs()
+    current=json.loads(read(PRIVATE/'guard-state.json'))
+    allowed_closed=set(saved.get('reviewed_preflight_failures',{})) | {r['key'] for r in current.get('withdraw',[])}
+    settings=public.agent_settings()
+    before=public.scope(settings,allocation)
+    withdrawn={k for k,r in before.items() if not r['enabled'] and not r['show']}
+    require(withdrawn<=allowed_closed<=set(states),'invalid_withdraw_scope')
+    require(all(states[k]==saved['database_states'][k] for k in states if k not in withdrawn),'database_state_drift')
+    base_id='af436e4bfc7a4dc9bf1c074c37bcc7e9'
+    base_sha='e5c972fe5e78fd4a264add9ed37f8fe673a52f7686eca05283b8e6b14ca845ee'
+    cache=public.load_json(public.private_bytes(Path('/root/xboard-upstream-recovery')/base_id/'public-cache.private.json'))
+    require(public.digest(cache)=='e8246c3edde3dfaf7bf317d39655de5809759b2061e4f59e6924032769a19dd6','public_cache_drift')
+    indexed=public.cache_contract(cache,base_id,base_sha,allocation,settings)
+    require(set(indexed)==set(states) and len(indexed)==41,'public_scope_invalid')
+    active=sorted(set(indexed)-withdrawn);closed=sorted(withdrawn)
+    require(all(before[k]['show'] and before[k]['enabled'] for k in active),'unexpected_withdrawal')
+    public.verify_scope(indexed,before,active,'success',states)
+    public.verify_scope(indexed,before,closed,'withdrawn',states)
+    binary=cache['binary']
+    require(binary['sha256']=='031042edfd30a215e4c69d83eb7d13c194e6ef50c782e2e1308d9d8fa128454a','binary_drift')
+    path=public.bound_binary(binary)
+    started=int(time.time())
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        measurements=list(executor.map(lambda key:public.measure(indexed[key],path,'withdrawn' if key in withdrawn else 'success'),sorted(indexed)))
+    after=public.scope(settings,allocation)
+    public.verify_scope(indexed,after,active,'success',states)
+    public.verify_scope(indexed,after,closed,'withdrawn',states)
+    require(before==after and inputs()[3]==states,'public_scope_changed')
+    passed=all(row['status']=='passed' and row['temporary_process_terminated'] and row['temporary_directory_removed'] for row in measurements)
+    report={'status':'passed' if passed else 'failed','purpose':'runtime_guard_deployment_readonly',
+            'not_a_maintenance_acceptance':True,'started_at':started,'checked_at':int(time.time()),
+            'active_routes':active,'withdrawn_routes':closed,'routes':measurements,'strict_tls':True,'direct_fallback':False,'fresh_core_per_route':True,
+            'node_configuration_mutated':False,'binary_sha256':binary['sha256']}
+    write(RECORD/('public-check-'+str(started)+'.json'),entry_identity.encode(report),absent=True)
+    return report
 
 
 def status():
@@ -161,9 +204,21 @@ def status():
             'apply':current.get('apply'),'pinned_sha256':sha(read(PRIVATE/'pinned.private'))}
 
 
-def deploy():
+def reviewed_failures(result, expected_failures):
+    expected_failures=expected_failures or {}
+    require(isinstance(expected_failures,dict) and len(expected_failures)<=28 and
+            all(re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])',k) and v in {'runtime_identity_timeout','runtime_tcp_unreachable','runtime_tls_failed','runtime_public_key_mismatch'} for k,v in expected_failures.items()),'invalid_expected_failures')
+    failures={r['key']:r['reason'] for r in result.get('identity_checks',[]) if 'reason' in r}
+    require(result.get('negative_pin_rejected') is True and result.get('metadata_ok') is True and
+            all(expected_failures.get(k)==v for k,v in failures.items()),'preflight_not_passed')
+    return failures
+
+
+def deploy(expected_failures=None):
     saved=state();require(saved['phase']=='prepared','deployment_not_prepared')
-    result=preflight();require(result['status']=='preflight_passed','preflight_not_passed')
+    result=preflight()
+    failures=reviewed_failures(result,expected_failures)
+    saved['reviewed_preflight_failures']=failures
     require(not os.path.lexists(DROPIN),'unexpected_dropin')
     require(sha(read(Path('/etc/systemd/system')/SERVICE,False))==saved['unit_sha256'],'service_unit_drift')
     for name,before in saved['before'].items():
@@ -210,13 +265,16 @@ def rollback():
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['bootstrap','preflight','deploy','status','rollback']);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['bootstrap','preflight','deploy','status','rollback','public-check']);parser.add_argument('--expected-failures',default='{}');args=parser.parse_args()
+    require(len(args.expected_failures)<=2048,'expected_failures_too_large')
+    expected=entry_identity.decode(args.expected_failures.encode())
+    require(args.operation=='deploy' or expected=={},'unexpected_failure_approval')
     require(os.geteuid()==0,'root_required');os.umask(0o077)
     with open('/run/lock/xboard-upstream-runtime-deploy.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        result=globals()[args.operation]()
+        result=deploy(expected) if args.operation=='deploy' else globals()[args.operation.replace('-','_')]()
     print(json.dumps(result,sort_keys=True))
-    return 1 if result.get('status')=='preflight_identity_failed' else 0
+    return 1 if result.get('status') in ('preflight_identity_failed','failed') else 0
 
 
 if __name__=='__main__':

@@ -71,6 +71,8 @@ python3 .docker/upstream/guard.py --check-identity \
 
 preflight经实际入口检查28条，另用内存合成错误pin验证U04明确拒绝；不修改map或DB。deploy绑定备份及源码摘要，停止旧timer并等待oneshot，替换guard.py/guard-apply.php/allocation.json/entry_identity.py，增加固定服务override（entry-worker，180秒），立即检查后恢复原timer。旧metadata周期保持；后续应观察自然运行，并以真实公开路径确认线路。固定备份在`/root/xboard-runtime-guard-deploy/20261027`，专用SSH私钥留在面板`/etc/xboard-upstream-identity`，不得复制进仓库。
 
+若预检发现真实上游超时/不可达/TLS或pin失败，可在复核后通过expected_failures显式绑定有限key→原因继续部署；未知检测错误、映射错误、未预期失败或来源变化仍拒绝。此输入只允许保护器撤下异常节点，不批准公钥或恢复节点。public-check为此次guard部署的独立只读验收：固定旧公开缓存、当前完整范围和严格内核，可用节点必须双HTTPS通过，撤下节点必须实际拒绝；报告不可用作维护发布/同步批准。
+
 status仅返回代码摘要、service/timer状态、检查时间及脱敏原因。rollback先核对现存文件和备份，再仅恢复代码、移除本次override并恢复旧timer；不恢复DB、pin或旧guard-state，不重新启用已撤下线路。若身份或来源漂移，继续走人工核实/验收，不改变此部署的固定批准集合。
 
 ## 验证与回退

@@ -10,6 +10,10 @@
 
 只读预检必须完成28条真实身份与新加坡U04合成错误pin拒绝；测试pin仅在内存中使用。部署备份原代码/服务配置，停止timer并等旧oneshot结束，原子替换限定文件，覆盖ExecStart及180秒期限，立即检查后恢复原timer；回退只恢复本次代码/override，不回滚DB/pin，不重新公开已撤下线路。本地337项Python回归（含14项入口传输/部署回退测试）、工作流actionlint和31篇笔记校验通过。生产前置、启用和自然执行待记录；应用容器、客户端Release和并行香港入口不变。相关[决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)与[运维](./docs/zh-CN/installation/upstream-extension.md#运行时保护器部署与回退)。
 
+源码`053f1fd`已推送并按SHA回读README/progress；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40422201616)全337项Python、PHP事务及Go race通过。[生产准备](https://github.com/nanashiwang/Xboard/actions/runs/40422207757)完成原代码备份/专用公钥生成，未替换guard、未改DB；入口worker已按固定摘要安装，非root UID997/GID982、强制命令/源地址/禁转发有效，临时目录已清理、转发服务未改。两次真实预检[第一次](https://github.com/nanashiwang/Xboard/actions/runs/40422483526)、[复核](https://github.com/nanashiwang/Xboard/actions/runs/40422730066)均26/28通过，U08日本05超时、U32卢森堡01连接不可达；不是新pin变化，仍未启用新版。
+
+补上显式expected_failures部署输入：只接受已复核的有限key→原因，要求来源仍批准且内存错误pin实测拒绝；真实失败只能是该集合内同原因，检测执行/映射异常仍拒绝部署。它只允许启用保护器按原规则撤下故障线路，不认可失败身份、不改变pin、不重新公开。新增部署专属只读公开验收，复用原41条公开缓存与核验过的内核；分别验证可用路线和已撤下路线的真实拒绝，不延长或复用旧维护批准期限。
+
 ## 2026-10-27：生产外接线路人工恢复
 
 用户明确希望线路实际恢复，进一步授权“修复已核实的生产公钥和地址，逐条验证并保留回退”，替代此前本轮不改生产配置的限制。沿用[第三方线路决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，不自动接纳新公钥、不关闭TLS、不更改用户权限/倍率/原自建线路。
