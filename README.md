@@ -34,13 +34,13 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 用户确认同一节点在 v2rayN 正常，而卡皮巴拉规则/全局模式下 YuanHeng 的 Codex /responses 连接超时，浏览器正常。已用 YuanHeng 锁定的真实网络库复现：旧 Windows 分协议 ProxyServer 无法被当作单个代理地址解析，可能绕过代理直连。0.1.8 改用统一回环地址，并兼容恢复旧格式；没有据通用错误提示调整 DNS 或节点。升级后断开再连接应用新设置，故障电脑的真实请求仍待复验。
 
-本地前端74项、脚本16项、Rust53项通过（1项既有手动钥匙串测试忽略），类型检查和构建通过；新增Windows注册表回归待CI。此前0.1.7四目标构建成功，但创建Release被GitHub权限拒绝，未发布；0.1.8包含其节点点击连接改进。完整交付状态见[进展](./progress-log.md#2026-10-27windows-原生应用代理兼容修复)与[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
+本地前端74项、脚本16项、Rust53项通过（1项既有手动钥匙串测试忽略），类型检查和构建通过；新增Windows注册表回归待CI。此前0.1.7四目标构建成功，Actions创建Release权限失败后已用同构建附件补发；0.1.8包含其节点点击连接改进。完整交付状态见[进展](./progress-log.md#2026-10-27windows-原生应用代理兼容修复)与[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
 
 ### 卡皮巴拉点击节点即连接（2026-10-27）
 
 本次 Windows 全局模式 IP 未变，用户确认点击“一键连接”后正常，原因是尚未连接。按新交互要求，0.1.7 点击首页右侧节点就连接；已经连接时直接切换，断开后点击当前节点也能恢复，主按钮仍可手动连接/断开并跟随真实状态。选择和开启代理由原生统一处理，失败不误连旧节点；自动加载、测速及仅切模式不自动连接。
 
-本地前端74项、网页/发布脚本16项、Rust51项通过（1项既有手动钥匙串测试忽略），类型检查、构建及界面模拟通过；Windows真实使用仍待新版安装后验证。构建、Release和官网分发分别记录于[进展](./progress-log.md#2026-10-27卡皮巴拉点击节点即连接)，取舍见[决定](./.agents/notes/implemented/feature/2026-10-27-capybara-select-connect.md)。本次反馈与此前美国01连接差异不混为同一已解决问题。
+本地前端74项、网页/发布脚本16项、Rust51项通过（1项既有手动钥匙串测试忽略），类型检查、构建及界面模拟通过；Windows真实使用仍待新版安装后验证。[0.1.7正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.7)四目标构建和18附件/签名/源码已核验，应用更新源待同步；完整状态见[进展](./progress-log.md#2026-10-27卡皮巴拉点击节点即连接)，取舍见[决定](./.agents/notes/implemented/feature/2026-10-27-capybara-select-connect.md)。本次反馈与此前美国01连接差异不混为同一已解决问题。
 
 ### Actions 部署与维护失败复核（2026-10-27）
 
