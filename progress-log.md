@@ -12,9 +12,15 @@ Capybara未设置ProxyOverride。单地址修复后，Codex自身也能识别代
 
 0.1.9在既有系统代理流程内合并回环例外，保留旧列表；快照增加原例外字节/类型，旧journal缺键不代表原值不存在，恢复跳过旧版未拥有字段；新journal原值null才表示原字段缺失。仅在当前例外仍等于本次写入值时恢复，用户后来改动的值保留。沿用[Windows兼容笔记](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)，不改DNS、节点、YuanHeng仓库或全局环境变量。
 
-本地前端74项、脚本16项、Rust56项通过（1项既有手动钥匙串测试忽略），TypeScript/Vite构建、cargo fmt和33篇笔记校验通过；新增3项跨平台回归，Windows隔离注册表6项待CI。四目标构建、Release与官网更新源尚待完成。真实故障电脑仍需安装后断开重连验证，不能把隔离复现等同现场恢复。
+本地前端74项、脚本16项、Rust56项通过（1项既有手动钥匙串测试忽略），TypeScript/Vite构建、cargo fmt和33篇笔记校验通过；新增3项跨平台回归，Windows隔离注册表6项已通过。真实故障电脑仍需安装后验证，不能把隔离复现等同现场恢复。
 
-首轮[40448484810](https://github.com/nanashiwang/Xboard/actions/runs/40448484810)的Windows原生检查在编译测试时失败：`RegType`非Copy，测试转换类型后仍引用原对象导致E0382，尚未执行Windows测试；仅克隆枚举后转换修正，生产逻辑未改。5项本机代理回归与格式检查通过，将使用新提交重新执行四目标构建，未发布未完成的包。
+首轮[40448484810](https://github.com/nanashiwang/Xboard/actions/runs/40448484810)的Windows原生检查在编译测试时失败：`RegType`非Copy，测试转换类型后仍引用原对象导致E0382，尚未执行Windows测试；仅克隆枚举后转换修正，生产逻辑未改。5项本机代理回归与格式检查通过，后续使用修正提交重新执行四目标构建，首轮不完整产物未用于发布。
+
+实现提交 `2707f62` 与测试修正 `66c589c05ccd35928b5cc29cc31ef64a789b6a87` 已推送master，两个提交的README/progress均按SHA从GitHub回读一致。修正后的[四目标构建40448955955](https://github.com/nanashiwang/Xboard/actions/runs/40448955955)全部success，Windows原生61项通过，含6项独立HKCU恢复测试；笔记CI和双架构镜像构建通过。Linux原生55项通过；Linux整项构建18分30秒，其中依赖安装15分02秒，最终全部成功，未跳过平台。
+
+复用同一66c589c提交的Actions附件发布[0.1.9](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.9)，固定源码包、中文说明、各目标与总摘要、4目标签名及18附件GitHub大小/SHA-256全部核验，正式Release、Latest和标签指向亦确认。下载清单新增11个版本文件并最后替换更新索引，旧版本及其他客户端条目保留；4项下载同步回归及实际索引引用校验通过。静态sync-downloads及公网下载验收待执行；没有部署PHP应用或更改节点。
+
+恢复提示：升级后连接卡皮巴拉，再保存工作并完整退出重开Codex应用/CLI会话。reqwest在构建HTTP客户端时读取代理匹配器，Windows设置通知不保证既有客户端重读；YuanHeng自身定期刷新仅覆盖元衡到上游的另一段链路。未读取故障电脑Codex具体版本/环境变量，完整重启属于避免旧配置缓存的恢复步骤，不能保证已经现场恢复。
 
 ## 2026-10-27：Windows 原生应用代理兼容修复
 

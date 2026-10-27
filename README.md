@@ -36,6 +36,8 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 0.1.9保留原代理例外并补齐localhost/IPv4/IPv6本机地址，断开恢复原值，兼容旧恢复记录并保留用户后来修改的例外。真实matcher和隔离Mihomo对照证明本机请求需绕过代理、chatgpt.com仍需代理；用户故障电脑尚未复验。检查、发布与更新源状态见[进展](./progress-log.md#2026-10-27windows-本机调用502修复)，沿用[Windows兼容决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
 
+[0.1.9正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.9)已完成四目标构建、18附件与4目标签名核验，Windows原生61项通过。应用内更新源待本次静态同步完成；升级后连接卡皮巴拉，再保存工作并完整退出重开Codex，避免沿用已缓存的旧代理设置。用户电脑的真实调用仍待复验。
+
 ### Windows 原生应用代理兼容修复（2026-10-27）
 
 用户确认同一节点在 v2rayN 正常，而卡皮巴拉规则/全局模式下 YuanHeng 的 Codex /responses 连接超时，浏览器正常。已用 YuanHeng 锁定的真实网络库复现：旧 Windows 分协议 ProxyServer 无法被当作单个代理地址解析，可能绕过代理直连。0.1.8 改用统一回环地址，并兼容恢复旧格式；没有据通用错误提示调整 DNS 或节点。升级后断开再连接应用新设置，故障电脑的真实请求仍待复验。
