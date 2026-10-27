@@ -32,7 +32,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 办公网域名自动直连（2026-10-27）
 
-用户反馈办公网站退出客户端后可访问，其他客户端 PAC/系统代理正常，并指出不应要求用户修改电脑配置。0.1.11修复域名解析到内网地址时被 no-resolve 规则漏过的问题：规则与全局自动直连内网，全局公网仍走已选节点；直连默认系统 DNS，保留订阅显式解析设置。公司域名与访问参数不写入代码或文档。仅企业 DNS 可解析的域名仍可能需要显式直连规则；不把隔离复现当成用户故障电脑的完整根因确认。见[决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-private-network-routing.md)和[进展](./progress-log.md#2026-10-27办公网域名自动直连)。本地前端75/脚本16/Rust59及构建通过；四目标构建与Release待验，官网更新源未同步，Windows公司网络实测待用户升级反馈。
+用户反馈办公网站退出客户端后可访问，其他客户端 PAC/系统代理正常，并指出不应要求用户修改电脑配置。0.1.11修复域名解析到内网地址时被 no-resolve 规则漏过的问题：规则与全局自动直连内网，全局公网仍走已选节点；直连默认系统 DNS，保留订阅显式解析设置。公司域名与访问参数不写入代码或文档。仅企业 DNS 可解析的域名仍可能需要显式直连规则；不把隔离复现当成用户故障电脑的完整根因确认。见[决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-private-network-routing.md)和[进展](./progress-log.md#2026-10-27办公网域名自动直连)。本地前端75/脚本16/Rust59及构建通过；[四目标构建](https://github.com/nanashiwang/Xboard/actions/runs/40479066479)与[0.1.11正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.11)已完成，18附件摘要、四目标签名与固定提交源码包已核验。官网/应用内更新源未同步，Windows公司网络仍待升级复测。
 
 ### 切换分流模式保留节点（2026-10-27）
 

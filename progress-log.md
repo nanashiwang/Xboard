@@ -12,7 +12,9 @@
 
 本地前端75项、脚本16项、Rust59项通过（另1项既有手动钥匙串测试忽略），TypeScript/Vite及cargo fmt通过。新增固定Mihomo合成UDP DNS、HTTP服务与代理夹具，验证三模式的域名HTTP/CONNECT字节通道，公网全局请求实际到达所选代理、原有自定义优先级/模式选择/写盘失败回退，以及缺省system解析和显式DNS保留。首轮新测试错误假设代理只重试一次，观测10次后改为校验实际代理命中且内网不新增命中，未弱化出口验证。测试不改系统代理/DNS，不代表Windows公司内网或TLS证书业务验收。
 
-版本已同步0.1.11；提交、四目标Actions及Release待验。官网/应用内更新源尚未同步，服务器与生产节点未修改；后续用户升级、断开重连并重新打开原网页复测，无需手工修改系统配置。
+实现提交 `34db7fcb062f0ba12b636089a5797343951d3832` 已推送master，README/progress已按该SHA从GitHub回读一致。[四目标构建40479066479](https://github.com/nanashiwang/Xboard/actions/runs/40479066479)全部成功，含Windows/Linux/macOS两目标的原生测试和安装包；笔记CI通过。push工作流的publish按既有配置跳过，复用同一提交四目标附件与现有更新脚本发布[0.1.11正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.11)。
+
+发布验收：18附件全部uploaded，GitHub大小与SHA-256逐项匹配本地已验文件；四份目标摘要、总摘要、四目标签名、中文说明及更新索引通过，源码包104文件逐字节匹配实现提交。标签/target/Latest均已确认。签名/摘要附件上传出现间歇连接超时，每次先回读确认已上传内容，再仅补传缺失附件；完成18附件全量验收后才公开Release。官网/应用内更新源未同步，服务器与生产节点未修改。Windows公司网络仍需用户安装新版、断开重连并重新打开原网页复测，无需手工修改系统配置。
 
 ## 2026-10-27：切换分流模式保留节点
 
