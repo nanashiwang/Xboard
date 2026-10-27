@@ -34,7 +34,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 用户确认同一节点在 v2rayN 正常，而卡皮巴拉规则/全局模式下 YuanHeng 的 Codex /responses 连接超时，浏览器正常。已用 YuanHeng 锁定的真实网络库复现：旧 Windows 分协议 ProxyServer 无法被当作单个代理地址解析，可能绕过代理直连。0.1.8 改用统一回环地址，并兼容恢复旧格式；没有据通用错误提示调整 DNS 或节点。升级后断开再连接应用新设置，故障电脑的真实请求仍待复验。
 
-本地前端74项、脚本16项、Rust53项通过（1项既有手动钥匙串测试忽略），类型检查和构建通过；新增Windows注册表回归待CI。此前0.1.7四目标构建成功，Actions创建Release权限失败后已用同构建附件补发；0.1.8包含其节点点击连接改进。完整交付状态见[进展](./progress-log.md#2026-10-27windows-原生应用代理兼容修复)与[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
+本地前端74项、脚本16项、Rust53项及类型/构建通过；Windows CI54项通过，四目标构建完成。[0.1.8正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.8)的18附件、四目标签名和GitHub上传摘要均已核验，包含0.1.7的节点点击连接改进。应用内更新源正在按新清单同步；官网PHP下载页未部署。完整状态见[进展](./progress-log.md#2026-10-27windows-原生应用代理兼容修复)与[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
 
 ### 卡皮巴拉点击节点即连接（2026-10-27）
 

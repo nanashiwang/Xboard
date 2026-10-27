@@ -12,9 +12,11 @@
 
 0.1.8使用统一地址，恢复同时严格识别新地址/旧完整列表及本次端口，逐字节恢复原快照；外部改动的代理不覆盖。测试用独立临时注册表子键，不修改真实Internet Settings；不改生产节点、DNS或YuanHeng仓库。沿用[桌面架构](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)及[Windows诊断](./.agents/notes/implemented/process/2026-10-26-capybara-windows-diagnostics.md)边界，取舍见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
 
-本地验证：前端74、网页/发布脚本16、Rust53通过/0失败/1既有手动钥匙串测试忽略；TypeScript/Vite构建、cargo fmt通过。真实matcher回归覆盖HTTP/HTTPS，所有权回归覆盖新旧格式与第三方端点。新增2项Windows注册表恢复回归待Windows CI执行。
+本地验证：前端74、网页/发布脚本16、Rust53通过/0失败/1既有手动钥匙串测试忽略；TypeScript/Vite构建、cargo fmt和33篇笔记检查通过。真实matcher回归覆盖HTTP/HTTPS，所有权回归覆盖新旧格式与第三方端点。[四目标构建40439832271](https://github.com/nanashiwang/Xboard/actions/runs/40439832271)全部success；Windows54项原生测试通过，包括2项临时注册表恢复回归。笔记CI与双架构镜像构建通过，但没有部署PHP应用。
 
-交付：此前[0.1.7运行40437927940](https://github.com/nanashiwang/Xboard/actions/runs/40437927940)四目标构建和摘要/签名成功，创建Release返回403 Resource not accessible by integration，因此没有0.1.7 Release。此次0.1.8包含其节点连接功能，沿用四目标构建和附件脚本，全部验证后使用已授权账户发布。当前待提交推送、四目标构建和Release；官网更新源尚未同步，Windows真实业务请求待用户安装后复验。
+实现提交 `c55963154a08aab7d4bbc2020ecee653e8b95034` 已推送master，README/progress按SHA从GitHub回读一致。此前0.1.7的Actions创建Release返回403，后由并行发布任务补发；本次直接复用成功push构建附件，以现有账户发布[0.1.8](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.8)。上传过程中原HTTP连接持续缓慢，保留草稿中已验证附件并改独立连接补传；未覆盖已有正确附件。正式发布前18附件全部uploaded，大小/SHA-256与本地逐项一致；4平台更新签名、分目标摘要、总摘要、中文说明和固定c559631源码包核验通过，不把草稿上传当发布成功。
+
+新增12个0.1.8静态分发条目，保留其他版本及客户端，更新索引放最后；沿用sync-downloads，仅同步应用安装包/更新源，不部署PHP下载页或改节点。4项下载同步回归和实际新索引引用校验通过。官网同步及公网下载验收待执行；用户Windows的真实Codex请求仍需安装0.1.8后断开重连复验。
 
 ## 2026-10-27：卡皮巴拉点击节点即连接
 

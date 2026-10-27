@@ -24,7 +24,7 @@ Windows 系统代理使用单一 `127.0.0.1:<mixed-port>` 地址；HTTP 和 HTTP
 
 ## Verification
 
-隔离临时Rust工程使用YuanHeng精确锁定hyper-util0.1.20，目标为chatgpt.com的codex/responses：旧列表intercepted=false，单地址与带http协议单地址均true。仓库新增真实matcher回归验证HTTP/HTTPS选中代理，以及新旧格式所有权保护；Windows独立临时HKCU子键覆盖原值/类型/缺失字段恢复、旧journal及第三方代理保护，不修改实际系统代理。本地前端74、脚本16、Rust53通过（1项既有手动钥匙串测试忽略），类型/构建/格式通过；Windows CI与发布状态见[进展](../../../../progress-log.md#2026-10-27windows-原生应用代理兼容修复)。
+隔离临时Rust工程使用YuanHeng精确锁定hyper-util0.1.20，目标为chatgpt.com的codex/responses：旧列表intercepted=false，单地址与带http协议单地址均true。仓库新增真实matcher回归验证HTTP/HTTPS选中代理，以及新旧格式所有权保护；Windows独立临时HKCU子键覆盖原值/类型/缺失字段恢复、旧journal及第三方代理保护，不修改实际系统代理。本地前端74、脚本16、Rust53通过（1项既有手动钥匙串测试忽略），类型/构建/格式通过；Windows CI54项及四目标构建通过，18附件Release和四目标签名已验证；公网分发与用户现场状态见[进展](../../../../progress-log.md#2026-10-27windows-原生应用代理兼容修复)。
 
 ## Consequences
 
