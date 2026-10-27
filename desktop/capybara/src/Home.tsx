@@ -226,6 +226,7 @@ export default function Home({
                     {routing && (
                         <Routing
                             routing={routing}
+                            ruleGroup={group || undefined}
                             disabled={
                                 !!busy || !!nodes.pending || subscriptionBusy
                             }

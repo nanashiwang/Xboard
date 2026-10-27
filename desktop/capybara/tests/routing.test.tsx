@@ -138,6 +138,28 @@ it("规则可以新增、编辑、排序、删除，保存时保留全局节点"
     });
     expect(screen.getByRole("status").textContent).toContain("已保存并应用");
 });
+it("切模式传当前规则组，节点由原生读取而不是前端旧快照指定", async () => {
+    function GroupHarness() {
+        return <Routing routing={useRouting(saved)} ruleGroup="游戏分流" />;
+    }
+    render(<GroupHarness />);
+    const global = screen.getByRole("button", { name: "全局", exact: true });
+    await waitFor(() => expect(global.hasAttribute("disabled")).toBe(false));
+    fireEvent.click(global);
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
+    expect(invoke).toHaveBeenLastCalledWith("save_routing", {
+        settings: { mode: "global", rules: [], global_target: null },
+        ruleGroup: "游戏分流",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "直连", exact: true }));
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "规则", exact: true }));
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(3));
+    expect(invoke).toHaveBeenLastCalledWith("save_routing", {
+        settings: { mode: "rule", rules: [], global_target: null },
+        ruleGroup: "游戏分流",
+    });
+});
 it("无节点时仍可保存本机直连规则，无效输入和原生错误保留草稿", async () => {
     backend.ready = false;
     backend.targets = [];

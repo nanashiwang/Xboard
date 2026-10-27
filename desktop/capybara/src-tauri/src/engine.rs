@@ -355,20 +355,42 @@ impl Engine {
             }
         }
     }
-    pub fn checkpoint(&self) -> (String, RoutingSettings) {
-        (self.content.clone(), self.settings.clone())
+    pub async fn checkpoint(&self) -> Result<(String, RoutingSettings, Vec<Route>), String> {
+        Ok((
+            self.content.clone(),
+            self.settings.clone(),
+            self.control.all_routes().await?,
+        ))
+    }
+    pub async fn selection_for_mode(
+        &self,
+        settings: &mut RoutingSettings,
+        rule_group: Option<&str>,
+    ) -> Result<Vec<Route>, String> {
+        let data = self
+            .control
+            .call(reqwest::Method::GET, "/proxies", None)
+            .await?;
+        mode_selection(
+            &data,
+            self.settings.mode,
+            settings,
+            rule_group,
+            &global_targets(&self.content)?,
+        )
     }
     pub async fn reload(
         &mut self,
         content: &str,
         settings: &RoutingSettings,
+        selection: Option<&[Route]>,
     ) -> Result<(), String> {
         // Compose and validate before touching the running core. Roll back even on an ambiguous timeout.
         let config = sanitize_routing(content, self.port, self.api, &self.secret, settings)?;
         let selected = self.control.all_routes().await?;
         if let Err(error) = self
             .control
-            .apply_config(&config, content, settings, &selected)
+            .apply_config(&config, content, settings, selection.unwrap_or(&selected))
             .await
         {
             let old = sanitize_routing(
@@ -526,6 +548,19 @@ impl Controller {
                 self.select(&route.group, &route.selected).await?;
             }
         }
+        let confirmed = self.all_routes().await?;
+        for route in selected {
+            if route.group != "GLOBAL"
+                && available
+                    .iter()
+                    .any(|r| r.group == route.group && r.choices.contains(&route.selected))
+                && !confirmed
+                    .iter()
+                    .any(|r| r.group == route.group && r.selected == route.selected)
+            {
+                return Err("分流组节点未能生效".into());
+            }
+        }
         self.confirm_routing(content, settings).await
     }
     async fn confirm_routing(
@@ -555,23 +590,7 @@ impl Controller {
     }
     async fn all_routes(&self) -> Result<Vec<Route>, String> {
         let data = self.call(reqwest::Method::GET, "/proxies", None).await?;
-        let map = data["proxies"].as_object().ok_or("线路数据无效")?;
-        Ok(map
-            .iter()
-            .filter(|(_, v)| v["type"] == "Selector")
-            .map(|(name, v)| Route {
-                group: name.clone(),
-                selected: v["now"].as_str().unwrap_or("").into(),
-                choices: v["all"]
-                    .as_array()
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(|v| v.as_str().map(str::to_owned))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-            })
-            .collect())
+        selector_routes(&data)
     }
     pub async fn routes(&self) -> Result<Vec<Route>, String> {
         let mode = self.call(reqwest::Method::GET, "/configs", None).await?;
@@ -662,6 +681,77 @@ impl Controller {
         Ok(())
     }
 }
+fn selector_routes(data: &Value) -> Result<Vec<Route>, String> {
+    let map = data["proxies"].as_object().ok_or("线路数据无效")?;
+    Ok(map
+        .iter()
+        .filter(|(_, v)| v["type"] == "Selector")
+        .map(|(name, v)| Route {
+            group: name.clone(),
+            selected: v["now"].as_str().unwrap_or("").into(),
+            choices: v["all"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        })
+        .collect())
+}
+
+fn resolved_node(data: &Value, name: &str, targets: &[String]) -> Option<String> {
+    let mut name = name;
+    let mut seen = std::collections::BTreeSet::new();
+    while seen.insert(name) {
+        if targets.iter().any(|target| target == name) {
+            return Some(name.to_owned());
+        }
+        name = data["proxies"][name]["now"].as_str()?;
+    }
+    None
+}
+
+fn mode_selection(
+    data: &Value,
+    previous: RoutingMode,
+    settings: &mut RoutingSettings,
+    rule_group: Option<&str>,
+    targets: &[String],
+) -> Result<Vec<Route>, String> {
+    let mut routes = selector_routes(data)?;
+    if previous == settings.mode || previous == RoutingMode::Direct {
+        return Ok(routes);
+    }
+    // Home uses the first rule selector when no explicit group is selected (or it was removed).
+    let index = rule_group
+        .and_then(|group| {
+            routes
+                .iter()
+                .position(|r| r.group == group && r.group != "GLOBAL")
+        })
+        .or_else(|| routes.iter().position(|r| r.group != "GLOBAL"));
+    let Some(index) = index else {
+        return Ok(routes);
+    };
+    if previous == RoutingMode::Rule {
+        if let Some(target) = resolved_node(data, &routes[index].selected, targets) {
+            settings.global_target = Some(target);
+        }
+    } else if let Some(target) = resolved_node(data, "GLOBAL", targets) {
+        // Keep an automatic/nested choice if it already resolves to this node.
+        if resolved_node(data, &routes[index].selected, targets).as_ref() != Some(&target) {
+            if !routes[index].choices.contains(&target) {
+                return Err("当前分流组不包含已选节点，请先在全局模式选择该组支持的节点".into());
+            }
+            routes[index].selected = target.clone();
+        }
+        settings.global_target = Some(target);
+    }
+    Ok(routes)
+}
+
 fn selected_config(config: &str, selected: &[Route]) -> Result<String, String> {
     let mut data: serde_yaml::Value =
         serde_yaml::from_str(config).map_err(|_| "本地分流配置无效")?;
@@ -1189,6 +1279,81 @@ mod tests {
 #[cfg(test)]
 mod integration {
     use super::*;
+    #[test]
+    fn mode_selection_resolves_groups_without_overwriting_unrelated_choices() {
+        let mut data = json!({"proxies": {
+            "GLOBAL": {"type":"Selector", "now":"one", "all":["one","two"]},
+            "A": {"type":"Selector", "now":"one", "all":["one","two"]},
+            "B": {"type":"Selector", "now":"auto", "all":["auto","one","two"]},
+            "auto": {"type":"URLTest", "now":"two", "all":["one","two"]}
+        }});
+        let targets = vec!["one".into(), "two".into()];
+        let mut settings = RoutingSettings {
+            mode: RoutingMode::Global,
+            ..Default::default()
+        };
+        let routes =
+            mode_selection(&data, RoutingMode::Rule, &mut settings, Some("B"), &targets).unwrap();
+        assert_eq!(settings.global_target.as_deref(), Some("two"));
+        assert_eq!(
+            routes.iter().find(|r| r.group == "A").unwrap().selected,
+            "one"
+        );
+        assert_eq!(
+            routes.iter().find(|r| r.group == "B").unwrap().selected,
+            "auto"
+        );
+        // Switching away from GLOBAL selects its current node only in the displayed rule group.
+        settings.mode = RoutingMode::Rule;
+        let routes = mode_selection(
+            &data,
+            RoutingMode::Global,
+            &mut settings,
+            Some("B"),
+            &targets,
+        )
+        .unwrap();
+        assert_eq!(
+            routes.iter().find(|r| r.group == "B").unwrap().selected,
+            "one"
+        );
+        data["proxies"]["GLOBAL"]["now"] = json!("two");
+        let routes = mode_selection(
+            &data,
+            RoutingMode::Global,
+            &mut settings,
+            Some("B"),
+            &targets,
+        )
+        .unwrap();
+        assert_eq!(
+            routes.iter().find(|r| r.group == "B").unwrap().selected,
+            "auto"
+        );
+        // Automatic groups remain automatic, and cycles or DIRECT are never actual proxy nodes.
+        data["proxies"]["auto"]["now"] = json!("B");
+        assert_eq!(resolved_node(&data, "B", &targets), None);
+        assert_eq!(resolved_node(&data, "DIRECT", &targets), None);
+        data["proxies"]["A"]["all"] = json!(["one"]);
+        assert!(mode_selection(
+            &data,
+            RoutingMode::Global,
+            &mut settings,
+            Some("A"),
+            &targets
+        )
+        .is_err());
+        // Rule edits and return from direct mode do not reinterpret independent selectors.
+        for previous in [RoutingMode::Rule, RoutingMode::Direct] {
+            let routes =
+                mode_selection(&data, previous, &mut settings, Some("B"), &targets).unwrap();
+            assert_eq!(
+                routes.iter().find(|r| r.group == "B").unwrap().selected,
+                "auto"
+            );
+        }
+    }
+
     struct Running(Child, PathBuf);
     impl Drop for Running {
         fn drop(&mut self) {
@@ -1486,5 +1651,108 @@ mod integration {
         );
         stop.store(true, std::sync::atomic::Ordering::SeqCst);
         server.join().unwrap().unwrap();
+
+        // Exercise the real Nodes transaction against the isolated bundled core. The stand-in
+        // worker only lists tests and exits; Running owns the core, and no system proxy is touched.
+        let raw = "proxies: [{name: one, type: direct}, {name: two, type: direct}]\nproxy-groups: [{name: A, type: select, proxies: [one, two]}, {name: B, type: select, proxies: [one, two]}]\nrules: ['MATCH,B']\n";
+        let settings = RoutingSettings::default();
+        let config = sanitize_routing(raw, port, api, &secret, &settings).unwrap();
+        controller
+            .apply_config(&config, raw, &settings, &[])
+            .await
+            .unwrap();
+        let mut worker = cmd(std::env::current_exe().unwrap())
+            .arg("--list")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let input = worker.stdin.take().unwrap();
+        let mut nodes = crate::nodes::Nodes::new(&core.1);
+        nodes.engine = Some(Engine {
+            worker,
+            input,
+            control: controller.clone(),
+            content: raw.into(),
+            settings: settings.clone(),
+        });
+        nodes.prepare(&core.1, PathBuf::new(), raw).await.unwrap();
+        nodes.select_route("B".into(), "two".into()).await.unwrap();
+        for mode in [
+            RoutingMode::Global,
+            RoutingMode::Rule,
+            RoutingMode::Direct,
+            RoutingMode::Global,
+        ] {
+            let mut next = nodes.routing.settings.clone();
+            next.mode = mode;
+            nodes.apply_routing_settings(next, Some("B")).await.unwrap();
+            let data = controller
+                .call(reqwest::Method::GET, "/proxies", None)
+                .await
+                .unwrap();
+            assert_eq!(data["proxies"]["GLOBAL"]["now"], "two");
+            assert_eq!(data["proxies"]["B"]["now"], "two");
+            assert_eq!(data["proxies"]["A"]["now"], "one");
+        }
+        nodes
+            .select_route("GLOBAL".into(), "one".into())
+            .await
+            .unwrap();
+        let before = std::fs::read(core.1.join("routing.json")).unwrap();
+        let mut next = nodes.routing.settings.clone();
+        next.mode = RoutingMode::Rule;
+        std::fs::create_dir(core.1.join("routing.tmp")).unwrap();
+        assert!(nodes
+            .apply_routing_settings(next.clone(), Some("B"))
+            .await
+            .is_err());
+        assert_eq!(std::fs::read(core.1.join("routing.json")).unwrap(), before);
+        assert_eq!(nodes.routing.settings.mode, RoutingMode::Global);
+        let data = controller
+            .call(reqwest::Method::GET, "/proxies", None)
+            .await
+            .unwrap();
+        assert_eq!(data["proxies"]["GLOBAL"]["now"], "one");
+        assert_eq!(
+            data["proxies"]["B"]["now"], "two",
+            "save failure must restore the previous rule choice"
+        );
+        assert_eq!(
+            controller
+                .call(reqwest::Method::GET, "/configs", None)
+                .await
+                .unwrap()["mode"],
+            "global"
+        );
+        std::fs::remove_dir(core.1.join("routing.tmp")).unwrap();
+        next.mode = RoutingMode::Direct;
+        nodes.apply_routing_settings(next, Some("B")).await.unwrap();
+        let mut next = nodes.routing.settings.clone();
+        next.mode = RoutingMode::Rule;
+        nodes.apply_routing_settings(next, Some("B")).await.unwrap();
+        nodes.prepare(&core.1, PathBuf::new(), raw).await.unwrap();
+        assert_eq!(
+            nodes
+                .view
+                .routes
+                .iter()
+                .find(|r| r.group == "B")
+                .unwrap()
+                .selected,
+            "one"
+        );
+        assert_eq!(
+            nodes
+                .view
+                .routes
+                .iter()
+                .find(|r| r.group == "A")
+                .unwrap()
+                .selected,
+            "one"
+        );
+        drop(nodes);
     }
 }

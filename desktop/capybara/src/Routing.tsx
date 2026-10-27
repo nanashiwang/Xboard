@@ -60,7 +60,10 @@ export function useRouting(onSaved?: () => void | Promise<void>) {
             clearTimeout(timer);
         };
     }, []);
-    const save = async (settings: RoutingSettings): Promise<boolean> => {
+    const save = async (
+        settings: RoutingSettings,
+        ruleGroup?: string,
+    ): Promise<boolean> => {
         if (saving.current) return false;
         saving.current = true;
         generation.current++;
@@ -69,6 +72,7 @@ export function useRouting(onSaved?: () => void | Promise<void>) {
         try {
             const next = await command<RoutingView>("save_routing", {
                 settings,
+                ...(ruleGroup ? { ruleGroup } : {}),
             });
             if (!alive.current) return false;
             setView(next);
@@ -90,9 +94,11 @@ export type RoutingState = ReturnType<typeof useRouting>;
 export default function Routing({
     routing,
     disabled = false,
+    ruleGroup,
 }: {
     routing: RoutingState;
     disabled?: boolean;
+    ruleGroup?: string;
 }) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState<CustomRule[]>([]);
@@ -175,10 +181,13 @@ export default function Routing({
                         }
                         onClick={() => {
                             setSaved(false);
-                            void routing.save({
-                                ...view.settings,
-                                mode: mode.id,
-                            });
+                            void routing.save(
+                                {
+                                    ...view.settings,
+                                    mode: mode.id,
+                                },
+                                ruleGroup,
+                            );
                         }}
                     >
                         {mode.label}

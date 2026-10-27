@@ -260,12 +260,16 @@ pub async fn routing_snapshot(state: tauri::State<'_, AppState>) -> Result<Routi
 pub async fn save_routing(
     state: tauri::State<'_, AppState>,
     settings: RoutingSettings,
+    rule_group: Option<String>,
 ) -> Result<RoutingView, Fault> {
     let mut nodes = state.1.lock().await;
     nodes.check_process();
-    // Only select_route owns the global selection; an editor snapshot can predate a node click.
+    // Node clicks and native mode transitions own the selection, never an editor snapshot.
     let settings = nodes.routing.editor_settings(settings)?;
-    if let Err(error) = nodes.apply_settings(settings).await {
+    if let Err(error) = nodes
+        .apply_routing_settings(settings, rule_group.as_deref())
+        .await
+    {
         nodes.routing.error = Some(error.clone());
         return Err(error.into());
     }

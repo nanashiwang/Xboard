@@ -109,20 +109,41 @@ impl Nodes {
         Ok(settings)
     }
     pub async fn apply_settings(&mut self, settings: RoutingSettings) -> Result<(), String> {
-        let settings = self.normalize_settings(settings)?;
-        let previous = self.engine.as_ref().map(|engine| engine.checkpoint());
+        self.apply_routing_settings(settings, None).await
+    }
+    pub async fn apply_routing_settings(
+        &mut self,
+        settings: RoutingSettings,
+        rule_group: Option<&str>,
+    ) -> Result<(), String> {
+        let mut settings = self.normalize_settings(settings)?;
+        let previous = match self.engine.as_ref() {
+            Some(engine) => Some(engine.checkpoint().await?),
+            None => None,
+        };
         if let (Some(content), Some(binary)) = (self.source.as_ref(), self.binary.as_ref()) {
             if let Some(engine) = self.engine.as_mut() {
-                engine.reload(content, &settings).await?;
+                let selection = if settings.mode != self.routing.settings.mode {
+                    Some(engine.selection_for_mode(&mut settings, rule_group).await?)
+                } else {
+                    None
+                };
+                engine
+                    .reload(content, &settings, selection.as_deref())
+                    .await?;
             } else {
                 self.engine =
                     Some(Engine::start(&self.dir, binary.clone(), content, &settings).await?);
             }
         }
         if let Err(error) = self.routing.save(&settings) {
-            if let Some((content, previous)) = previous {
+            if let Some((content, previous, selection)) = previous {
                 if let Some(engine) = self.engine.as_mut() {
-                    if engine.reload(&content, &previous).await.is_err() {
+                    if engine
+                        .reload(&content, &previous, Some(&selection))
+                        .await
+                        .is_err()
+                    {
                         let _ = self.stop();
                         return Err("分流设置保存失败，恢复旧配置失败，连接组件已停止".into());
                     }

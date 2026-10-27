@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 切换分流模式保留节点（2026-10-27）
+
+用户要求切换规则时保持已选节点。0.1.10在规则与全局间带入内核当前实际节点，经过直连仍保留选择；只同步首页当前规则组，其他组不变。模式与节点一起加载，保存失败恢复切换前完整选择。自动组保留自身策略，组不包含目标时明确报错；已有连接仍可能沿用原出口。见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-mode-selection.md)和[进展](./progress-log.md#2026-10-27切换分流模式保留节点)。本地前端75项、脚本16项、Rust57项及构建通过；四目标构建与Release待核验，尚未修改官网更新源。
+
 ### Windows 本机调用502修复（2026-10-27）
 
 用户随后反馈元衡本地15721返回裸502 Unknown error。本轮系统/已安装版本确认尚未收到，按此前Windows场景审查并复现另一缺陷：0.1.8修复单地址后，原生HTTP应用能识别系统代理，但没有显式回环例外时，Codex到元衡的本机请求也会进入Mihomo，全局模式可返回空502。上一轮只测了外网代理匹配，漏了本机URL路径；不能把裸502直接归为OpenAI上游。
