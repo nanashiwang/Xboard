@@ -18,7 +18,7 @@ Capybara未设置ProxyOverride。单地址修复后，Codex自身也能识别代
 
 实现提交 `2707f62` 与测试修正 `66c589c05ccd35928b5cc29cc31ef64a789b6a87` 已推送master，两个提交的README/progress均按SHA从GitHub回读一致。修正后的[四目标构建40448955955](https://github.com/nanashiwang/Xboard/actions/runs/40448955955)全部success，Windows原生61项通过，含6项独立HKCU恢复测试；笔记CI和双架构镜像构建通过。Linux原生55项通过；Linux整项构建18分30秒，其中依赖安装15分02秒，最终全部成功，未跳过平台。
 
-复用同一66c589c提交的Actions附件发布[0.1.9](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.9)，固定源码包、中文说明、各目标与总摘要、4目标签名及18附件GitHub大小/SHA-256全部核验，正式Release、Latest和标签指向亦确认。下载清单新增11个版本文件并最后替换更新索引，旧版本及其他客户端条目保留；4项下载同步回归及实际索引引用校验通过。静态sync-downloads及公网下载验收待执行；没有部署PHP应用或更改节点。
+复用同一66c589c提交的Actions附件发布[0.1.9](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.9)，固定源码包、中文说明、各目标与总摘要、4目标签名及18附件GitHub大小/SHA-256全部核验，正式Release、Latest和标签指向亦确认。下载清单新增11个版本文件并最后替换更新索引，旧版本及其他客户端条目保留；4项下载同步回归及实际索引引用校验通过。分发提交 `37a3c4890a79db913d779d260e7735bd4f4e4617` 已推送master，README/progress按该SHA远程回读一致；[静态同步40451987874](https://github.com/nanashiwang/Xboard/actions/runs/40451987874)已success，版本附件校验后最后替换更新索引。公网验收：taige.us的12文件完整下载并核对大小/SHA-256，4目标更新签名通过；taige.us与board.taige.us索引字节一致且版本0.1.9，两域五安装包共10次Range均206、长度与前1024字节一致。用户可通过应用内检查更新或固定版本下载链接获取0.1.9；故障电脑的真实Codex请求仍待复验。没有部署PHP应用或更改节点。
 
 恢复提示：升级后连接卡皮巴拉，再保存工作并完整退出重开Codex应用/CLI会话。reqwest在构建HTTP客户端时读取代理匹配器，Windows设置通知不保证既有客户端重读；YuanHeng自身定期刷新仅覆盖元衡到上游的另一段链路。未读取故障电脑Codex具体版本/环境变量，完整重启属于避免旧配置缓存的恢复步骤，不能保证已经现场恢复。
 
