@@ -11,6 +11,10 @@ on:
         description: Exact reviewed key-to-runtime-reason JSON for deploy only; does not approve identities or reopen routes
         type: string
         default: '{}'
+      expected_metadata_failures:
+        description: Reviewed source_changed_requires_acceptance key-to-reason JSON; keeps changed sources withdrawn and never approves them
+        type: string
+        default: '{}'
 permissions:
   contents: read
 concurrency:
@@ -32,6 +36,7 @@ jobs:
           SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
           OPERATION: ${{ inputs.operation }}
           EXPECTED_FAILURES: ${{ inputs.expected_failures }}
+          EXPECTED_METADATA_FAILURES: ${{ inputs.expected_metadata_failures }}
         run: |
           set -euo pipefail
           umask 077
@@ -44,8 +49,14 @@ jobs:
           assert all(isinstance(k,str) and re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])',k) and v in allowed for k,v in value.items())
           assert os.environ['OPERATION']=='deploy' or value=={}
           with open(os.environ['RUNNER_TEMP']+'/expected-failures.json','w') as f:json.dump(value,f,sort_keys=True,separators=(',',':'))
+          value=json.loads(os.environ.get('EXPECTED_METADATA_FAILURES') or '{}')
+          assert isinstance(value,dict) and len(value)<=41
+          assert all(isinstance(k,str) and re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])',k) and v=='source_changed_requires_acceptance' for k,v in value.items())
+          assert os.environ['OPERATION']=='deploy' or value=={}
+          with open(os.environ['RUNNER_TEMP']+'/expected-metadata.json','w') as f:json.dump(value,f,sort_keys=True,separators=(',',':'))
           PYCODE
           expected=$(cat "$RUNNER_TEMP/expected-failures.json")
+          metadata=$(cat "$RUNNER_TEMP/expected-metadata.json")
           test -n "$SSHPASS"
           install -d -m 700 ~/.ssh
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
@@ -54,4 +65,4 @@ jobs:
           [[ "$remote_dir" =~ ^/tmp/xboard-runtime-deploy\.[A-Za-z0-9]+$ ]]
           trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/deploy_runtime.py $remote_dir/entry_identity.py $remote_dir/guard.py $remote_dir/guard-apply.php $remote_dir/allocation.json $remote_dir/prepare.py $remote_dir/snapshot.php $remote_dir/public_verify.py $remote_dir/probe-scope.php; rmdir -- $remote_dir"' EXIT
           sshpass -e scp "${ssh_opts[@]}" .docker/upstream/{deploy_runtime.py,entry_identity.py,guard.py,guard-apply.php,allocation.json,prepare.py,snapshot.php,public_verify.py,probe-scope.php} "root@107.173.191.23:$remote_dir/"
-          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/deploy_runtime.py' '$OPERATION' --expected-failures '$expected'"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/deploy_runtime.py' '$OPERATION' --expected-failures '$expected' --expected-metadata-failures '$metadata'"

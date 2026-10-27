@@ -62,6 +62,38 @@ class RuntimeDeploymentTest(unittest.TestCase):
                 run.assert_not_called()
                 self.assertEqual(b'current',(private/'guard.py').read_bytes())
 
+    def test_source_change_is_reported_without_trust_or_database_writes(self):
+        node={'name':'approved','type':'anytls','server':'original'}
+        approved=[dict(key='U04',backend_id=365,public_id=366,source_name='approved',source_sha256=deploy.guard.fingerprint(node))]
+        mappings=[dict(key='U04',pin='original-pin')]
+        original=copy.deepcopy((approved,mappings))
+        checks=[{'key':'U%02d'%i} for i in range(1,29)]
+        saved={'phase':'prepared','source_hashes':{n:deploy.sha((deploy.SOURCE/n).read_bytes()) for n in deploy.FILES},'database_states':{'x':'same'}}
+        with patch.object(deploy,'state',return_value=saved), patch.object(deploy,'read',return_value=deploy.KNOWN_HOST), \
+             patch.object(deploy,'inputs',return_value=(approved,mappings,{}, {'x':'same'})), \
+             patch.object(deploy.guard,'fetch_subscription',return_value=([dict(node,server='changed')],{'expire':10**12,'total':100,'upload':0,'download':0})), \
+             patch.object(deploy.entry_identity,'evaluate_identity',side_effect=[checks,[{'key':'U04','reason':'runtime_public_key_mismatch'}]]), \
+             patch.object(deploy,'write') as writes, patch.object(deploy.guard,'apply') as apply:
+            result=deploy.preflight()
+        self.assertEqual('preflight_metadata_failed',result['status'])
+        self.assertFalse(result['metadata_ok']);self.assertTrue(result['negative_pin_rejected'])
+        self.assertEqual('source_changed_requires_acceptance',result['metadata_checks'][0]['reason'])
+        self.assertEqual(original,(approved,mappings));writes.assert_not_called();apply.assert_not_called()
+        self.assertNotIn('original-pin',json.dumps(result));self.assertNotIn('server',json.dumps(result))
+
+    def test_metadata_failure_requires_exact_separate_review_and_cannot_hide_runtime_failure(self):
+        expected={'U06':'source_changed_requires_acceptance'}
+        report={'negative_pin_rejected':True,'metadata_ok':False,'metadata_checks':[dict(key=k,reason=v) for k,v in expected.items()],
+                'identity_checks':[dict(key='U06',reason='runtime_identity_timeout')]}
+        runtime={'U06':'runtime_identity_timeout'}
+        self.assertEqual(runtime,deploy.reviewed_failures(report,runtime,expected))
+        for args in ((report,runtime,{}),(report,{},expected),
+                     (dict(report,metadata_ok=True),runtime,expected),
+                     (dict(report,metadata_checks=[dict(key='U07',reason='source_changed_requires_acceptance')]),runtime,expected),
+                     (dict(report,metadata_checks=[dict(key='U06',reason='quota_exhausted')]),runtime,expected),
+                     (dict(report,negative_pin_rejected=False),runtime,expected)):
+            with self.assertRaises(ValueError):deploy.reviewed_failures(*args)
+
     def test_rollback_restores_only_code_and_timer_without_pins_database_or_state(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);private=root/'private';record=root/'record';private.mkdir();record.mkdir()

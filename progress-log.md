@@ -14,6 +14,8 @@
 
 补上显式expected_failures部署输入：只接受已复核的有限key→原因，要求来源仍批准且内存错误pin实测拒绝；真实失败只能是该集合内同原因，检测执行/映射异常仍拒绝部署。它只允许启用保护器按原规则撤下故障线路，不认可失败身份、不改变pin、不重新公开。新增部署专属只读公开验收，复用原41条公开缓存与核验过的内核；分别验证可用路线和已撤下路线的真实拒绝，不延长或复用旧维护批准期限。
 
+[部署尝试](https://github.com/nanashiwang/Xboard/actions/runs/40431023560)及[再预检](https://github.com/nanashiwang/Xboard/actions/runs/40431297261)均在来源门停止，未替换保护器或重启服务。[只读状态](https://github.com/nanashiwang/Xboard/actions/runs/40431796061)确认仍为prepared、旧timer active/Result success、批准pin SHA保持；旧状态列出U06/U07/U32/U41的source_changed_requires_acceptance。补充脱敏metadata_checks和独立expected_metadata_failures：仅允许显式列出的来源指纹变化启用撤下保护，不把来源变化判通过，不接受额度/有效期等其他失败，也不能覆盖同节点的运行时失败。两类结果分别核对，任何未复核项仍停止部署。新增无写入/无身份变更、原因/范围漂移与双重失败回归；当前尚未启用。
+
 ## 2026-10-27：生产外接线路人工恢复
 
 用户明确希望线路实际恢复，进一步授权“修复已核实的生产公钥和地址，逐条验证并保留回退”，替代此前本轮不改生产配置的限制。沿用[第三方线路决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)，不自动接纳新公钥、不关闭TLS、不更改用户权限/倍率/原自建线路。

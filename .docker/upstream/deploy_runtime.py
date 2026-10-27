@@ -144,14 +144,15 @@ def preflight():
     if any(r['reason'] not in {'runtime_identity_timeout','runtime_tcp_unreachable','runtime_tls_failed','runtime_public_key_mismatch'} for r in failures):
         return {'status':'preflight_identity_failed','identity_checks':checks,'files_mutated':False}
     proxies,usage=guard.fetch_subscription(PRIVATE)
-    require(not guard.evaluate(approved,proxies,usage,int(time.time())),'source_metadata_not_approved')
+    metadata=guard.evaluate(approved,proxies,usage,int(time.time()))
     # One deliberately wrong synthetic pin verifies rejection end-to-end; never write the map.
     target=next(m for m in mappings if m['key']=='U04').copy();target['pin']=base64.b64encode(b'\0'*32).decode()
     selected=[r for r in approved if r['key']=='U04']
     negative=entry_identity.evaluate_identity(selected,allocation,[target])
     require(len(negative)==1 and negative[0].get('reason')=='runtime_public_key_mismatch','negative_identity_not_rejected')
-    return {'status':'preflight_identity_failed' if failures else 'preflight_passed','identity_checks':checks,'negative_pin_rejected':True,
-            'approved_map_unchanged':True,'database_mutated':False,'metadata_ok':True,'checked_at':int(time.time())}
+    return {'status':'preflight_identity_failed' if failures else ('preflight_metadata_failed' if metadata else 'preflight_passed'),
+            'identity_checks':checks,'metadata_checks':metadata,'negative_pin_rejected':True,
+            'approved_map_unchanged':True,'database_mutated':False,'metadata_ok':not metadata,'checked_at':int(time.time())}
 
 
 def public_check():
@@ -160,7 +161,8 @@ def public_check():
     saved=state();require(saved['phase']=='deployed','guard_not_deployed')
     approved,mappings,allocation,states=inputs()
     current=json.loads(read(PRIVATE/'guard-state.json'))
-    allowed_closed=set(saved.get('reviewed_preflight_failures',{})) | {r['key'] for r in current.get('withdraw',[])}
+    allowed_closed=(set(saved.get('reviewed_preflight_failures',{})) | set(saved.get('reviewed_metadata_failures',{}))
+                    | {r['key'] for r in current.get('withdraw',[])})
     settings=public.agent_settings()
     before=public.scope(settings,allocation)
     withdrawn={k for k,r in before.items() if not r['enabled'] and not r['show']}
@@ -204,21 +206,30 @@ def status():
             'apply':current.get('apply'),'pinned_sha256':sha(read(PRIVATE/'pinned.private'))}
 
 
-def reviewed_failures(result, expected_failures):
+def reviewed_failures(result, expected_failures, expected_metadata=None):
     expected_failures=expected_failures or {}
     require(isinstance(expected_failures,dict) and len(expected_failures)<=28 and
             all(re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])',k) and v in {'runtime_identity_timeout','runtime_tcp_unreachable','runtime_tls_failed','runtime_public_key_mismatch'} for k,v in expected_failures.items()),'invalid_expected_failures')
     failures={r['key']:r['reason'] for r in result.get('identity_checks',[]) if 'reason' in r}
-    require(result.get('negative_pin_rejected') is True and result.get('metadata_ok') is True and
+    expected_metadata=expected_metadata or {}
+    require(isinstance(expected_metadata,dict) and len(expected_metadata)<=41 and
+            all(re.fullmatch(r'U(?:0[1-9]|[1-3][0-9]|4[01])',k) and v=='source_changed_requires_acceptance'
+                for k,v in expected_metadata.items()),'invalid_expected_metadata')
+    metadata={r['key']:r['reason'] for r in result.get('metadata_checks',[])}
+    # A reviewed source failure permits deploying withdrawal protection, never trust approval.
+    require(result.get('metadata_ok') is (not metadata) and
+            all(expected_metadata.get(k)==v for k,v in metadata.items()),'source_metadata_not_approved')
+    require(result.get('negative_pin_rejected') is True and
             all(expected_failures.get(k)==v for k,v in failures.items()),'preflight_not_passed')
     return failures
 
 
-def deploy(expected_failures=None):
+def deploy(expected_failures=None, expected_metadata=None):
     saved=state();require(saved['phase']=='prepared','deployment_not_prepared')
     result=preflight()
-    failures=reviewed_failures(result,expected_failures)
+    failures=reviewed_failures(result,expected_failures,expected_metadata)
     saved['reviewed_preflight_failures']=failures
+    saved['reviewed_metadata_failures']={r['key']:r['reason'] for r in result.get('metadata_checks',[])}
     require(not os.path.lexists(DROPIN),'unexpected_dropin')
     require(sha(read(Path('/etc/systemd/system')/SERVICE,False))==saved['unit_sha256'],'service_unit_drift')
     for name,before in saved['before'].items():
@@ -265,16 +276,17 @@ def rollback():
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['bootstrap','preflight','deploy','status','rollback','public-check']);parser.add_argument('--expected-failures',default='{}');args=parser.parse_args()
-    require(len(args.expected_failures)<=2048,'expected_failures_too_large')
+    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['bootstrap','preflight','deploy','status','rollback','public-check']);parser.add_argument('--expected-failures',default='{}');parser.add_argument('--expected-metadata-failures',default='{}');args=parser.parse_args()
+    require(len(args.expected_failures)<=2048 and len(args.expected_metadata_failures)<=4096,'expected_failures_too_large')
     expected=entry_identity.decode(args.expected_failures.encode())
-    require(args.operation=='deploy' or expected=={},'unexpected_failure_approval')
+    metadata=entry_identity.decode(args.expected_metadata_failures.encode())
+    require(args.operation=='deploy' or (expected=={} and metadata=={}),'unexpected_failure_approval')
     require(os.geteuid()==0,'root_required');os.umask(0o077)
     with open('/run/lock/xboard-upstream-runtime-deploy.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        result=deploy(expected) if args.operation=='deploy' else globals()[args.operation.replace('-','_')]()
+        result=deploy(expected,metadata) if args.operation=='deploy' else globals()[args.operation.replace('-','_')]()
     print(json.dumps(result,sort_keys=True))
-    return 1 if result.get('status') in ('preflight_identity_failed','failed') else 0
+    return 1 if result.get('status') in ('preflight_identity_failed','preflight_metadata_failed','failed') else 0
 
 
 if __name__=='__main__':
