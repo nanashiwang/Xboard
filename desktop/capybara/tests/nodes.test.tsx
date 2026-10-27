@@ -1,12 +1,14 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { command } from "../src/bridge";
+import { emptyView, type View } from "../src/model";
 import {
     delayLabel,
     emptyNodes,
     latestNodes,
     useNodes,
     type NodeView,
+    type NodeConnection,
 } from "../src/nodes";
 vi.mock("../src/bridge", () => ({
     command: vi.fn(),
@@ -171,18 +173,18 @@ it("旧轮询不能覆盖新选择或注销后的空列表", () => {
     expect(delayLabel()).toBe("未测速");
     expect(delayLabel({ status: "超时", ms: null })).toBe("超时");
 });
-it("点击立即反馈，内核确认后切换，重复点击不并发，失败可重试", async () => {
-    let resolve!: (view: NodeView) => void;
+it("点击立即反馈，原生确认节点和连接后更新，重复点击不并发，失败可重试", async () => {
+    let resolve!: (view: NodeConnection) => void;
     vi.mocked(command).mockImplementation(async (name) => {
-        if (name === "select_route")
-            return (await new Promise<NodeView>((r) => {
+        if (name === "select_and_connect")
+            return (await new Promise<NodeConnection>((r) => {
                 resolve = r;
             })) as never;
         return loaded as never;
     });
     const { result } = renderHook(useNodes);
     await waitFor(() => expect(result.current.view.revision).toBe(3));
-    let selecting!: Promise<void>;
+    let selecting!: Promise<View | void>;
     act(() => {
         selecting = result.current.select("默认", "新节点");
     });
@@ -192,15 +194,20 @@ it("点击立即反馈，内核确认后切换，重复点击不并发，失败�
         await result.current.select("默认", "旧节点");
     });
     expect(
-        vi.mocked(command).mock.calls.filter(([n]) => n === "select_route"),
+        vi
+            .mocked(command)
+            .mock.calls.filter(([n]) => n === "select_and_connect"),
     ).toHaveLength(1);
     await act(async () => {
         resolve({
-            ...loaded,
-            revision: 4,
-            routes: [{ ...loaded.routes[0], selected: "新节点" }],
+            view: { ...emptyView, connection: "connected" },
+            nodes: {
+                ...loaded,
+                revision: 4,
+                routes: [{ ...loaded.routes[0], selected: "新节点" }],
+            },
         });
-        await selecting;
+        expect((await selecting)?.connection).toBe("connected");
     });
     expect(result.current.pending).toBeNull();
     expect(result.current.view.routes[0].selected).toBe("新节点");

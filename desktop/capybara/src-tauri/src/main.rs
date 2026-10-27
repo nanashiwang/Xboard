@@ -86,6 +86,28 @@ impl Default for View {
         }
     }
 }
+#[derive(Serialize)]
+struct SelectConnectionView {
+    view: View,
+    nodes: nodes::NodeView,
+}
+
+// Keep connection state tied to successful proxy activation. The injected operations also let
+// native tests cover failures and already-connected switches without touching the host proxy.
+async fn activate_connection<E, C>(view: &mut View, enable: E, check: C) -> Result<(), Fault>
+where
+    E: FnOnce() -> Result<(), String>,
+    C: std::future::Future<Output = Result<(), String>>,
+{
+    if view.connection == "connected" {
+        return Ok(());
+    }
+    enable()?;
+    view.connection = "connected".into();
+    view.connection_error = check.await.err();
+    Ok(())
+}
+
 struct Runtime {
     account: Account,
     browser_attempt: Option<String>,
@@ -98,6 +120,63 @@ struct Runtime {
     installing: Arc<std::sync::atomic::AtomicBool>,
 }
 impl Runtime {
+    async fn connect_to(
+        &mut self,
+        target: Option<(String, String)>,
+    ) -> Result<nodes::NodeView, Fault> {
+        if self.installing.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err(Fault::local("正在更新，请稍候再连接"));
+        }
+        self.check_process().await;
+        if self.view.connection != "connected" {
+            // Refresh eligibility before selecting: the refresh can replace the node list.
+            self.sync().await?;
+            if !self.view.logged_in
+                || self
+                    .view
+                    .subscription
+                    .as_ref()
+                    .is_none_or(|s| s["status"] != "active")
+            {
+                return Err(Fault::local("当前套餐不可用，请查看首页提示"));
+            }
+        }
+        let shared = self.nodes.clone();
+        let mut nodes = shared.lock().await;
+        if let Some((group, name)) = target {
+            if let Err(error) = nodes.select_route(group, name).await {
+                drop(nodes);
+                // A failed selection can stop the core when rollback fails. Reconcile the
+                // connection immediately through the existing proxy recovery path.
+                self.check_process().await;
+                return Err(error);
+            }
+        }
+        let control = std::ops::Deref::deref(
+            nodes
+                .engine
+                .as_ref()
+                .ok_or_else(|| Fault::local("节点尚未准备好，请稍后重试"))?,
+        )
+        .clone();
+        let dir = self.dir.clone();
+        let port = control.port;
+        activate_connection(
+            &mut self.view,
+            move || {
+                // Keep the selected route stable until proxy activation finishes, then release
+                // the node lock before the external connectivity check.
+                let result = proxy::enable(&dir, port);
+                drop(nodes);
+                result
+            },
+            control.check(),
+        )
+        .await?;
+        let view = shared.lock().await.view.clone();
+        Ok(view)
+    }
+
     async fn sync(&mut self) -> Result<(), Fault> {
         self.sync_subscription(false).await
     }
@@ -504,33 +583,23 @@ async fn logout(state: State<'_, AppState>) -> Result<View, Fault> {
 #[tauri::command]
 async fn connect(state: State<'_, AppState>) -> Result<View, Fault> {
     let mut rt = state.0.lock().await;
-    if rt.installing.load(std::sync::atomic::Ordering::SeqCst) {
-        return Err(Fault::local("正在更新，请稍候再连接"));
-    }
-    if rt.view.connection == "connected" {
-        return Ok(rt.view.clone());
-    }
-    rt.sync().await?;
-    if rt
-        .view
-        .subscription
-        .as_ref()
-        .is_none_or(|s| s["status"] != "active")
-    {
-        return Err(Fault::local("当前套餐不可用，请查看首页提示"));
-    }
-    let control = {
-        let nodes = rt.nodes.lock().await;
-        let engine = nodes
-            .engine
-            .as_ref()
-            .ok_or_else(|| Fault::local("节点尚未准备好，请稍后重试"))?;
-        std::ops::Deref::deref(engine).clone()
-    };
-    proxy::enable(&rt.dir, control.port)?;
-    rt.view.connection = "connected".into();
-    rt.view.connection_error = control.check().await.err();
+    rt.connect_to(None).await?;
     Ok(rt.view.clone())
+}
+
+#[tauri::command]
+async fn select_and_connect(
+    state: State<'_, AppState>,
+    group: String,
+    name: String,
+) -> Result<SelectConnectionView, Fault> {
+    // Serialize connection/logout actions with Runtime, always before acquiring Nodes.
+    let mut rt = state.0.lock().await;
+    let nodes = rt.connect_to(Some((group, name))).await?;
+    Ok(SelectConnectionView {
+        view: rt.view.clone(),
+        nodes,
+    })
 }
 
 #[tauri::command]
@@ -695,6 +764,7 @@ fn main() {
             set_subscription_interval,
             logout,
             connect,
+            select_and_connect,
             disconnect,
             routing::routing_snapshot,
             routing::save_routing,
@@ -773,5 +843,86 @@ fn host_target() -> &'static str {
         "aarch64-unknown-linux-gnu"
     } else {
         "x86_64-unknown-linux-gnu"
+    }
+}
+
+#[cfg(test)]
+mod connection_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    #[tokio::test]
+    async fn failed_proxy_activation_does_not_connect_or_probe() {
+        let mut view = View::default();
+        let checked = Cell::new(false);
+        let error = activate_connection(&mut view, || Err("系统代理启用失败".into()), async {
+            checked.set(true);
+            Ok(())
+        })
+        .await
+        .err()
+        .unwrap();
+        assert_eq!(error.message, "系统代理启用失败");
+        assert_eq!(view.connection, "disconnected");
+        assert!(!checked.get());
+    }
+
+    #[tokio::test]
+    async fn connected_switch_never_reactivates_proxy_or_probes() {
+        let mut view = View {
+            connection: "connected".into(),
+            ..View::default()
+        };
+        let enabled = Cell::new(false);
+        let checked = Cell::new(false);
+        assert!(activate_connection(
+            &mut view,
+            || {
+                enabled.set(true);
+                Err("不应再次设置代理".into())
+            },
+            async {
+                checked.set(true);
+                Err("不应发出外网探测".into())
+            },
+        )
+        .await
+        .is_ok());
+        assert_eq!(view.connection, "connected");
+        assert!(!enabled.get() && !checked.get());
+    }
+
+    #[tokio::test]
+    async fn probe_failure_keeps_the_actual_connected_state_with_an_error() {
+        let mut view = View::default();
+        let enabled = Cell::new(false);
+        assert!(activate_connection(
+            &mut view,
+            || {
+                enabled.set(true);
+                Ok(())
+            },
+            async {
+                assert!(enabled.get(), "probe must follow successful activation");
+                Err("线路检测失败".into())
+            },
+        )
+        .await
+        .is_ok());
+        assert_eq!(view.connection, "connected");
+        assert_eq!(view.connection_error.as_deref(), Some("线路检测失败"));
+    }
+
+    #[tokio::test]
+    async fn successful_reconnect_clears_the_previous_connection_error() {
+        let mut view = View {
+            connection_error: Some("上次连接失败".into()),
+            ..View::default()
+        };
+        assert!(activate_connection(&mut view, || Ok(()), async { Ok(()) })
+            .await
+            .is_ok());
+        assert_eq!(view.connection, "connected");
+        assert!(view.connection_error.is_none());
     }
 }

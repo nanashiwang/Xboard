@@ -242,7 +242,7 @@ export async function command<T = View>(
         if (name === "connect") demo = { ...demo, connection: "connected" };
         if (name === "disconnect")
             demo = { ...demo, connection: "disconnected" };
-        if (name === "select_route") {
+        if (name === "select_route" || name === "select_and_connect") {
             await new Promise((resolve) => setTimeout(resolve, 180));
             if (args?.group === "GLOBAL")
                 selectPreviewGlobal(String(args?.name));
@@ -252,10 +252,15 @@ export async function command<T = View>(
                     : r,
             );
             demoNodes.revision++;
-            return structuredClone({
+            const nodes = {
                 ...demoNodes,
                 routes: routingPreviewRoutes(demoNodes.routes),
-            }) as T;
+            };
+            if (name === "select_and_connect") {
+                demo = { ...demo, connection: "connected" };
+                return structuredClone({ view: demo, nodes }) as T;
+            }
+            return structuredClone(nodes) as T;
         }
         if (name === "begin_browser_login")
             demo = {

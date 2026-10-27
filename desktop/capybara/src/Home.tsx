@@ -120,7 +120,7 @@ export default function Home({
         ? view.connection_error
             ? "连接待检查"
             : "已连接"
-        : busy === "connect"
+        : busy === "connect" || busy === "select_and_connect"
           ? "正在连接"
           : "未连接";
     return (
@@ -166,6 +166,7 @@ export default function Home({
                                     aria-label={primaryText}
                                 >
                                     {busy === "connect" ||
+                                    busy === "select_and_connect" ||
                                     busy === "disconnect" ? (
                                         <LoaderCircle
                                             size={48}
@@ -501,7 +502,7 @@ export default function Home({
                         )}
                     {nodes.pending && (
                         <p className="node-feedback" role="status">
-                            正在{connected ? "切换" : "选择"}{" "}
+                            正在{connected ? "切换" : "连接"}{" "}
                             {nodes.pending.name}…
                         </p>
                     )}
@@ -581,7 +582,7 @@ export default function Home({
                                 ? "直连模式 · 自定义规则暂不生效"
                                 : connected
                                   ? "选择节点即切换 · 延迟随网络变化"
-                                  : "可先选节点、测速，再开启连接"}
+                                  : "点击节点即可连接 · 测速不影响连接"}
                         </span>
                     </div>
                 </section>

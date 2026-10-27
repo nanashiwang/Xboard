@@ -61,17 +61,22 @@ export default function App() {
     const loginRef = useRef<HTMLDialogElement>(null),
         mainRef = useRef<HTMLElement>(null),
         polling = useRef(false),
+        acting = useRef(false),
+        mutation = useRef(0),
         mounted = useRef(true);
     useEffect(() => {
         mounted.current = true;
         const update = async () => {
-            if (polling.current) return;
+            if (polling.current || acting.current) return;
             polling.current = true;
+            const epoch = mutation.current;
             try {
                 const next = await command("snapshot");
-                if (mounted.current) setView(next);
+                if (mounted.current && epoch === mutation.current)
+                    setView(next);
             } catch (e) {
-                if (mounted.current) setError(errorText(e));
+                if (mounted.current && epoch === mutation.current)
+                    setError(errorText(e));
             } finally {
                 polling.current = false;
             }
@@ -95,7 +100,9 @@ export default function App() {
         if (mainRef.current) mainRef.current.scrollTop = 0;
     }, [page]);
     const act = async (name: string, args?: Record<string, unknown>) => {
-        if (busy) return;
+        if (acting.current) return;
+        acting.current = true;
+        mutation.current++;
         setBusy(name);
         setError("");
         try {
@@ -104,6 +111,32 @@ export default function App() {
         } catch (e) {
             setError(errorText(e));
         } finally {
+            mutation.current++;
+            acting.current = false;
+            setBusy("");
+        }
+    };
+    const selectNode = async (group: string, name: string) => {
+        if (acting.current || routing.busy || nodes.subscriptionPending) return;
+        acting.current = true;
+        mutation.current++;
+        setBusy("select_and_connect");
+        setError("");
+        try {
+            const next = await nodes.select(group, name);
+            if (next) setView(next);
+            else {
+                // A failed operation can still revoke eligibility or stop the core.
+                // Reconcile both states instead of retaining an old connected badge.
+                await nodes.refresh();
+                setView(await command("snapshot"));
+            }
+            return next;
+        } catch (e) {
+            setError(errorText(e));
+        } finally {
+            mutation.current++;
+            acting.current = false;
             setBusy("");
         }
     };
@@ -127,17 +160,21 @@ export default function App() {
         connected ||
         (!view.sync_error && s?.status === "active");
     const primaryText =
-        busy === "connect"
-            ? "正在建立连接"
-            : busy === "disconnect"
-              ? "正在断开"
-              : busy === "restore_session"
-                ? "正在恢复登录"
-                : !view.logged_in
-                  ? "账号登录"
-                  : connected
-                    ? "断开连接"
-                    : "一键连接";
+        busy === "select_and_connect"
+            ? connected
+                ? "正在切换节点"
+                : "正在建立连接"
+            : busy === "connect"
+              ? "正在建立连接"
+              : busy === "disconnect"
+                ? "正在断开"
+                : busy === "restore_session"
+                  ? "正在恢复登录"
+                  : !view.logged_in
+                    ? "账号登录"
+                    : connected
+                      ? "断开连接"
+                      : "一键连接";
     const attention = status.tone === "warning" || status.tone === "danger";
     const statusCard = (
         <section className={"status-card " + status.tone} aria-live="polite">
@@ -293,7 +330,7 @@ export default function App() {
                 )}
                 {page === "home" && (
                     <Home
-                        nodes={nodes}
+                        nodes={{ ...nodes, select: selectNode }}
                         routing={routing}
                         view={view}
                         busy={busy}

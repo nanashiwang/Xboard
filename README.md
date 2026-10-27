@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 卡皮巴拉点击节点即连接（2026-10-27）
+
+本次 Windows 全局模式 IP 未变，用户确认点击“一键连接”后正常，原因是尚未连接。按新交互要求，0.1.7 点击首页右侧节点就连接；已经连接时直接切换，断开后点击当前节点也能恢复，主按钮仍可手动连接/断开并跟随真实状态。选择和开启代理由原生统一处理，失败不误连旧节点；自动加载、测速及仅切模式不自动连接。
+
+本地前端74项、网页/发布脚本16项、Rust51项通过（1项既有手动钥匙串测试忽略），类型检查、构建及界面模拟通过；Windows真实使用仍待新版安装后验证。构建、Release和官网分发分别记录于[进展](./progress-log.md#2026-10-27卡皮巴拉点击节点即连接)，取舍见[决定](./.agents/notes/implemented/feature/2026-10-27-capybara-select-connect.md)。本次反馈与此前美国01连接差异不混为同一已解决问题。
+
 ### 运行时保护器生产部署（2026-10-27）
 
 用户已要求部署新版。面板没有IPv6，因此采用实际入口执行证书握手、面板保留元数据和受限撤下事务的方式；专用SSH身份只允许固定检测命令，固定主机公钥，请求/响应绑定nonce、摘要和完整节点范围。新版运行时保护器已于北京时间09:24部署，28条AnyTLS每轮从实际入口验证，服务执行成功、timer active；文件摘要与提交一致。当前U08超时、U32不可达，U06/U07/U32/U41来源指纹变化，合计5条继续撤下；新加坡U04正确pin通过、合成错误pin明确拒绝。批准来源/pin未变，保留代码回退，不自动恢复；09:27公开路径验收36条、72次HTTPS全通过（含两条新加坡）；另5条确认实际拒绝，不能说41条全部恢复。09:29自然定时执行再次成功，故障范围与批准公钥保持。见[部署记录](./progress-log.md#2026-10-27新版运行时保护器部署)。
@@ -94,7 +100,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 卡皮巴拉节点自动加载与一键测速（2026-10-26）
 
-有效账号登录后自动下载并校验本人套餐配置，首页无需先连接即可显示、预选节点和一键测速；只点击连接才开启系统代理。切换只等待回环内核确认，界面立即反馈处理中，失败不误报成功；断开保留列表与选择。测速最多四路并发、每项五秒，逐个显示真实毫秒或超时/不可达，注销及配置变化丢弃旧结果。与用户授权的自启/后台功能合并为 0.1.1 正式版。
+有效账号登录后自动下载并校验本人套餐配置，首页无需先连接即可显示、预选节点和一键测速；登录准备不自动开启系统代理；0.1.7起主动点击节点也可连接，见上方最新交互。切换只等待回环内核确认，界面立即反馈处理中，失败不误报成功；断开保留列表与选择。测速最多四路并发、每项五秒，逐个显示真实毫秒或超时/不可达，注销及配置变化丢弃旧结果。与用户授权的自启/后台功能合并为 0.1.1 正式版。
 
 本地合并检查前端 38、脚本 12、Rust 19 项与 Mac 构建/签名通过，明暗及 760px 预览通过。真实账号未连接即加载 17 个节点与分流选项，延迟和超时逐项显示，点击日本节点约 446ms 观察到选中，实际经该节点 HTTPS 204 成功；关闭保留 App/看护/Mihomo，明确退出清理，重开恢复登录及节点。现有系统代理始终未变；托盘菜单点击、接管系统代理后关闭及 Windows/Linux 原生桌面尚未实测。[0.1.1 正式 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.1) 四目标与 18 附件、签名和源码已核验；官网安装包、下载页、更新源与文章 5 已同步到 0.1.1，生产 8d39e2c 健康检查通过，进展见[记录](./progress-log.md#2026-10-26卡皮巴拉节点自动加载与一键测速)，取舍见[节点决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)。
 

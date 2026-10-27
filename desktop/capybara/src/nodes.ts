@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { command, errorText } from "./bridge";
+import type { View } from "./model";
+
+export type NodeConnection = { view: View; nodes: NodeView };
 
 export type NodeView = {
     revision: number;
@@ -123,14 +126,22 @@ export function useNodes() {
             clearTimeout(messageTimer.current);
         };
     }, []);
-    const select = async (group: string, name: string) => {
+    const select = async (
+        group: string,
+        name: string,
+    ): Promise<View | void> => {
         if (selecting.current || subscriptionMutation.current || view.loading)
             return;
         selecting.current = true;
         setPending({ group, name });
         setError("");
         try {
-            merge(await command<NodeView>("select_route", { group, name }));
+            const next = await command<NodeConnection>("select_and_connect", {
+                group,
+                name,
+            });
+            merge(next.nodes);
+            return next.view;
         } catch (e) {
             if (alive.current) setError(errorText(e));
         } finally {

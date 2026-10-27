@@ -145,6 +145,60 @@ impl Nodes {
         self.invalidate();
         Ok(())
     }
+    pub async fn select_route(&mut self, group: String, name: String) -> Result<NodeView, Fault> {
+        if !self
+            .view
+            .routes
+            .iter()
+            .any(|r| r.group == group && r.choices.contains(&name))
+        {
+            return Err(Fault::local("节点已变更，请等待列表刷新"));
+        }
+        let engine = self
+            .engine
+            .as_ref()
+            .ok_or_else(|| Fault::local("节点正在准备，请稍候"))?;
+        if let Err(error) = engine.select(&group, &name).await {
+            // A lost local response is ambiguous; reconcile before reporting the error.
+            if let Ok(routes) = engine.routes().await {
+                self.view.routes = routes;
+                self.changed();
+            }
+            return Err(error.into());
+        }
+        if group == "GLOBAL" {
+            let old = self
+                .view
+                .routes
+                .iter()
+                .find(|route| route.group == group)
+                .map(|route| route.selected.clone());
+            let mut settings = self.routing.settings.clone();
+            settings.global_target = Some(name.clone());
+            if let Err(error) = self.routing.save(&settings) {
+                if let (Some(engine), Some(old)) = (self.engine.as_ref(), old) {
+                    if engine.select("GLOBAL", &old).await.is_err() {
+                        let _ = self.stop();
+                        return Err(Fault::local(
+                            "全局节点保存失败，恢复旧节点失败，连接组件已停止",
+                        ));
+                    }
+                }
+                return Err(error.into());
+            }
+            self.routing.settings = settings;
+            if let Some(engine) = self.engine.as_mut() {
+                engine.remember_global_target(name.clone());
+            }
+        }
+        for route in &mut self.view.routes {
+            if route.group == group {
+                route.selected = name.clone();
+            }
+        }
+        self.changed();
+        Ok(self.view.clone())
+    }
     pub fn changed(&mut self) {
         self.view.revision += 1;
     }
@@ -194,58 +248,7 @@ pub async fn select_route(
 ) -> Result<NodeView, Fault> {
     // Account HTTP requests use a different lock; switching only waits for the local core.
     let mut nodes = state.1.lock().await;
-    if !nodes
-        .view
-        .routes
-        .iter()
-        .any(|r| r.group == group && r.choices.contains(&name))
-    {
-        return Err(Fault::local("节点已变更，请等待列表刷新"));
-    }
-    let engine = nodes
-        .engine
-        .as_ref()
-        .ok_or_else(|| Fault::local("节点正在准备，请稍候"))?;
-    if let Err(error) = engine.select(&group, &name).await {
-        // A lost local response is ambiguous; reconcile before reporting the error.
-        if let Ok(routes) = engine.routes().await {
-            nodes.view.routes = routes;
-            nodes.changed();
-        }
-        return Err(error.into());
-    }
-    if group == "GLOBAL" {
-        let old = nodes
-            .view
-            .routes
-            .iter()
-            .find(|route| route.group == group)
-            .map(|route| route.selected.clone());
-        let mut settings = nodes.routing.settings.clone();
-        settings.global_target = Some(name.clone());
-        if let Err(error) = nodes.routing.save(&settings) {
-            if let (Some(engine), Some(old)) = (nodes.engine.as_ref(), old) {
-                if engine.select("GLOBAL", &old).await.is_err() {
-                    let _ = nodes.stop();
-                    return Err(Fault::local(
-                        "全局节点保存失败，恢复旧节点失败，连接组件已停止",
-                    ));
-                }
-            }
-            return Err(error.into());
-        }
-        nodes.routing.settings = settings;
-        if let Some(engine) = nodes.engine.as_mut() {
-            engine.remember_global_target(name.clone());
-        }
-    }
-    for route in &mut nodes.view.routes {
-        if route.group == group {
-            route.selected = name.clone();
-        }
-    }
-    nodes.changed();
-    Ok(nodes.view.clone())
+    nodes.select_route(group, name).await
 }
 
 fn names(view: &NodeView) -> Vec<String> {
@@ -364,6 +367,52 @@ async fn run_probes<F, Fut>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn stale_selection_cannot_replace_the_current_node_or_global_setting() {
+        let mut nodes = Nodes::default();
+        nodes.routing.settings.global_target = Some("current".into());
+        nodes.view.routes = vec![Route {
+            group: "GLOBAL".into(),
+            selected: "current".into(),
+            choices: vec!["current".into()],
+        }];
+        let revision = nodes.view.revision;
+        for (group, name) in [("GLOBAL", "removed"), ("old-group", "current")] {
+            let error = nodes
+                .select_route(group.into(), name.into())
+                .await
+                .err()
+                .unwrap();
+            assert_eq!(error.message, "节点已变更，请等待列表刷新");
+            assert_eq!(nodes.view.revision, revision);
+            assert_eq!(nodes.view.routes[0].selected, "current");
+            assert_eq!(
+                nodes.routing.settings.global_target.as_deref(),
+                Some("current")
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn unavailable_core_cannot_publish_a_successful_selection() {
+        let mut nodes = Nodes::default();
+        nodes.view.routes = vec![Route {
+            group: "GLOBAL".into(),
+            selected: "current".into(),
+            choices: vec!["current".into(), "new".into()],
+        }];
+        let revision = nodes.view.revision;
+        let error = nodes
+            .select_route("GLOBAL".into(), "new".into())
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(error.message, "节点正在准备，请稍候");
+        assert_eq!(nodes.view.revision, revision);
+        assert_eq!(nodes.view.routes[0].selected, "current");
+        assert!(nodes.routing.settings.global_target.is_none());
+    }
 
     #[test]
     fn interval_write_failure_preserves_published_settings_and_refresh_time() {
