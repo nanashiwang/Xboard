@@ -32,7 +32,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 切换分流模式保留节点（2026-10-27）
 
-用户要求切换规则时保持已选节点。0.1.10在规则与全局间带入内核当前实际节点，经过直连仍保留选择；只同步首页当前规则组，其他组不变。模式与节点一起加载，保存失败恢复切换前完整选择。自动组保留自身策略，组不包含目标时明确报错；已有连接仍可能沿用原出口。见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-mode-selection.md)和[进展](./progress-log.md#2026-10-27切换分流模式保留节点)。本地前端75项、脚本16项、Rust57项及构建通过；四目标构建与Release待核验，尚未修改官网更新源。
+用户要求切换规则时保持已选节点。0.1.10在规则与全局间带入内核当前实际节点，经过直连仍保留选择；只同步首页当前规则组，其他组不变。模式与节点一起加载，保存失败恢复切换前完整选择。自动组保留自身策略，组不包含目标时明确报错；已有连接仍可能沿用原出口。见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-mode-selection.md)和[进展](./progress-log.md#2026-10-27切换分流模式保留节点)。本地前端75项、脚本16项、Rust57项及构建通过；[四目标构建](https://github.com/nanashiwang/Xboard/actions/runs/40471554545)与[0.1.10 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.10)已完成，18附件摘要、四目标签名及固定提交源码包核验通过。官网与应用内更新源尚未同步，用户实机使用待验证。
 
 ### Windows 本机调用502修复（2026-10-27）
 

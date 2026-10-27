@@ -8,7 +8,11 @@
 
 用户反馈切换规则时此前选中的节点不需要变化。定位为规则选择器和GLOBAL分别记忆节点，reload保留各自旧值。0.1.10模式切换从原生内核读当前选择：规则带入GLOBAL，从全局离开带回首页当前规则组，直连不清空；其他组保持。前端只传规则组提示，旧global_target仍由原生覆盖。配置首刻写入选择并回读确认，保存失败恢复切换前模式和各组选择快照。取舍及边界见[决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-mode-selection.md)。
 
-本地前端75项、发布/网页脚本16项、Rust57项通过，1项既有手动钥匙串测试忽略；TypeScript/Vite构建通过。真实内置Mihomo隔离回归覆盖规则/全局双向、两种直连往返、多组隔离、订阅刷新、磁盘保存失败的实际内核/磁盘/界面状态回退；自动组解析、循环引用、目标不兼容及前端组提示另有回归。测试没有修改本机系统代理，不代表Windows实机网络验收。版本已同步0.1.10，四目标构建、GitHub Release及附件尚待核验；官网更新源及服务器应用未修改。
+本地前端75项、发布/网页脚本16项、Rust57项通过，1项既有手动钥匙串测试忽略；TypeScript/Vite构建通过。真实内置Mihomo隔离回归覆盖规则/全局双向、两种直连往返、多组隔离、订阅刷新、磁盘保存失败的实际内核/磁盘/界面状态回退；自动组解析、循环引用、目标不兼容及前端组提示另有回归。测试没有修改本机系统代理，不代表Windows实机网络验收。版本已同步0.1.10。
+
+实现提交 `8fb63ecbcf599e6cac8d818ba4f128c21a0fa0e0` 已推送master，README/progress按该SHA从GitHub回读一致。[四目标构建40471554545](https://github.com/nanashiwang/Xboard/actions/runs/40471554545)全部success：Windows原生62项、Linux56项、macOS两个目标各57项通过；笔记CI通过。push工作流的publish按既有配置跳过，随后复用同一提交的四目标Actions附件与现有发布脚本，用现有账号发布[0.1.10正式Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.10)，没有重复构建或更改工作流权限。
+
+发布验收：18附件全部uploaded，GitHub大小/SHA-256逐项与已验文件相同；五份摘要清单、四目标签名、中文说明与更新索引通过，源码包104文件逐字节匹配8fb63ec。标签与target精确指向实现提交，正式版和Latest已确认。Intel附件下载曾遇EOF/TLS超时，重新下载并核对GitHub artifact摘要；Linux AppImage首次上传在查询Release时超时，确认其余17附件后仅补传缺包，完成校验后才公开。官网/应用内更新源未同步，服务器应用和生产节点未修改；Windows实机升级与业务网络仍待用户使用验证。
 
 ## 2026-10-27：Windows 本机调用502修复
 
