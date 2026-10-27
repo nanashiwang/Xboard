@@ -14,6 +14,8 @@ Status: implemented
 
 模式切换按[保留节点决定](../bug-fix/2026-10-27-capybara-mode-selection.md)在当前规则组与GLOBAL间带入实际节点，并保留完整回退快照；其余规则组不变。
 
+0.1.11起[内网自动直连决定](../bug-fix/2026-10-27-capybara-private-network-routing.md)将界面全局编译为内核rule加私网DIRECT与MATCH,GLOBAL；公网使用所选节点，内网自动直连。界面模式和节点保留按持久化设置处理，配置确认同时核对规则数量与代理契约，不再仅凭内核mode区分规则/全局。
+
 ## History audit
 
 - [桌面架构](../../implemented/architecture/2026-10-23-capybara-desktop.md)部分重叠：沿用受限净化配置、回环鉴权与原生存储，不开放 TUN/监听等配置。

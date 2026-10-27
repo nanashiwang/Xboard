@@ -172,6 +172,26 @@ pub fn global_targets(content: &str) -> Result<Vec<String>, String> {
         .map(str::to_owned)
         .collect())
 }
+// Global applies to public destinations; private networks must remain reachable locally.
+const PRIVATE_RULES: &[&str] = &[
+    "DOMAIN-SUFFIX,localhost,DIRECT",
+    "DOMAIN-SUFFIX,local,DIRECT",
+    "IP-CIDR,10.0.0.0/8,DIRECT",
+    "IP-CIDR,100.64.0.0/10,DIRECT",
+    "IP-CIDR,127.0.0.0/8,DIRECT",
+    "IP-CIDR,169.254.0.0/16,DIRECT",
+    "IP-CIDR,172.16.0.0/12,DIRECT",
+    "IP-CIDR,192.168.0.0/16,DIRECT",
+    "IP-CIDR6,::1/128,DIRECT",
+    "IP-CIDR6,fc00::/7,DIRECT",
+    "IP-CIDR6,fe80::/10,DIRECT",
+];
+fn core_mode(mode: RoutingMode) -> &'static str {
+    match mode {
+        RoutingMode::Global => "rule",
+        _ => mode.as_str(),
+    }
+}
 fn sanitize_routing(
     content: &str,
     port: u16,
@@ -250,7 +270,7 @@ fn sanitize_routing(
         ("tproxy-port", json!(0)),
         ("allow-lan", json!(false)),
         ("bind-address", json!("127.0.0.1")),
-        ("mode", json!(settings.mode.as_str())),
+        ("mode", json!(core_mode(settings.mode))),
         ("log-level", json!("silent")),
         ("external-controller", json!(format!("127.0.0.1:{api}"))),
         ("secret", json!(secret)),
@@ -270,19 +290,33 @@ fn sanitize_routing(
         .and_then(|v| v.as_mapping_mut())
     {
         dns.remove(serde_yaml::Value::String("listen".into()));
+        // Direct connections should use the same resolver as other local applications.
+        // Preserve an explicit subscription choice and all public/proxy DNS policies.
+        dns.entry(serde_yaml::Value::String("direct-nameserver".into()))
+            .or_insert_with(|| serde_yaml::to_value(["system"]).unwrap());
     }
-    // User overrides take precedence, followed by the service access exception and subscription rules.
+    // User overrides remain first in rule mode. Private IP rules must resolve domains:
+    // no-resolve would miss an intranet name resolved only by a later GEOIP rule.
     let existing = output
         .entry(serde_yaml::Value::String("rules".into()))
         .or_insert_with(|| serde_yaml::Value::Sequence(vec![]));
     let rules = existing.as_sequence_mut().ok_or("订阅规则格式无效")?;
-    rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
-    for rule in settings.rules.iter().rev() {
-        rules.insert(0, rule.line().into());
+    if settings.mode == RoutingMode::Global {
+        *rules = PRIVATE_RULES.iter().map(|rule| (*rule).into()).collect();
+        rules.push("MATCH,GLOBAL".into());
+    } else {
+        rules.splice(0..0, PRIVATE_RULES.iter().map(|rule| (*rule).into()));
+        rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+        for rule in settings.rules.iter().rev() {
+            rules.insert(0, rule.line().into());
+        }
     }
     serde_yaml::to_string(&output).map_err(|_| "无法生成本地配置".into())
 }
 impl Engine {
+    pub async fn routes(&self) -> Result<Vec<Route>, String> {
+        self.control.routes(self.settings.mode).await
+    }
     pub async fn start(
         dir: &Path,
         binary: PathBuf,
@@ -582,9 +616,20 @@ impl Controller {
         } else if settings.mode == RoutingMode::Global {
             return Err("当前没有可用的全局代理节点".into());
         }
+        // Rule and public-global share the core's rule mode. Confirm the generated rule
+        // count and complete proxy contract too, so mode alone cannot accept a stale reload.
+        let expected = ExpectedConfig::from_yaml(&sanitize_routing(
+            content,
+            self.port,
+            self.api,
+            &self.secret,
+            settings,
+        )?)?;
         let config = self.call(reqwest::Method::GET, "/configs", None).await?;
-        if config["mode"].as_str() != Some(settings.mode.as_str()) {
-            return Err("分流模式未能生效".into());
+        let proxies = self.call(reqwest::Method::GET, "/proxies", None).await?;
+        let rules = self.call(reqwest::Method::GET, "/rules", None).await?;
+        if !expected.matches(&config, &proxies, &rules) {
+            return Err("分流配置未能生效".into());
         }
         Ok(())
     }
@@ -592,10 +637,13 @@ impl Controller {
         let data = self.call(reqwest::Method::GET, "/proxies", None).await?;
         selector_routes(&data)
     }
-    pub async fn routes(&self) -> Result<Vec<Route>, String> {
-        let mode = self.call(reqwest::Method::GET, "/configs", None).await?;
-        let global = mode["mode"] == "global";
-        if mode["mode"] == "direct" {
+    async fn routes(&self, mode: RoutingMode) -> Result<Vec<Route>, String> {
+        let config = self.call(reqwest::Method::GET, "/configs", None).await?;
+        if config["mode"].as_str() != Some(core_mode(mode)) {
+            return Err("分流模式未能生效".into());
+        }
+        let global = mode == RoutingMode::Global;
+        if mode == RoutingMode::Direct {
             return Ok(vec![]);
         }
         let mut routes: Vec<Route> = self
@@ -896,13 +944,13 @@ pub fn worker_main() -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    struct ReadinessServer {
-        api: u16,
+    pub(super) struct ReadinessServer {
+        pub(super) api: u16,
         stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
         thread: Option<std::thread::JoinHandle<Result<(), String>>>,
     }
     impl ReadinessServer {
-        fn finish(mut self) -> Result<(), String> {
+        pub(super) fn finish(mut self) -> Result<(), String> {
             self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
             self.thread
                 .take()
@@ -975,7 +1023,7 @@ mod tests {
         }
         Ok(None)
     }
-    fn readiness_server<F>(response: F) -> ReadinessServer
+    pub(super) fn readiness_server<F>(response: F) -> ReadinessServer
     where
         F: Fn(&str, &str) -> (u16, Value) + Send + 'static,
     {
@@ -1018,11 +1066,13 @@ mod tests {
     }
     fn startup_fixture(port: u16) -> (ExpectedConfig, Value, Value, Value) {
         let config = sanitize("proxies: [{name: one, type: direct}]\nproxy-groups: [{name: group, type: select, proxies: [one]}]\nrules: ['MATCH,group']", port, 19091, "private").unwrap();
+        let expected = ExpectedConfig::from_yaml(&config).unwrap();
+        let rules = json!({"rules": vec![json!({}); expected.rule_count]});
         (
-            ExpectedConfig::from_yaml(&config).unwrap(),
+            expected,
             json!({"mode":"rule", "mixed-port":port}),
             json!({"proxies":{"one":{"type":"Direct"},"group":{"type":"Selector"},"GLOBAL":{"type":"Selector","now":"one","all":["one"]}}}),
-            json!({"rules":[{},{}]}),
+            rules,
         )
     }
     #[test]
@@ -1228,6 +1278,31 @@ mod tests {
         assert_eq!(data["rules"][0], "DOMAIN,taige.us,DIRECT");
     }
     #[test]
+    fn direct_dns_defaults_to_system_without_replacing_subscription_policies() {
+        let raw = "proxies: [{name: one, type: direct}]\ndns: {enable: true, nameserver: [https://dns.example/dns-query], nameserver-policy: {'+.example.com': [https://special.example/dns-query]}}";
+        let config: serde_yaml::Value =
+            serde_yaml::from_str(&sanitize(raw, 1, 2, "x").unwrap()).unwrap();
+        assert_eq!(config["dns"]["direct-nameserver"][0], "system");
+        assert_eq!(
+            config["dns"]["nameserver"][0],
+            "https://dns.example/dns-query"
+        );
+        assert_eq!(
+            config["dns"]["nameserver-policy"]["+.example.com"][0],
+            "https://special.example/dns-query"
+        );
+        let explicit = raw.replace(
+            "enable: true,",
+            "enable: true, direct-nameserver: [192.0.2.53],",
+        );
+        let config: serde_yaml::Value =
+            serde_yaml::from_str(&sanitize(&explicit, 1, 2, "x").unwrap()).unwrap();
+        assert_eq!(config["dns"]["direct-nameserver"][0], "192.0.2.53");
+        assert!(PRIVATE_RULES
+            .iter()
+            .all(|rule| !rule.contains("no-resolve")));
+    }
+    #[test]
     fn refuses_empty_and_local_key_config() {
         assert!(sanitize("proxies: []", 1, 2, "x").is_err());
         assert!(sanitize(
@@ -1262,9 +1337,20 @@ mod tests {
         )
         .unwrap();
         let data: serde_yaml::Value = serde_yaml::from_str(&selected).unwrap();
-        assert_eq!(data["mode"], "global");
-        assert_eq!(data["rules"][0], "DOMAIN-SUFFIX,example.com,代理组");
-        assert_eq!(data["rules"][1], "DOMAIN,taige.us,DIRECT");
+        assert_eq!(data["mode"], "rule");
+        assert_eq!(
+            data["rules"].as_sequence().unwrap().last().unwrap(),
+            "MATCH,GLOBAL"
+        );
+        assert_eq!(
+            data["rules"].as_sequence().unwrap().len(),
+            PRIVATE_RULES.len() + 1
+        );
+        settings.mode = RoutingMode::Rule;
+        let rule_config = sanitize_routing(raw, 1, 2, "x", &settings).unwrap();
+        let rule_data: serde_yaml::Value = serde_yaml::from_str(&rule_config).unwrap();
+        assert_eq!(rule_data["rules"][0], "DOMAIN-SUFFIX,example.com,代理组");
+        assert_eq!(rule_data["rules"][1], "DOMAIN,taige.us,DIRECT");
         assert_eq!(data["proxy-groups"][0]["proxies"][0], "two");
         assert_eq!(data["proxy-groups"][1]["name"], "GLOBAL");
         assert_eq!(
@@ -1361,6 +1447,183 @@ mod integration {
             let _ = self.0.wait();
             let _ = std::fs::remove_dir_all(&self.1);
         }
+    }
+    #[tokio::test]
+    async fn bundled_core_routes_private_domains_locally_and_public_global_to_selected_proxy() {
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let origin = super::tests::readiness_server(|_, _| (204, json!(null)));
+        let proxy_hits = Arc::new(AtomicUsize::new(0));
+        let hits = proxy_hits.clone();
+        let proxy = super::tests::readiness_server(move |_, request| {
+            assert!(
+                request.starts_with("CONNECT "),
+                "core must contact the selected HTTP proxy"
+            );
+            hits.fetch_add(1, Ordering::SeqCst);
+            (503, json!({}))
+        });
+        // Controlled DNS: one private answer, one public documentation address, no external queries.
+        let dns = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let dns_address = dns.local_addr().unwrap();
+        let dns_task = tokio::spawn(async move {
+            let mut packet = [0u8; 512];
+            loop {
+                let (len, peer) = dns.recv_from(&mut packet).await.unwrap();
+                let mut end = 12;
+                let mut labels = Vec::new();
+                while packet[end] != 0 {
+                    let size = packet[end] as usize;
+                    labels.push(
+                        String::from_utf8_lossy(&packet[end + 1..end + 1 + size]).to_string(),
+                    );
+                    end += size + 1;
+                }
+                end += 1;
+                let name = labels.join(".");
+                let is_a = packet[end..end + 2] == [0, 1];
+                let address = match name.as_str() {
+                    "office.capybara.test" => Some([127, 0, 0, 1]),
+                    "public.capybara.test" => Some([192, 0, 2, 1]),
+                    _ => None,
+                }
+                .filter(|_| is_a);
+                let mut response = packet[..len].to_vec();
+                response[2..4].copy_from_slice(&[0x81, 0x80]);
+                response[6..12].fill(0);
+                if let Some(address) = address {
+                    response[7] = 1;
+                    response.extend_from_slice(&[0xc0, 0x0c, 0, 1, 0, 1, 0, 0, 0, 1, 0, 4]);
+                    response.extend_from_slice(&address);
+                }
+                dns.send_to(&response, peer).await.unwrap();
+            }
+        });
+        let dir =
+            std::env::temp_dir().join(format!("capybara-private-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let binary = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(format!(
+                "mihomo-{}{}",
+                crate::host_target(),
+                if cfg!(windows) { ".exe" } else { "" }
+            ));
+        let port = port().unwrap();
+        let api = port_fn(port).unwrap();
+        let secret = uuid::Uuid::new_v4().to_string();
+        let raw = format!("proxies: [{{name: selected, type: http, server: 127.0.0.1, port: {}}}]\nproxy-groups: [{{name: group, type: select, proxies: [selected]}}]\nrules: ['IP-CIDR,127.0.0.0/8,DIRECT,no-resolve', 'MATCH,group']\ndns: {{enable: true, ipv6: false, enhanced-mode: redir-host, nameserver: ['{dns_address}'], direct-nameserver: ['{dns_address}']}}\n", proxy.api);
+        let mut settings = RoutingSettings::default();
+        let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
+        private_write(&dir.join("config.yaml"), config.as_bytes()).unwrap();
+        let mut core = Running(
+            cmd(binary)
+                .arg("-d")
+                .arg(&dir)
+                .arg("-f")
+                .arg(dir.join("config.yaml"))
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+            dir,
+        );
+        let controller = Controller { port, api, secret };
+        controller
+            .wait_ready(
+                &ExpectedConfig::from_yaml(&config).unwrap(),
+                Duration::from_secs(35),
+                || {
+                    if matches!(core.0.try_wait(), Ok(None)) {
+                        Ok(())
+                    } else {
+                        Err("test core exited".into())
+                    }
+                },
+            )
+            .await
+            .unwrap();
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .proxy(reqwest::Proxy::all(format!("http://127.0.0.1:{port}")).unwrap())
+            .pool_max_idle_per_host(0)
+            .timeout(Duration::from_secs(4))
+            .build()
+            .unwrap();
+        for mode in [RoutingMode::Rule, RoutingMode::Global, RoutingMode::Direct] {
+            let before_hits = proxy_hits.load(Ordering::SeqCst);
+            settings.mode = mode;
+            let config = sanitize_routing(&raw, port, api, &controller.secret, &settings).unwrap();
+            controller
+                .apply_config(&config, &raw, &settings, &[])
+                .await
+                .unwrap();
+            assert_eq!(
+                client
+                    .get(format!("http://office.capybara.test:{}/", origin.api))
+                    .send()
+                    .await
+                    .unwrap()
+                    .status(),
+                reqwest::StatusCode::NO_CONTENT,
+                "private domain in {mode:?}"
+            );
+            // Browser HTTPS starts with CONNECT. Verify a domain tunnel carries bytes end to end
+            // without depending on external certificates or changing OS proxy/DNS settings.
+            let tunnel = async {
+                let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+                    .await
+                    .unwrap();
+                stream.write_all(format!("CONNECT office.capybara.test:{} HTTP/1.1\r\nHost: office.capybara.test:{}\r\n\r\n", origin.api, origin.api).as_bytes()).await.unwrap();
+                let mut headers = Vec::new();
+                while !headers.ends_with(b"\r\n\r\n") {
+                    headers.push(stream.read_u8().await.unwrap());
+                    assert!(headers.len() < 4096);
+                }
+                assert!(String::from_utf8(headers).unwrap().contains("200"));
+                stream.write_all(b"GET / HTTP/1.1\r\nHost: office.capybara.test\r\nConnection: close\r\n\r\n").await.unwrap();
+                let mut response = String::new();
+                stream.read_to_string(&mut response).await.unwrap();
+                assert!(response.starts_with("HTTP/1.1 204"));
+            };
+            tokio::time::timeout(Duration::from_secs(4), tunnel)
+                .await
+                .unwrap();
+            assert_eq!(proxy_hits.load(Ordering::SeqCst), before_hits);
+            if mode == RoutingMode::Global {
+                let response = client.get("http://public.capybara.test:80/").send().await;
+                assert!(response.map(|r| !r.status().is_success()).unwrap_or(true));
+                assert!(
+                    proxy_hits.load(Ordering::SeqCst) > before_hits,
+                    "public global traffic must reach selected proxy"
+                );
+            }
+        }
+        // With no explicit direct resolver, localhost succeeds through system resolution even
+        // though our configured general DNS deliberately has no address for it.
+        let system_raw = raw.replace(&format!(", direct-nameserver: ['{dns_address}']"), "");
+        let config =
+            sanitize_routing(&system_raw, port, api, &controller.secret, &settings).unwrap();
+        controller
+            .apply_config(&config, &system_raw, &settings, &[])
+            .await
+            .unwrap();
+        assert_eq!(
+            client
+                .get(format!("http://localhost:{}/", origin.api))
+                .send()
+                .await
+                .unwrap()
+                .status(),
+            reqwest::StatusCode::NO_CONTENT
+        );
+        dns_task.abort();
+        drop(core);
+        origin.finish().unwrap();
+        proxy.finish().unwrap();
     }
     #[tokio::test]
     async fn bundled_core_enforces_controller_auth_and_keeps_config_after_invalid_reload() {
@@ -1467,7 +1730,10 @@ mod integration {
             .delay_at("missing / %?", "http://127.0.0.1:1/")
             .await
             .is_err());
-        assert_eq!(controller.routes().await.unwrap()[0].selected, "测试线路");
+        assert_eq!(
+            controller.routes(RoutingMode::Rule).await.unwrap()[0].selected,
+            "测试线路"
+        );
         assert!(!core.1.join("proxy-recovery.json").exists());
         let response = client
             .put(format!("{base}/configs?force=true"))
@@ -1560,19 +1826,21 @@ mod integration {
             )
             .await
             .unwrap();
-        assert_eq!(controller.routes().await.unwrap()[0].group, "GLOBAL");
-        assert_eq!(controller.routes().await.unwrap()[0].selected, "阻断线路");
-        assert!(!controller.routes().await.unwrap()[0]
+        assert_eq!(
+            controller.routes(settings.mode).await.unwrap()[0].group,
+            "GLOBAL"
+        );
+        assert_eq!(
+            controller.routes(settings.mode).await.unwrap()[0].selected,
+            "阻断线路"
+        );
+        assert!(!controller.routes(settings.mode).await.unwrap()[0]
             .choices
             .contains(&"订阅组".into()));
-        assert!(
-            proxy_client
-                .get(&target)
-                .send()
-                .await
-                .map(|r| r.status() != reqwest::StatusCode::NO_CONTENT)
-                .unwrap_or(true),
-            "global must use the selected unavailable proxy"
+        assert_eq!(
+            proxy_client.get(&target).send().await.unwrap().status(),
+            reqwest::StatusCode::NO_CONTENT,
+            "global bypasses private targets and ignores custom rejection"
         );
         settings.mode = RoutingMode::Direct;
         let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
@@ -1580,7 +1848,7 @@ mod integration {
             .apply_config(&config, &raw, &settings, &[])
             .await
             .unwrap();
-        assert!(controller.routes().await.unwrap().is_empty());
+        assert!(controller.routes(settings.mode).await.unwrap().is_empty());
         assert_eq!(
             proxy_client.get(&target).send().await.unwrap().status(),
             reqwest::StatusCode::NO_CONTENT,
@@ -1593,7 +1861,7 @@ mod integration {
             .await
             .unwrap();
         assert!(controller
-            .routes()
+            .routes(settings.mode)
             .await
             .unwrap()
             .iter()
@@ -1724,7 +1992,7 @@ mod integration {
                 .call(reqwest::Method::GET, "/configs", None)
                 .await
                 .unwrap()["mode"],
-            "global"
+            "rule"
         );
         std::fs::remove_dir(core.1.join("routing.tmp")).unwrap();
         next.mode = RoutingMode::Direct;

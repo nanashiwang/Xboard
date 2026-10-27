@@ -31,7 +31,7 @@ export const routingModes: {
     {
         id: "global",
         label: "全局",
-        description: "进入客户端的流量统一走右侧选择的全局节点。",
+        description: "公网流量走右侧选择的全局节点，内网自动直连。",
     },
     {
         id: "direct",

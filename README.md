@@ -30,6 +30,10 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### 办公网域名自动直连（2026-10-27）
+
+用户反馈办公网站退出客户端后可访问，其他客户端 PAC/系统代理正常，并指出不应要求用户修改电脑配置。0.1.11修复域名解析到内网地址时被 no-resolve 规则漏过的问题：规则与全局自动直连内网，全局公网仍走已选节点；直连默认系统 DNS，保留订阅显式解析设置。公司域名与访问参数不写入代码或文档。仅企业 DNS 可解析的域名仍可能需要显式直连规则；不把隔离复现当成用户故障电脑的完整根因确认。见[决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-private-network-routing.md)和[进展](./progress-log.md#2026-10-27办公网域名自动直连)。本地前端75/脚本16/Rust59及构建通过；四目标构建与Release待验，官网更新源未同步，Windows公司网络实测待用户升级反馈。
+
 ### 切换分流模式保留节点（2026-10-27）
 
 用户要求切换规则时保持已选节点。0.1.10在规则与全局间带入内核当前实际节点，经过直连仍保留选择；只同步首页当前规则组，其他组不变。模式与节点一起加载，保存失败恢复切换前完整选择。自动组保留自身策略，组不包含目标时明确报错；已有连接仍可能沿用原出口。见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-mode-selection.md)和[进展](./progress-log.md#2026-10-27切换分流模式保留节点)。本地前端75项、脚本16项、Rust57项及构建通过；[四目标构建](https://github.com/nanashiwang/Xboard/actions/runs/40471554545)与[0.1.10 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.10)已完成，18附件摘要、四目标签名及固定提交源码包核验通过。官网与应用内更新源尚未同步，用户实机使用待验证。
