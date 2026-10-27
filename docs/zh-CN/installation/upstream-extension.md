@@ -31,14 +31,14 @@
 
 面板服务器：
 
-- `xboard-upstream-guard.timer` 每 5 分钟校验原始订阅的额度、有效期和已批准条目指纹。到期前 5 分钟、额度耗尽、条目消失/重复、端点或凭据变化时，只隐藏受影响拓展公开记录并停用对应后端；新增未知条目不自动加入。暂时取订阅失败保留已知配置，超过 24 小时没有有效元数据或到达已知到期窗口则撤下全部拓展。
+- `xboard-upstream-guard.timer` 每 5 分钟校验原始订阅的额度、有效期和已批准条目指纹，并经实际入口worker核对28条AnyTLS固定端点的已批准公钥。到期前 5 分钟、额度耗尽、条目消失/重复、端点或凭据变化时，只隐藏受影响拓展公开记录并停用对应后端；新增未知条目不自动加入。暂时取订阅失败保留已知配置，超过 24 小时没有有效元数据或到达已知到期窗口则撤下全部拓展。
 - 保护脚本为[guard.py](../../../.docker/upstream/guard.py)和[guard-apply.php](../../../.docker/upstream/guard-apply.php)。原始 URL、指纹和状态仅在宿主 `backups/upstream-20261022/` 的私有文件中。不能直接把更新后的原始订阅覆盖到生产；变更项应重新测试、更新受限映射后再公开，保护程序不自动重新启用。
 - 原管理 WebSocket 的 8076 地址仍不可达，新服务使用已验证的 REST 轮询，约一个 60 秒周期接收撤销。撤下测试先于该周期的请求仍可用，等待轮询后确实拒绝，恢复后复测成功。停用后端时最后一批未推送流量可能被现有 enabled 鉴权拒绝；常态计量核对通过，不宣称停机结算无损。上游故障不会切到 DIRECT。
 - `xboard-extension-probe.service` 使用独立探针 2，从面板服务器穿过真实公开入口检查全部 41 条；每 300 秒轻量 HTTPS，每 86400 秒每条 64 KiB 上/下行完整性检查，不做批量大流量测速。原 NAS 探针 1 的 17 条及固定出口健康策略保持。探针配置 `/etc/xboard-extension-probe/agent.json` 受限读取。
 
 上游共用一份账户额度和有效期，价格与套餐节点数不会增加其容量。运营方需持续维护续费、额度和来源限制；本次短请求与小流量验证不代表长期稳定、并发承载或大陆各运营商速度。
 
-## 运行时 AnyTLS 公钥检查（仓库已实现，未部署）
+## 运行时 AnyTLS 公钥检查
 
 旧保护器的订阅 JSON 指纹无法发现“字段未变、服务端公钥已变”。新版对已批准 AnyTLS 固定 IP/端口/SNI 做真实 TLS 握手，计算叶证书 SPKI DER 的 SHA-256/Base64，必须与旧 pin 完全一致。`runtime_public_key_mismatch` 对应本次新加坡 `unrecognized remote public key` 的检测条件。检查不发送 AnyTLS 密码或业务请求；证书采集与显式 pin 比较完成前不判通过，不改变业务的 TLS 验证。
 
@@ -61,13 +61,13 @@ python3 .docker/upstream/guard.py --check-identity \
 
 默认保护流程在元数据成功、短暂失败、过期失败时均独立检查身份。失败即合并进原 `guard-apply.php` 撤下请求，额度/到期/来源变化理由优先，身份结果另存 `identity_checks`；原事务继续核对批准 manifest、机器、父子关系、标签，只隐藏公开节点和停用后端。运行时超时、TCP/TLS失败、证书解析/工具失败、映射缺失/重复/无效都不能当作通过，范围清单缺失/错配也失败关闭；未知映射不自动接入，检测通过不自动恢复。
 
-**自动运行时守护部署前置条件（尚未执行）**：核验现存私有映射完整且与已批准出站一致，将 guard.py 与 allocation.json 一并交付，确保 Python 3.9+、OpenSSL 可用（默认订阅流程另需既有 PyYAML），先运行只读检查。8 并发、单项 5 秒总预算使 28 条最多约 20 秒握手/转换时间；还需预算订阅读取与撤下事务，部署时需将既有 `TimeoutStartSec=120` 评估为至少 180 秒。本次有限恢复已显式更新验证过的出站/批准映射，未替换自动守护脚本或systemd；新版部署前仍须核对完整当前映射，缺失不能以空文件或跳过检查应付。后续更新信任仍须独立确认来源、人工复验并恢复公开路径。
+**自动运行时守护部署前置条件（2026-10-27已核验并启用）**：核验现存私有映射完整且与已批准出站一致，将 guard.py 与 allocation.json 一并交付，确保 Python 3.9+、OpenSSL 可用（默认订阅流程另需既有 PyYAML），先运行只读检查。8 并发、单项 5 秒总预算使 28 条最多约 20 秒握手/转换时间；还需预算订阅读取与撤下事务，部署时需将既有 `TimeoutStartSec=120` 评估为至少 180 秒。有限恢复已显式更新验证过的出站/批准映射；后续09:24部署通过专用worker从实际双栈入口检测，交付完整28条映射核对与180秒服务预算。以后部署仍须核对完整当前映射，缺失不能以空文件或跳过检查应付。后续更新信任仍须独立确认来源、人工复验并恢复公开路径。
 
 检查通过仅说明此检测机在该次握手中看到批准的公钥，不证明供应商独立身份、密码有效、目标站点可用或公开 VLESS 路径成功。入口侧与本机网络差异仍需分别验证。
 
 ## 运行时保护器部署与回退
 
-[运行时部署工作流](../../../.github/workflows/upstream-runtime-deploy.yml)分为bootstrap、preflight、deploy、status、rollback。bootstrap仅备份审阅过的旧代码/单位，核对固定批准映射与DB，生成专用SSH身份；只回传公钥。通过入口既有管理通道运行[专用安装器](../../../.docker/upstream/install_entry_identity.py)，固定非root用户只能执行证书worker，root持有文件，禁止转发并绑定面板源地址；不重启转发服务。
+[运行时部署工作流](../../../.github/workflows/upstream-runtime-deploy.yml)分为bootstrap、preflight、deploy、status、rollback、public-check。bootstrap仅备份审阅过的旧代码/单位，核对固定批准映射与DB，生成专用SSH身份；只回传公钥。通过入口既有管理通道运行[专用安装器](../../../.docker/upstream/install_entry_identity.py)，固定非root用户只能执行证书worker，root持有文件，禁止转发并绑定面板源地址；不重启转发服务。
 
 preflight经实际入口检查28条，另用内存合成错误pin验证U04明确拒绝；不修改map或DB。deploy绑定备份及源码摘要，停止旧timer并等待oneshot，替换guard.py/guard-apply.php/allocation.json/entry_identity.py，增加固定服务override（entry-worker，180秒），立即检查后恢复原timer。旧metadata周期保持；后续应观察自然运行，并以真实公开路径确认线路。固定备份在`/root/xboard-runtime-guard-deploy/20261027`，专用SSH私钥留在面板`/etc/xboard-upstream-identity`，不得复制进仓库。
 

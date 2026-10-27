@@ -8,13 +8,19 @@
 
 用户在41条恢复后明确要求部署新版。核对实际入口具备IPv6、原转发服务PID202530/NRestarts0；面板无IPv6。复用既有guard、公钥批准映射、PHP受限事务，增加证书采集专用SSH worker：入口独立非root用户，root拥有代码和唯一authorized_keys，来源地址限制、forced command、禁止转发，40秒外层期限；只接收已批准AnyTLS的IP/端口/SNI/pin，不传订阅/代理密码，不保存身份，不回传观察公钥。面板响应核对nonce、请求摘要、时间、完整ID/数量及原因，通讯失败不回落本机或DIRECT。
 
-只读预检必须完成28条真实身份与新加坡U04合成错误pin拒绝；测试pin仅在内存中使用。部署备份原代码/服务配置，停止timer并等旧oneshot结束，原子替换限定文件，覆盖ExecStart及180秒期限，立即检查后恢复原timer；回退只恢复本次代码/override，不回滚DB/pin，不重新公开已撤下线路。本地337项Python回归（含14项入口传输/部署回退测试）、工作流actionlint和31篇笔记校验通过。生产前置、启用和自然执行待记录；应用容器、客户端Release和并行香港入口不变。相关[决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)与[运维](./docs/zh-CN/installation/upstream-extension.md#运行时保护器部署与回退)。
+只读预检必须完成28条真实身份与新加坡U04合成错误pin拒绝；测试pin仅在内存中使用。部署备份原代码/服务配置，停止timer并等旧oneshot结束，原子替换限定文件，覆盖ExecStart及180秒期限，立即检查后恢复原timer；回退只恢复本次代码/override，不回滚DB/pin，不重新公开已撤下线路。本地337项Python回归（含14项入口传输/部署回退测试）、工作流actionlint和31篇笔记校验通过。此为实现时检查，生产前置、启用和自然执行结果见本节后文；应用容器、客户端Release和并行香港入口不变。相关[决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)与[运维](./docs/zh-CN/installation/upstream-extension.md#运行时保护器部署与回退)。
 
 源码`053f1fd`已推送并按SHA回读README/progress；[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40422201616)全337项Python、PHP事务及Go race通过。[生产准备](https://github.com/nanashiwang/Xboard/actions/runs/40422207757)完成原代码备份/专用公钥生成，未替换guard、未改DB；入口worker已按固定摘要安装，非root UID997/GID982、强制命令/源地址/禁转发有效，临时目录已清理、转发服务未改。两次真实预检[第一次](https://github.com/nanashiwang/Xboard/actions/runs/40422483526)、[复核](https://github.com/nanashiwang/Xboard/actions/runs/40422730066)均26/28通过，U08日本05超时、U32卢森堡01连接不可达；不是新pin变化，仍未启用新版。
 
 补上显式expected_failures部署输入：只接受已复核的有限key→原因，要求来源仍批准且内存错误pin实测拒绝；真实失败只能是该集合内同原因，检测执行/映射异常仍拒绝部署。它只允许启用保护器按原规则撤下故障线路，不认可失败身份、不改变pin、不重新公开。新增部署专属只读公开验收，复用原41条公开缓存与核验过的内核；分别验证可用路线和已撤下路线的真实拒绝，不延长或复用旧维护批准期限。
 
 [部署尝试](https://github.com/nanashiwang/Xboard/actions/runs/40431023560)及[再预检](https://github.com/nanashiwang/Xboard/actions/runs/40431297261)均在来源门停止，未替换保护器或重启服务。[只读状态](https://github.com/nanashiwang/Xboard/actions/runs/40431796061)确认仍为prepared、旧timer active/Result success、批准pin SHA保持；旧状态列出U06/U07/U32/U41的source_changed_requires_acceptance。补充脱敏metadata_checks和独立expected_metadata_failures：仅允许显式列出的来源指纹变化启用撤下保护，不把来源变化判通过，不接受额度/有效期等其他失败，也不能覆盖同节点的运行时失败。两类结果分别核对，任何未复核项仍停止部署。新增无写入/无身份变更、原因/范围漂移与双重失败回归；当前尚未启用。
+
+源码`b6fcd6d`已推送master，README/progress按SHA回读一致；本地340项Python回归、actionlint、31篇笔记和525个文档相对文件链接通过。[专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40432164366)成功，包含340项Python、PHP受限事务及Go race。[最新预检](https://github.com/nanashiwang/Xboard/actions/runs/40432164490)输出同组两项身份故障与四项来源变化，新加坡U04错误pin实测拒绝。
+
+[部署](https://github.com/nanashiwang/Xboard/actions/runs/40432318909)成功：北京时间09:24首次运行完成，phase deployed、service Result success/ExecMainStatus 0、timer active，四个安装文件摘要与master一致，批准pin摘要保持。首次新增撤下U08，既有U06/U07/U32/U41继续关闭；没有修改批准来源/pin、地址或应用容器。入口worker复查UID997、强制命令/来源限制/禁止转发与代码摘要通过，原转发服务active/running、PID202530、NRestarts0。代码回退备份保留在`/root/xboard-runtime-guard-deploy/20261027`；回退不恢复已撤下线路。
+
+[公开路径验收](https://github.com/nanashiwang/Xboard/actions/runs/40432554056)于09:27:06完成：36条可用线路双HTTPS全通过（72次，含U04/U05新加坡），5条撤下线路U06/U07/U08/U32/U41各两个目标均实际拒绝；总41项验收通过代表36可用+5拒绝，不代表41条全恢复。全新隔离内核、严格TLS、无DIRECT；所有临时进程/目录清理，前后完整状态与公开配置核对一致。U08日本05固定地址超时、U32卢森堡01连接不可达；U06日本03/U07日本04/U32/U41韩国02来源指纹变化仍待独立人工恢复。[自然执行回读](https://github.com/nanashiwang/Xboard/actions/runs/40432885479)确认09:29:22完成下一轮（距首次303秒，期间未人工启动服务）：service Result success/退出0、timer active，28项身份完整、原5条故障保持、无新增撤下，安装摘要与批准pin保持。340项Python、PHP事务及Go race已通过，最终文档另校验31篇笔记、507个已暂存文档相对文件链接与4个更新锚点，推送后按SHA回读README/progress。本次不新增客户端版本或Release，已发布客户端保持[0.1.6](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.6)；代码和部署记录只提交本轮文件，保留并行香港入口改动。
 
 ## 2026-10-27：生产外接线路人工恢复
 
@@ -236,7 +242,7 @@ stdin入口修复提交`5401a8e`完成32项core/adapter及305项全套Python检�
 
 - 核对 guard.py、guard-apply.php、分配清单、历史 setup_guard/pin_cross/convert 生成逻辑及当天受限出站快照。原 approved.private 只含 key/两层 ID/来源名称与 JSON 摘要，没有运行时 pin；历史 pinned.private 已有 key/ip/port/sni/pin 可复用。公开清单 U04=365→366、U05=367→368，28 条 AnyTLS；未将当前观测公钥升级为批准值。
 - 新检查按旧固定 IP/端口/SNI 握手，提取叶证书 SPKI DER→SHA256→Base64。订阅成功与抓取失败均执行，分类记录公钥不匹配、TCP/TLS/超时、工具/证书失败和映射异常；原元数据理由优先，失败只合并到原受限撤下事务。元数据24小时宽限不遮蔽身份拒绝；成功不自动恢复。非 AnyTLS 不声称已检查，未知 key 不扩大范围，输出不含端点、SNI、完整摘要或异常文本。
-- 增加只读 `--check-identity`/可重复 `--key`，无订阅读取、状态写入或 Docker/数据库操作；操作说明与部署依赖见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查仓库已实现未部署)。本次不部署；后续需验证私有映射、同步 allocation.json，并评估原120秒service预算至至少180秒，不能只替换脚本后跳过缺失映射。
+- 增加只读 `--check-identity`/可重复 `--key`，无订阅读取、状态写入或 Docker/数据库操作；操作说明与部署依赖见[运维](./docs/zh-CN/installation/upstream-extension.md#运行时-anytls-公钥检查)。本次不部署；后续需验证私有映射、同步 allocation.json，并评估原120秒service预算至至少180秒，不能只替换脚本后跳过缺失映射。
 - 23:00（Asia/Shanghai）使用此前同日只读配置快照内的旧 pin，在本机执行新检测器检查 U04/U05。两个原端点均返回 `runtime_public_key_mismatch`，进程退出1，且未发送账号或业务请求。临时检查文件仅含旧批准值，执行后删除；未写入 Git。此结果是本机检测器对旧批准身份的现场拒绝，不等于当前入口进程内存快照、线上定时器执行或节点恢复。
 - 本轮 SSH 初次因认证尝试过多被拒，限定唯一密钥后握手超时；未修改认证、服务或生产文件，也未将该失败描述为线上检查成功。检查范围以仓库、既有受限快照及本机TLS证据为准。
 - 回归覆盖合成新加坡两条字段不变/公钥变化、同公钥换证、SNI与零应用字节、TLS/网络/工具/解析异常、缺失重复映射、抓取失败、撤下合并、不恢复、空范围不报成功及脱敏。[Upstream Guard Regression](./.github/workflows/upstream-guard.yml)在相关代码变更时执行，无生产凭据或公网节点依赖。
