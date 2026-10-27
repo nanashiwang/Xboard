@@ -30,7 +30,7 @@
 
 现场复查：[运行时status](https://github.com/nanashiwang/Xboard/actions/runs/40437883265)于10:21成功，phase deployed、服务Result success/退出0、timer active，读取的自然周期时间为10:20:28；28项身份检查完整，仍为原5条异常，无新增撤下，批准pin与安装文件摘要保持。[维护inspect-environment](https://github.com/nanashiwang/Xboard/actions/runs/40438067651)于10:23成功，确认0640/服务组兼容、探针active/running、保护器定时器正常，files/network/policy_mutated均false。较早排队的维护检查40437888029被同并发组后续检查替代取消，未执行远程步骤；本次改为待前项结束后单独运行并成功，取消不记作业务故障。[生产inspect](https://github.com/nanashiwang/Xboard/actions/runs/40437892894)于10:21成功，既有xboard容器Up 16 hours；此操作不证明部署了最新源码。[公开路径验收](https://github.com/nanashiwang/Xboard/actions/runs/40438192536)于10:24:50通过：36条可用线路双目标成功，5条撤下线路实际拒绝，41项验收全部通过、node_configuration_mutated=false。
 
-本地340项上游Python回归全部通过，四个改动工作流actionlint及diff检查通过；本地32篇笔记结构/链接检查通过（含保留的无关未提交笔记）；仅暂存本次文件与文档段落。提交/推送及GitHub检查在交付后补记。此次仅修改流程标识、回归触发范围及文档，不修改应用或客户端版本、不创建GitHub Release、不重新部署应用或改写生产身份；5条异常线路恢复仍需独立证据和复验。
+本地340项上游Python回归全部通过，四个改动工作流actionlint及diff检查通过；本地32篇笔记结构/链接检查通过（含保留的无关未提交笔记）；仅暂存本次文件与文档段落。源码`4f3379dd002bb5d1245ee8767a96cc01bd5dde4a`已推送master，README/progress按该SHA从GitHub回读一致；509个已提交文档文件/目录链接与2个新锚点通过。[上游专项CI](https://github.com/nanashiwang/Xboard/actions/runs/40438654131)、[服务器管理检查](https://github.com/nanashiwang/Xboard/actions/runs/40438654111)、[笔记CI](https://github.com/nanashiwang/Xboard/actions/runs/40438654116)、[双架构镜像构建发布](https://github.com/nanashiwang/Xboard/actions/runs/40438654233)均完成成功；镜像发布不等于生产部署。[更新后status](https://github.com/nanashiwang/Xboard/actions/runs/40438834873)成功，运行标题确认为`Upstream Runtime Guard Deployment · status · master`。本机GitHub API曾间歇TLS超时，重试后回读完成，不计作Actions执行失败。交付记录用独立`[skip ci]`文档提交保存，并再次按提交SHA回读两份文件。此次仅修改流程标识、回归触发范围及文档，不修改应用或客户端版本、不创建GitHub Release、不重新部署应用或改写生产身份；5条异常线路恢复仍需独立证据和复验。
 
 ## 2026-10-27：新版运行时保护器部署
 
