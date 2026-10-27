@@ -4,6 +4,18 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-27：Windows 原生应用代理兼容修复
+
+用户给出 YuanHeng Switch 本地15721端口的504：OpenAI Official / gpt-6-astra /responses，上游连接超时、os=10060；确认Windows同一节点v2rayN正常，卡皮巴拉全局和规则都失败，浏览器访问正常。用户当前实际客户端版本与进程出站未读取，不能宣称现场修复已验收。
+
+代码定位：Capybara写入 `http=127.0.0.1:端口;https=...;socks=...`，YuanHeng Cargo.lock锁定reqwest0.12.28/hyper-util0.1.20；Windows matcher将整个ProxyServer原样作为一个URI，未解析分协议列表。隔离临时Rust工程用精确依赖测试目标 `https://chatgpt.com/backend-api/codex/responses`：旧列表intercepted=false，单地址和带http协议地址均true。该缺陷发生在Mihomo之前，能解释浏览器正常而切换模式无效；错误中的DNS建议是连接失败的通用提示，不是DNS检测结论。YuanHeng已有每秒代理刷新，无需杀Core；端口动态分配，不建议硬编码7890。
+
+0.1.8使用统一地址，恢复同时严格识别新地址/旧完整列表及本次端口，逐字节恢复原快照；外部改动的代理不覆盖。测试用独立临时注册表子键，不修改真实Internet Settings；不改生产节点、DNS或YuanHeng仓库。沿用[桌面架构](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)及[Windows诊断](./.agents/notes/implemented/process/2026-10-26-capybara-windows-diagnostics.md)边界，取舍见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
+
+本地验证：前端74、网页/发布脚本16、Rust53通过/0失败/1既有手动钥匙串测试忽略；TypeScript/Vite构建、cargo fmt通过。真实matcher回归覆盖HTTP/HTTPS，所有权回归覆盖新旧格式与第三方端点。新增2项Windows注册表恢复回归待Windows CI执行。
+
+交付：此前[0.1.7运行40437927940](https://github.com/nanashiwang/Xboard/actions/runs/40437927940)四目标构建和摘要/签名成功，创建Release返回403 Resource not accessible by integration，因此没有0.1.7 Release。此次0.1.8包含其节点连接功能，沿用四目标构建和附件脚本，全部验证后使用已授权账户发布。当前待提交推送、四目标构建和Release；官网更新源尚未同步，Windows真实业务请求待用户安装后复验。
+
 ## 2026-10-27：卡皮巴拉点击节点即连接
 
 用户先反馈Windows选全局后ping0.cc仍显示原IP，随后确认点“一键连接”就正常，之前忘记开启连接；此次不再继续假设代理例外或节点故障，也未更改Windows代理配置/诊断脚本。用户明确要求点击右侧节点即连接与切换，连接按钮自动跟随。

@@ -1,6 +1,6 @@
 [package]
 name = "capybara"
-version = "0.1.7"
+version = "0.1.8"
 description = "卡皮巴拉桌面客户端"
 authors = ["nanashiwang"]
 license = "GPL-3.0-only"
@@ -27,3 +27,5 @@ security-framework = "=3.7.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.55"
 windows-sys = { version = "0.61", features = ["Win32_Networking_WinInet"] }
+[dev-dependencies]
+hyper-util = { version = "0.1", features = ["client-proxy"] }

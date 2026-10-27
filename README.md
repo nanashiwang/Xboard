@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### Windows 原生应用代理兼容修复（2026-10-27）
+
+用户确认同一节点在 v2rayN 正常，而卡皮巴拉规则/全局模式下 YuanHeng 的 Codex /responses 连接超时，浏览器正常。已用 YuanHeng 锁定的真实网络库复现：旧 Windows 分协议 ProxyServer 无法被当作单个代理地址解析，可能绕过代理直连。0.1.8 改用统一回环地址，并兼容恢复旧格式；没有据通用错误提示调整 DNS 或节点。升级后断开再连接应用新设置，故障电脑的真实请求仍待复验。
+
+本地前端74项、脚本16项、Rust53项通过（1项既有手动钥匙串测试忽略），类型检查和构建通过；新增Windows注册表回归待CI。此前0.1.7四目标构建成功，但创建Release被GitHub权限拒绝，未发布；0.1.8包含其节点点击连接改进。完整交付状态见[进展](./progress-log.md#2026-10-27windows-原生应用代理兼容修复)与[修复决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
+
 ### 卡皮巴拉点击节点即连接（2026-10-27）
 
 本次 Windows 全局模式 IP 未变，用户确认点击“一键连接”后正常，原因是尚未连接。按新交互要求，0.1.7 点击首页右侧节点就连接；已经连接时直接切换，断开后点击当前节点也能恢复，主按钮仍可手动连接/断开并跟随真实状态。选择和开启代理由原生统一处理，失败不误连旧节点；自动加载、测速及仅切模式不自动连接。

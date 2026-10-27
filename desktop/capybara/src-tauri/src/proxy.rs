@@ -44,6 +44,18 @@ pub fn recover(dir: &Path) -> Result<(), String> {
     platform::restore(&snapshot)?;
     std::fs::remove_file(file).map_err(|_| "无法清除代理恢复记录".into())
 }
+#[cfg(any(target_os = "windows", test))]
+fn windows_server(port: u16) -> String {
+    // The mixed listener accepts HTTP CONNECT for HTTPS destinations. A single address
+    // also works with native clients whose system matcher cannot parse Windows' map syntax.
+    format!("127.0.0.1:{port}")
+}
+#[cfg(any(target_os = "windows", test))]
+fn windows_owns_server(value: &str, port: u16) -> bool {
+    value == windows_server(port)
+        // A recovery journal can survive an upgrade from the old mapped representation.
+        || value == format!("http=127.0.0.1:{port};https=127.0.0.1:{port};socks=127.0.0.1:{port}")
+}
 #[cfg(not(target_os = "windows"))]
 fn run(program: &str, args: &[&str]) -> Result<String, String> {
     let output = Command::new(program)
@@ -302,11 +314,11 @@ mod platform {
             );
         }
     }
-    fn server(port: u16) -> String {
-        format!("http=127.0.0.1:{port};https=127.0.0.1:{port};socks=127.0.0.1:{port}")
-    }
     pub fn capture() -> Result<serde_json::Value, String> {
         let k = key()?;
+        capture_from(&k)
+    }
+    fn capture_from(k: &RegKey) -> Result<serde_json::Value, String> {
         if k.get_value::<u32, _>("ProxyEnable").unwrap_or(0) != 0
             || !k
                 .get_value::<String, _>("AutoConfigURL")
@@ -328,19 +340,32 @@ mod platform {
     }
     pub fn apply(s: &Snapshot) -> Result<(), String> {
         let k = key()?;
-        k.set_value("ProxyServer", &server(s.port))
+        apply_to(&k, s)?;
+        notify();
+        Ok(())
+    }
+    fn apply_to(k: &RegKey, s: &Snapshot) -> Result<(), String> {
+        k.set_value("ProxyServer", &windows_server(s.port))
             .map_err(|_| "无法设置代理地址")?;
         k.set_value("AutoDetect", &0u32)
             .map_err(|_| "无法关闭自动代理检测")?;
         k.set_value("ProxyEnable", &1u32)
             .map_err(|_| "无法启用系统代理")?;
-        notify();
         Ok(())
     }
     pub fn restore(s: &Snapshot) -> Result<(), String> {
         let k = key()?;
-        if k.get_value::<String, _>("ProxyServer").unwrap_or_default() != server(s.port) {
-            return Ok(());
+        if restore_to(&k, s)? {
+            notify();
+        }
+        Ok(())
+    }
+    fn restore_to(k: &RegKey, s: &Snapshot) -> Result<bool, String> {
+        if !windows_owns_server(
+            &k.get_value::<String, _>("ProxyServer").unwrap_or_default(),
+            s.port,
+        ) {
+            return Ok(false);
         }
         for name in NAMES {
             let v = &s.original[name];
@@ -364,7 +389,132 @@ mod platform {
                     .map_err(|_| "无法恢复 Windows 代理")?;
             }
         }
-        notify();
-        Ok(())
+        Ok(true)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        struct RegistryFixture {
+            path: String,
+            key: RegKey,
+        }
+        impl RegistryFixture {
+            fn new() -> Self {
+                let path = format!("Software\\CapybaraProxyTests-{}", uuid::Uuid::new_v4());
+                let (key, _) = RegKey::predef(HKEY_CURRENT_USER)
+                    .create_subkey(&path)
+                    .unwrap();
+                Self { path, key }
+            }
+        }
+        impl Drop for RegistryFixture {
+            fn drop(&mut self) {
+                let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(&self.path);
+            }
+        }
+
+        #[test]
+        fn windows_registry_round_trip_restores_original_raw_values() {
+            let fixture = RegistryFixture::new();
+            let k = &fixture.key;
+            k.set_value("ProxyEnable", &0u32).unwrap();
+            k.set_value("AutoDetect", &1u32).unwrap();
+            k.set_value("ProxyServer", &"old.proxy.example:8080")
+                .unwrap();
+            k.set_value("ProxyOverride", &"localhost;<local>").unwrap();
+            let original = capture_from(k).unwrap();
+            let snapshot = Snapshot {
+                port: 32198,
+                original: original.clone(),
+            };
+            apply_to(k, &snapshot).unwrap();
+            assert_eq!(
+                k.get_value::<String, _>("ProxyServer").unwrap(),
+                "127.0.0.1:32198"
+            );
+            assert_eq!(k.get_value::<u32, _>("ProxyEnable").unwrap(), 1);
+            assert_eq!(k.get_value::<u32, _>("AutoDetect").unwrap(), 0);
+            assert!(restore_to(k, &snapshot).unwrap());
+            assert_eq!(capture_from(k).unwrap(), original);
+            assert_eq!(
+                k.get_value::<String, _>("ProxyOverride").unwrap(),
+                "localhost;<local>"
+            );
+            assert!(k.get_raw_value("AutoConfigURL").is_err());
+        }
+
+        #[test]
+        fn windows_registry_recovers_legacy_journal_but_preserves_foreign_proxy() {
+            let fixture = RegistryFixture::new();
+            let k = &fixture.key;
+            let original = capture_from(k).unwrap();
+            let snapshot = Snapshot {
+                port: 32198,
+                original: original.clone(),
+            };
+            k.set_value(
+                "ProxyServer",
+                &"http=127.0.0.1:32198;https=127.0.0.1:32198;socks=127.0.0.1:32198",
+            )
+            .unwrap();
+            k.set_value("ProxyEnable", &1u32).unwrap();
+            assert!(restore_to(k, &snapshot).unwrap());
+            assert_eq!(capture_from(k).unwrap(), original);
+            apply_to(k, &snapshot).unwrap();
+            k.set_value("ProxyServer", &"127.0.0.1:32199").unwrap();
+            assert!(!restore_to(k, &snapshot).unwrap());
+            assert_eq!(
+                k.get_value::<String, _>("ProxyServer").unwrap(),
+                "127.0.0.1:32199"
+            );
+            assert_eq!(k.get_value::<u32, _>("ProxyEnable").unwrap(), 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn windows_proxy_address_is_understood_by_native_http_matcher() {
+        let server = windows_server(32198);
+        let matcher = hyper_util::client::proxy::matcher::Matcher::builder()
+            .http(server.clone())
+            .https(server)
+            .build();
+        for target in [
+            "http://example.com/",
+            "https://chatgpt.com/backend-api/codex/responses",
+        ] {
+            let proxy = matcher
+                .intercept(&target.parse().unwrap())
+                .expect("system proxy must intercept both HTTP and HTTPS");
+            assert_eq!(proxy.uri().to_string(), "http://127.0.0.1:32198/");
+        }
+    }
+
+    #[test]
+    fn windows_recovery_recognizes_only_owned_current_or_legacy_endpoints() {
+        assert!(windows_owns_server("127.0.0.1:32198", 32198));
+        assert!(windows_owns_server(
+            "http=127.0.0.1:32198;https=127.0.0.1:32198;socks=127.0.0.1:32198",
+            32198
+        ));
+        for foreign in [
+            "127.0.0.1:32199",
+            "127.0.0.1:321980",
+            "192.0.2.1:32198",
+            "http=127.0.0.1:32198;https=127.0.0.1:32199;socks=127.0.0.1:32198",
+            "http=127.0.0.1:32198;https=127.0.0.1:32198;socks=127.0.0.1:32198;ftp=proxy.example:21",
+            "",
+        ] {
+            assert!(
+                !windows_owns_server(foreign, 32198),
+                "must not overwrite a changed proxy: {foreign}"
+            );
+        }
     }
 }
