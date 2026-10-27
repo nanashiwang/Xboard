@@ -14,6 +14,8 @@ Capybara未设置ProxyOverride。单地址修复后，Codex自身也能识别代
 
 本地前端74项、脚本16项、Rust56项通过（1项既有手动钥匙串测试忽略），TypeScript/Vite构建、cargo fmt和33篇笔记校验通过；新增3项跨平台回归，Windows隔离注册表6项待CI。四目标构建、Release与官网更新源尚待完成。真实故障电脑仍需安装后断开重连验证，不能把隔离复现等同现场恢复。
 
+首轮[40448484810](https://github.com/nanashiwang/Xboard/actions/runs/40448484810)的Windows原生检查在编译测试时失败：`RegType`非Copy，测试转换类型后仍引用原对象导致E0382，尚未执行Windows测试；仅克隆枚举后转换修正，生产逻辑未改。5项本机代理回归与格式检查通过，将使用新提交重新执行四目标构建，未发布未完成的包。
+
 ## 2026-10-27：Windows 原生应用代理兼容修复
 
 用户给出 YuanHeng Switch 本地15721端口的504：OpenAI Official / gpt-6-astra /responses，上游连接超时、os=10060；确认Windows同一节点v2rayN正常，卡皮巴拉全局和规则都失败，浏览器访问正常。用户当前实际客户端版本与进程出站未读取，不能宣称现场修复已验收。

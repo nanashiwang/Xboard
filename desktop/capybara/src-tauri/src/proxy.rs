@@ -647,7 +647,7 @@ mod platform {
                 assert!(capture_from(k).is_err());
                 let snapshot = Snapshot {
                     port: 32198,
-                    original: serde_json::json!({"ProxyOverride": {"bytes":invalid.bytes,"type":invalid.vtype as u32}}),
+                    original: serde_json::json!({"ProxyOverride": {"bytes":invalid.bytes,"type":invalid.vtype.clone() as u32}}),
                 };
                 assert!(apply_to(k, &snapshot).is_err());
                 assert_eq!(
