@@ -4,6 +4,16 @@
 
 每次完成后先回读本地文档，再在推送后按提交版本从 GitHub 回读 README.md 与 progress-log.md。未运行的检查、未完成的构建、未发布的版本和未部署的代码须明确区分；不记录密钥或用户凭据。
 
+## 2026-10-27：Windows 本机调用502修复
+
+用户在0.1.8交付后报告两次 `502 Bad Gateway: Unknown error`，URL为本机15721的/v1/responses。已询问系统、是否安装0.1.8并断开重连，本轮尚未得到确认；按前述Windows环境继续源码与隔离验证，不将本机Mac日志代作用户现场。只读审查YuanHeng源码：正常转发失败含Provider/model/cause，即使上游空502也富化；旧v0.1.74/v0.1.101亦有该路径，不能只因Core旧版本解释裸错误。
+
+Capybara未设置ProxyOverride。单地址修复后，Codex自身也能识别代理，若缺显式本机旁路，http://127.0.0.1:15721可能先进入Mihomo；全局模式不使用订阅的127/8 DIRECT规则。hyper-util0.1.20精确版本矩阵：空列表、<local>、127.*不能旁路本机IP；显式localhost/127.0.0.1/::1能旁路三个本机地址，chatgpt.com仍代理。内置Mihomo隔离复现只使用本机HTTP服务与不可达本机代理：直连200、全局代理空502、规则DIRECT回200。进程和临时配置已清理，没有真实模型调用或系统代理修改。该链路与用户错误吻合，当前用户实际例外/环境代理仍未读取。
+
+0.1.9在既有系统代理流程内合并回环例外，保留旧列表；快照增加原例外字节/类型，旧journal缺键不代表原值不存在，恢复跳过旧版未拥有字段；新journal原值null才表示原字段缺失。仅在当前例外仍等于本次写入值时恢复，用户后来改动的值保留。沿用[Windows兼容笔记](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)，不改DNS、节点、YuanHeng仓库或全局环境变量。
+
+本地前端74项、脚本16项、Rust56项通过（1项既有手动钥匙串测试忽略），TypeScript/Vite构建、cargo fmt和33篇笔记校验通过；新增3项跨平台回归，Windows隔离注册表6项待CI。四目标构建、Release与官网更新源尚待完成。真实故障电脑仍需安装后断开重连验证，不能把隔离复现等同现场恢复。
+
 ## 2026-10-27：Windows 原生应用代理兼容修复
 
 用户给出 YuanHeng Switch 本地15721端口的504：OpenAI Official / gpt-6-astra /responses，上游连接超时、os=10060；确认Windows同一节点v2rayN正常，卡皮巴拉全局和规则都失败，浏览器访问正常。用户当前实际客户端版本与进程出站未读取，不能宣称现场修复已验收。

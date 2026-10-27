@@ -30,6 +30,12 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 - [决策笔记说明](./docs/AGENT_NOTES.md)与[本次接入决策](./.agents/notes/implemented/process/2026-10-17-project-decision-kit.md)：说明记录方式、工具来源和维护边界。
 - 工具源码：[nanashiwang/new-api · scripts/agent-workflow/](https://github.com/nanashiwang/new-api/tree/project-decision-kit-v1.0.1/scripts/agent-workflow)；[v1.0.1 Release](https://github.com/nanashiwang/new-api/releases/tag/project-decision-kit-v1.0.1)。该版本号属于工具包。
 
+### Windows 本机调用502修复（2026-10-27）
+
+用户随后反馈元衡本地15721返回裸502 Unknown error。本轮系统/已安装版本确认尚未收到，按此前Windows场景审查并复现另一缺陷：0.1.8修复单地址后，原生HTTP应用能识别系统代理，但没有显式回环例外时，Codex到元衡的本机请求也会进入Mihomo，全局模式可返回空502。上一轮只测了外网代理匹配，漏了本机URL路径；不能把裸502直接归为OpenAI上游。
+
+0.1.9保留原代理例外并补齐localhost/IPv4/IPv6本机地址，断开恢复原值，兼容旧恢复记录并保留用户后来修改的例外。真实matcher和隔离Mihomo对照证明本机请求需绕过代理、chatgpt.com仍需代理；用户故障电脑尚未复验。检查、发布与更新源状态见[进展](./progress-log.md#2026-10-27windows-本机调用502修复)，沿用[Windows兼容决定](./.agents/notes/implemented/bug-fix/2026-10-27-capybara-windows-proxy-compat.md)。
+
 ### Windows 原生应用代理兼容修复（2026-10-27）
 
 用户确认同一节点在 v2rayN 正常，而卡皮巴拉规则/全局模式下 YuanHeng 的 Codex /responses 连接超时，浏览器正常。已用 YuanHeng 锁定的真实网络库复现：旧 Windows 分协议 ProxyServer 无法被当作单个代理地址解析，可能绕过代理直连。0.1.8 改用统一回环地址，并兼容恢复旧格式；没有据通用错误提示调整 DNS 或节点。升级后断开再连接应用新设置，故障电脑的真实请求仍待复验。

@@ -428,7 +428,7 @@ dependencies = [
 
 [[package]]
 name = "capybara"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "hyper-util",
  "keyring",
