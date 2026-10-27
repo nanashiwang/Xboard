@@ -14,6 +14,24 @@
 
 交付状态：实现检查通过，待提交推送及四目标发布；Release、附件和官网分发尚未验证，不把触发构建当成功。
 
+## 2026-10-27：Actions 部署与维护失败复核
+
+用户反馈“Xboard自动部署和维护工作流连续失败”。按nanashiwang/Xboard的运行事件、OPERATION、失败日志及后续成功执行交叉核对：近期运维红灯均为workflow_dispatch，并非push后反复自动部署。历史失败保留，不通过重跑写操作、忽略退出码或放宽身份校验消除通知。
+
+| 失败原因 | 已有修复与结果 |
+| --- | --- |
+| 容器及宿主私有manifest缺失 | 49ed292改为宿主持久清单经stdin传递；aadc2b7增加限定范围审计/恢复，[恢复](https://github.com/nanashiwang/Xboard/actions/runs/40386216148)和[prepare](https://github.com/nanashiwang/Xboard/actions/runs/40386468393)成功 |
+| 探针配置权限假设过严 | 8462ca6接受root持有0640且组匹配固定服务的原配置，[公开配置缓存](https://github.com/nanashiwang/Xboard/actions/runs/40394547247)成功 |
+| 误拒绝省略tls.insecure及聚合输入流被提前消费 | b5f7704按严格false默认语义兼容；5401a8e先校验stdin再初始化后端，[账本创建](https://github.com/nanashiwang/Xboard/actions/runs/40403148046)成功 |
+| 旧保护器storage/app缺失 | e3215db按实际storage身份和普通权限建立受限目录，[恢复](https://github.com/nanashiwang/Xboard/actions/runs/40402207185)成功 |
+| 运行时预检发现真实上游故障 | [失败预检](https://github.com/nanashiwang/Xboard/actions/runs/40432164490)报告U08超时、U32不可达和U06/U07/U32/U41来源变化；b6fcd6d保留独立复核门，[部署](https://github.com/nanashiwang/Xboard/actions/runs/40432318909)已成功启用撤下保护，不代表批准新身份 |
+
+本次补充三条运维工作流run-name，显示具体operation与分支；上游专项CI的push/PR路径增加维护、运行时部署工作流文件，避免仅修改流程时漏跑回归。沿用[已有决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md#actions-结果与回归入口)，保持权限、并发组、手动触发和退出码行为。
+
+现场复查：[运行时status](https://github.com/nanashiwang/Xboard/actions/runs/40437883265)于10:21成功，phase deployed、服务Result success/退出0、timer active，读取的自然周期时间为10:20:28；28项身份检查完整，仍为原5条异常，无新增撤下，批准pin与安装文件摘要保持。[维护inspect-environment](https://github.com/nanashiwang/Xboard/actions/runs/40438067651)于10:23成功，确认0640/服务组兼容、探针active/running、保护器定时器正常，files/network/policy_mutated均false。较早排队的维护检查40437888029被同并发组后续检查替代取消，未执行远程步骤；本次改为待前项结束后单独运行并成功，取消不记作业务故障。[生产inspect](https://github.com/nanashiwang/Xboard/actions/runs/40437892894)于10:21成功，既有xboard容器Up 16 hours；此操作不证明部署了最新源码。[公开路径验收](https://github.com/nanashiwang/Xboard/actions/runs/40438192536)于10:24:50通过：36条可用线路双目标成功，5条撤下线路实际拒绝，41项验收全部通过、node_configuration_mutated=false。
+
+本地340项上游Python回归全部通过，四个改动工作流actionlint及diff检查通过；本地32篇笔记结构/链接检查通过（含保留的无关未提交笔记）；仅暂存本次文件与文档段落。提交/推送及GitHub检查在交付后补记。此次仅修改流程标识、回归触发范围及文档，不修改应用或客户端版本、不创建GitHub Release、不重新部署应用或改写生产身份；5条异常线路恢复仍需独立证据和复验。
+
 ## 2026-10-27：新版运行时保护器部署
 
 用户在41条恢复后明确要求部署新版。核对实际入口具备IPv6、原转发服务PID202530/NRestarts0；面板无IPv6。复用既有guard、公钥批准映射、PHP受限事务，增加证书采集专用SSH worker：入口独立非root用户，root拥有代码和唯一authorized_keys，来源地址限制、forced command、禁止转发，40秒外层期限；只接收已批准AnyTLS的IP/端口/SNI/pin，不传订阅/代理密码，不保存身份，不回传观察公钥。面板响应核对nonce、请求摘要、时间、完整ID/数量及原因，通讯失败不回落本机或DIRECT。

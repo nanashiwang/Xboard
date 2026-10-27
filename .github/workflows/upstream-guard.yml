@@ -6,11 +6,15 @@ on:
       - '.docker/upstream/**'
       - 'tests/Upstream/**'
       - '.github/workflows/upstream-guard.yml'
+      - '.github/workflows/upstream-maintenance.yml'
+      - '.github/workflows/upstream-runtime-deploy.yml'
   pull_request:
     paths:
       - '.docker/upstream/**'
       - 'tests/Upstream/**'
       - '.github/workflows/upstream-guard.yml'
+      - '.github/workflows/upstream-maintenance.yml'
+      - '.github/workflows/upstream-runtime-deploy.yml'
   workflow_dispatch:
 
 permissions:

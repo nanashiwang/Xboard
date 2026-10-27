@@ -1,4 +1,5 @@
 name: Upstream Bounded Maintenance
+run-name: 'Upstream Bounded Maintenance · ${{ inputs.operation }} · ${{ github.ref_name }}'
 
 on:
   workflow_dispatch:

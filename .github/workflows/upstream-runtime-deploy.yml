@@ -1,4 +1,5 @@
 name: Upstream Runtime Guard Deployment
+run-name: 'Upstream Runtime Guard Deployment · ${{ inputs.operation }} · ${{ github.ref_name }}'
 on:
   workflow_dispatch:
     inputs:

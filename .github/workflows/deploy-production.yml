@@ -1,4 +1,5 @@
 name: Production Deploy
+run-name: 'Production Deploy · ${{ inputs.operation }} · ${{ github.ref_name }}'
 
 on:
   workflow_dispatch:
