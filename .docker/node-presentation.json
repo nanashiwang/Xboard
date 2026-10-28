@@ -95,13 +95,13 @@
     },
     {
       "id": 323,
-      "name": "美国11｜2×｜家宽",
+      "name": "美国02｜2×｜家宽",
       "rate": 2,
       "rate_time_enable": false
     },
     {
       "id": 324,
-      "name": "美国12｜2×｜家宽",
+      "name": "美国01｜2×｜家宽",
       "rate": 2,
       "rate_time_enable": false
     },
@@ -429,5 +429,24 @@
       "id": 440,
       "name": "韩国02｜2×"
     }
+  ],
+  "active_ordinary_us_source_ids": [
+    324,
+    323
+  ],
+  "active_fixed_us_source_ids": [
+    322
+  ],
+  "retired_us_source_ids": [
+    148,
+    314,
+    315,
+    316,
+    317,
+    318,
+    319,
+    320,
+    321,
+    326
   ]
 }
