@@ -83,7 +83,8 @@ def subscriptions(rows):
         r=subprocess.run(['curl','-fsS','--max-time','25','-A','sing-box/1.12',url],capture_output=True,text=True,timeout=30)
         if r.returncode: raise RuntimeError('subscription_transport_failed')
         config=json.loads(r.stdout)
-        names=[x['tag'] for x in config['outbounds'] if x.get('type')=='vless']
+        names=[x['tag'] for x in config['outbounds'] if x.get('type')=='vless' and not x['tag'].startswith(('剩余流量：','套餐到期：','距离下次重置剩余：'))]
+        if sorted(names)!=sorted(row['names']):raise RuntimeError('subscription_database_scope_mismatch')
         expected=['美国10｜2×｜家宽','香港01｜1×'] if row['group']==5 else ['美国01｜2×｜家宽','美国02｜2×｜家宽']
         if not all(name in names for name in expected) or len(names)!=len(set(names)):raise RuntimeError('subscription_content_failed')
         if row['group']!=5 and '美国10｜2×｜家宽' in names:raise RuntimeError('fixed_route_leaked')
@@ -102,11 +103,35 @@ def backup():
     print(json.dumps({'backup':name,'integrity_check':'ok'}),flush=True)
 
 
+def invariants():
+    snapshots=sorted(BACKUP.glob('before-*.sqlite'),key=lambda p:p.stat().st_mtime)
+    if len(snapshots)!=1:raise RuntimeError('ambiguous_original_backup')
+    result={}
+    with sqlite3.connect(snapshots[0].as_uri()+'?mode=ro',uri=True) as before, sqlite3.connect((ROOT/'.docker/.data/database.sqlite').as_uri()+'?mode=ro',uri=True,timeout=30) as live:
+        specs={
+            'v2_user':['id','email','password','uuid','token','group_id','plan_id','transfer_enable','expired_at','balance','commission_balance','speed_limit','device_limit','banned'],
+            'v2_plan':[row[1] for row in before.execute('PRAGMA table_info(v2_plan)') if row[1] not in ['allocation_version','updated_at']],
+            'v2_order':[row[1] for row in before.execute('PRAGMA table_info(v2_order)') if row[1]!='updated_at'],
+        }
+        for table,columns in specs.items():
+            select=','.join('"'+column+'"' for column in columns)
+            old=before.execute('SELECT '+select+' FROM '+table).fetchall()
+            changed=0
+            for row in old:
+                expected=list(row);identity=row[columns.index('id')]
+                if table=='v2_plan' and identity==5:expected[columns.index('capacity_limit')]=5
+                actual=live.execute('SELECT '+select+' FROM '+table+' WHERE id=?',(identity,)).fetchone()
+                changed+=actual!=tuple(expected)
+            result[table]={'existing_rows':len(old),'unexpected_changes':changed}
+        if any(row['unexpected_changes'] for row in result.values()):raise RuntimeError('existing_customer_or_order_drift')
+    return result
+
+
 def main():
     os.umask(0o077)
     parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['preflight','apply','verify','status','cleanup'])
     operation=parser.parse_args().operation
-    if operation=='status': print(json.dumps(app('status'),ensure_ascii=False));return
+    if operation=='status': print(json.dumps({'state':app('status'),'invariants':invariants()},ensure_ascii=False));return
     if operation=='cleanup':print(json.dumps(app('qa-clean')));return
     if not BINARY.is_file():raise RuntimeError('verified_test_binary_missing')
     if operation in ('preflight','apply'):
@@ -125,12 +150,15 @@ def main():
     time.sleep(75)
     revoked=[dict(row,allowed=False,kind='qa-revoked') for row in targets if row['allowed'] and row['id'] in [322,323,324]]
     check_all(revoked)
-    print(json.dumps({'late_qa_cleanup':app('qa-clean'),'final':app('status')},ensure_ascii=False),flush=True)
+    print(json.dumps({'late_qa_cleanup':app('qa-clean'),'final':app('status'),'invariants':invariants()},ensure_ascii=False),flush=True)
 
 
 if __name__=='__main__':
     try:main()
     except Exception as error:
         if isinstance(error,RuntimeError):print(str(error),flush=True)
-        else:print('rotation_failed:'+type(error).__name__,flush=True)
+        else:
+            import traceback
+            frame=traceback.extract_tb(error.__traceback__)[-1]
+            print('rotation_failed:'+type(error).__name__+':'+Path(frame.filename).name+':'+str(frame.lineno),flush=True)
         raise SystemExit(1)

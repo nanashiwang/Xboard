@@ -72,7 +72,7 @@ try {
             RotateOwnedUs20261028::demand($actual===$expected,'subscription_scope_mismatch');
             $names=array_column($available,'name');RotateOwnedUs20261028::demand(count($names)===count(array_unique($names)),'duplicate_subscription_name');
             $subscriptions[$group]=['count'=>count($available),'owned'=>$actual];
-            $urls[]=['group'=>$group,'url'=>$user->subscribe_url];
+            $urls[]=['group'=>$group,'url'=>Helper::getSubscribeUrl($user->token,'https://taige.us'),'names'=>$names];
             foreach([322,323,324] as $sourceId) {
                 $allowed=$group===5?$sourceId===322:$sourceId!==322;
                 $authorized=ServerService::getAvailableUsers(Server::findOrFail($sourceId)->parent)->contains('id',$user->id);
