@@ -1,5 +1,23 @@
 # Xboard 项目进展记录
 
+<!-- upstream-disappearance-20261028:start -->
+## 2026-10-28：外接节点消失与全量不可用复核
+
+用户反馈“外接节点都没了”。按既有[外接决定](./.agents/notes/implemented/architecture/2026-10-21-tiered-upstream-route-family.md)复核 DB、自然保护周期、原始来源和真实公开代理；没有调整信任政策或生产节点。
+
+- [16:25 运行状态](https://github.com/nanashiwang/Xboard/actions/runs/40656731516)：timer active，oneshot Result success/退出0；自然周期时间16:25:28，来源获取成功。41条中撤下31条：来源指纹变化5条（U01/U03/U06/U32/U41）、来源缺失1条（U07）、另12条公钥不符、13条握手超时。独立28条AnyTLS结果为14公钥不符、13超时、1不可达；与来源失败重叠，不能相加为撤下总数。安装四文件SHA与当前代码一致，批准pin摘要保持。
+- [节点只读清单](https://github.com/nanashiwang/Xboard/actions/runs/40656730866)确认31对已隐藏/后端停用，剩余U17/U18/U19/U20/U24/U26/U27/U28/U29/U30。四档可见外接为0/0/2/10，分别加6条自建后为6/6/8/16。公开别名的enabled=false属于既有设计，可见性应看show和套餐组，实际后端看enabled，不能据此误报41条全被停用。
+- 对照美国替换前[15:18清单](https://github.com/nanashiwang/Xboard/actions/runs/40649142724)，82条外接记录的名称、上下级、分组、show/enabled、机器、标签、倍率、端口和host均一致，当时已只剩这10条。入口服务仍为PID202530、NRestarts0、active/running，仅10个对应回环监听；入口IPv6严格TLS请求Cloudflare返回200。可见性减少不是本次美国出口替换引入。
+- [来源及候选观察](https://github.com/nanashiwang/Xboard/actions/runs/40657421537)成功：41条额度/有效期均通过；U07匹配0项，另5条唯一条目的指纹改变。13条旧端点超时线路的当前地址已不在本次来源DNS答案中；有候选返回新公钥，仅U09另有保留原pin的候选。U20/U24旧地址的QUIC公钥也不匹配。面板观察环境缺IPv6，Trojan/部分QUIC不可达不单独作为实际入口结论。私有计划`5ee3eee08f244b63883754aa45f6b1a7`、SHA`560c5fd16804d1c71a72b2249bd481d5a9eaea4f072a47e1f6386b598c328dbe`仅是观察，不是身份批准；production_mutated=false。
+- [16:34公开路径实测](https://github.com/nanashiwang/Xboard/actions/runs/40657675975)执行41条、每条Cloudflare/Google双目标：31条已撤下线路全部真实拒绝；剩余10条均失败（3条Trojan超时，7条Hysteria2 HTTPS/TLS失败），本次没有外接线路通过。同期入口日志脱敏统计14条公钥拒绝、7条超时，与配置/观察证据一致。该工作流整体failure是正确结果，不能把31条“拒绝验收通过”说成31条可用；全新内核、严格TLS、无DIRECT，前后配置一致，临时进程和目录均清理。
+
+复用部署preflight的[尝试](https://github.com/nanashiwang/Xboard/actions/runs/40657310928)在database_state_drift停止：该阶段绑定部署时完整状态，当前撤下状态已变化，不适合作为此时健康检查。没有写入，改用现态status、prepare和允许既有撤下范围的public-check。上述诊断运行没有重启入口、改变DB/pin/来源、恢复节点或部署应用；prepare仅在私有维护目录保存观察计划。
+
+结论：旧固定IP/公钥与上游当前状态脱节，运行时保护撤下31条；既有守护只检查AnyTLS，未覆盖仍公开的3条Trojan及7条Hysteria2，当前可见不等于可用。恢复需重新核对5条来源变更和1条缺失，验证现有来源的地址/证书候选，再按隐藏应用、真实公开路径验收、发布、pin同步流程处理；单次握手观察不自动批准新公钥，也不以关闭TLS校验作为恢复。后续是否将保护覆盖全部协议属于单独行为改动，本轮未实施。
+
+本轮仅更新README、能力地图、既有笔记和本记录；文档链接、diff与`python3 .agents/workflow.py verify`通过后以中文文档提交推送master，并按提交SHA回读README/progress。无应用或客户端版本变化、无镜像构建/生产部署或GitHub Release；不创建空版本。
+<!-- upstream-disappearance-20261028:end -->
+
 <!-- us-retirement-20261028:start -->
 ## 2026-10-28：美国出口退租与替换
 

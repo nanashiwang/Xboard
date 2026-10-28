@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- upstream-disappearance-20261028:start -->
+外接线路当前状态（2026-10-28）：41条中31条被保护器撤下，四档可见外接0/0/2/10；剩余10条公开路径双目标也均失败。本次只读诊断与候选观察，未恢复或接纳新身份；守护的运行时证书覆盖仅28条AnyTLS，其余协议仍显示不等于健康。见[证据/后续恢复边界](../progress-log.md#2026-10-28外接节点消失与全量不可用复核)；下表历史接入/恢复数量不代表现态。
+<!-- upstream-disappearance-20261028:end -->
+
 <!-- us-retirement-20261028:start -->
 美国出口当前映射：[操作脚本](../.docker/dedicated/rotate-us.py)、[受限事务](../.docker/dedicated/rotate-us.php)、[决定](../.agents/notes/implemented/architecture/2026-10-28-owned-us-retirement.md)。普通源324/323、固定源322与池14；最终五档实际订阅、37项代理/拒绝、9项QA撤权及原有权益对照通过，详见[进展](../progress-log.md#2026-10-28美国出口退租与替换)。
 <!-- us-retirement-20261028:end -->
