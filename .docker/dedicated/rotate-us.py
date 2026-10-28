@@ -84,7 +84,9 @@ def subscriptions(rows):
         if r.returncode: raise RuntimeError('subscription_transport_failed')
         config=json.loads(r.stdout)
         names=[x['tag'] for x in config['outbounds'] if x.get('type')=='vless' and not x['tag'].startswith(('剩余流量：','套餐到期：','距离下次重置剩余：'))]
-        if sorted(names)!=sorted(row['names']):raise RuntimeError('subscription_database_scope_mismatch')
+        if sorted(names)!=sorted(row['names']):
+            print(json.dumps({'subscription_name_difference':{'group':row['group'],'actual':names,'expected':row['names']}},ensure_ascii=False),flush=True)
+            raise RuntimeError('subscription_database_scope_mismatch')
         expected=['美国10｜2×｜家宽','香港01｜1×'] if row['group']==5 else ['美国01｜2×｜家宽','美国02｜2×｜家宽']
         if not all(name in names for name in expected) or len(names)!=len(set(names)):raise RuntimeError('subscription_content_failed')
         if row['group']!=5 and '美国10｜2×｜家宽' in names:raise RuntimeError('fixed_route_leaked')
@@ -141,10 +143,11 @@ def main():
     targets=[]
     try:
         print(json.dumps(app('qa-start')),flush=True)
-        time.sleep(75) # Existing REST polling must observe the changed authorization.
         data=app('qa-targets');targets=data.pop('targets');urls=data.pop('urls')
         print(json.dumps(data,ensure_ascii=False),flush=True)
-        check_all(targets);subscriptions(urls)
+        subscriptions(urls)
+        time.sleep(75) # Existing REST polling must observe the changed authorization.
+        check_all(targets)
     finally:
         print(json.dumps({'qa_cleanup':app('qa-clean')}),flush=True)
     time.sleep(75)

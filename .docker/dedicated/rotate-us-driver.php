@@ -87,7 +87,11 @@ try {
         }
         $out=['targets'=>$targets,'subscriptions'=>$subscriptions,'urls'=>$urls];
     } elseif($mode==='qa-clean') {
-        $ids=file_exists($qaFile)?json_decode(file_get_contents($qaFile),true,512,JSON_THROW_ON_ERROR)['ids']:[];
+        $ids=[];
+        foreach(glob($directory.'/qa.json*') as $history) {
+            $rows=json_decode(file_get_contents($history),true,512,JSON_THROW_ON_ERROR);
+            $ids=array_values(array_unique([...$ids,...$rows['ids']]));
+        }
         foreach($ids as $id) {
             $user=User::find($id);
             if($user) {
@@ -110,7 +114,7 @@ try {
     // Never include SQL bindings, proxy credentials, customer data or raw transport exceptions.
     fwrite(fopen('php://stderr','w'),'rotation_failed:'.(in_array($error->getMessage(),[
         'already_applied','target_not_healthy','too_many_assignments','pool_changed','no_test_slot','qa_already_exists',
-        'subscription_scope_mismatch','backend_authorization_mismatch','duplicate_subscription_name'
+        'subscription_scope_mismatch','backend_authorization_mismatch','duplicate_subscription_name','qa_assignment_failed'
     ],true)?$error->getMessage():get_class($error)).PHP_EOL);
     exit(1);
 }
