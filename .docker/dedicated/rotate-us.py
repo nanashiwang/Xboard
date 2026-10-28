@@ -135,6 +135,20 @@ def invariants():
     return result
 
 
+def start_qa():
+    # Do not manufacture a healthy lease. Give the existing independent probe a bounded recovery window.
+    for attempt in range(10):
+        state=app('status')
+        if state['target_healthy']:
+            try:return app('qa-start')
+            except RuntimeError as error:
+                if 'qa_assignment_failed' not in str(error):raise
+                app('qa-clean')
+        print(json.dumps({'waiting_for_independent_health':attempt+1,'healthy':state['target_healthy']}),flush=True)
+        time.sleep(30)
+    raise RuntimeError('independent_health_did_not_recover')
+
+
 def main():
     os.umask(0o077)
     parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['preflight','apply','verify','status','cleanup'])
@@ -148,7 +162,7 @@ def main():
         backup();print(json.dumps(app('apply')),flush=True)
     targets=[]
     try:
-        print(json.dumps(app('qa-start')),flush=True)
+        print(json.dumps(start_qa()),flush=True)
         data=app('qa-targets');targets=data.pop('targets');urls=data.pop('urls')
         print(json.dumps(data,ensure_ascii=False),flush=True)
         subscriptions(urls)

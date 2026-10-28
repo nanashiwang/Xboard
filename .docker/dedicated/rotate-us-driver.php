@@ -107,7 +107,10 @@ try {
         $out=['nodes'=>$s['nodes'],'pool'=>DedicatedExit::where('plan_id',5)->where('enabled',true)->pluck('id'),
             'capacity'=>$s['plan']['capacity_limit'],'probe'=>$s['probe'],
             'assignments'=>DedicatedAssignment::where('plan_id',5)->selectRaw('exit_id,count(*) as occupied')->groupBy('exit_id')->get(),
-            'target_healthy'=>DedicatedExit::findOrFail(14)->isHealthy()];
+            'target_healthy'=>DedicatedExit::findOrFail(14)->isHealthy(),
+            'probe_interval'=>NodeProbe::findOrFail(1)->interval_seconds,
+            'target_observation'=>DB::table('v2_node_probe_state')->where('probe_id',1)->where('server_id',322)->first(['checked_at','exit_ip','successes','status']),
+            'plan_content'=>Plan::findOrFail(5)->content];
     } else throw new RuntimeException('unknown_operation');
     echo json_encode($out,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
 } catch(Throwable $error) {
