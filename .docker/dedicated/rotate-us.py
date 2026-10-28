@@ -76,6 +76,12 @@ def check_all(targets):
     return results
 
 
+def subscription_names(config):
+    # Production enables the controller's protocol prefix; info rows clone the first VLESS node.
+    names=[x['tag'].removeprefix('[vless]') for x in config['outbounds'] if x.get('type')=='vless']
+    return [name for name in names if not name.startswith(('剩余流量：','套餐到期：','距离下次重置剩余：'))]
+
+
 def subscriptions(rows):
     results=[]
     for row in rows:
@@ -83,7 +89,7 @@ def subscriptions(rows):
         r=subprocess.run(['curl','-fsS','--max-time','25','-A','sing-box/1.12',url],capture_output=True,text=True,timeout=30)
         if r.returncode: raise RuntimeError('subscription_transport_failed')
         config=json.loads(r.stdout)
-        names=[x['tag'] for x in config['outbounds'] if x.get('type')=='vless' and not x['tag'].startswith(('剩余流量：','套餐到期：','距离下次重置剩余：'))]
+        names=subscription_names(config)
         if sorted(names)!=sorted(row['names']):
             print(json.dumps({'subscription_name_difference':{'group':row['group'],'actual':names,'expected':row['names']}},ensure_ascii=False),flush=True)
             raise RuntimeError('subscription_database_scope_mismatch')

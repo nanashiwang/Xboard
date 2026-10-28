@@ -27,6 +27,7 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: vendor/bin/phpunit tests/Feature/Dedicated/OwnedUsRetirementTest.php
+      - run: python3 -m unittest discover -s tests/Dedicated -v
       - name: Install SSH helper
         run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
       - name: Execute reviewed retirement stage
