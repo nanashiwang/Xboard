@@ -1,0 +1,48 @@
+name: Owned US Exit Retirement
+run-name: 'Owned US Exit Retirement · ${{ inputs.operation }}'
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Fixed three-server rotation stage
+        type: choice
+        required: true
+        options: [preflight, apply, verify, status, cleanup]
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  rotate:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sqlite3, pdo_sqlite, redis, gmp, bcmath
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: vendor/bin/phpunit tests/Feature/Dedicated/OwnedUsRetirementTest.php
+      - name: Install SSH helper
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Execute reviewed retirement stage
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          umask 077
+          case "$OPERATION" in preflight|apply|verify|status|cleanup) ;; *) exit 2;; esac
+          test -n "$SSHPASS"
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'umask 077; mktemp -d /tmp/xboard-us-retirement.XXXXXX')
+          [[ "$remote_dir" =~ ^/tmp/xboard-us-retirement\.[A-Za-z0-9]+$ ]]
+          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/rotate-us.php $remote_dir/rotate-us-driver.php $remote_dir/rotate-us.py; rmdir -- $remote_dir"' EXIT
+          sshpass -e scp "${ssh_opts[@]}" .docker/dedicated/{rotate-us.php,rotate-us-driver.php,rotate-us.py} "root@107.173.191.23:$remote_dir/"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/rotate-us.py' '$OPERATION'"

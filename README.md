@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- us-retirement-20261028:start -->
+### 美国出口更换准备（2026-10-28）
+
+用户指定 `216.36.108.128`、`192.220.24.147` 服务四档普通套餐，`216.36.108.173` 留作唯一独享出口，其他美国服务器退出套餐。线上只读检查确认目标已接入、独享当前占用 1 个名额；迁移工具已准备，尚未执行切换。详见[提案](./.agents/notes/proposed/architecture/2026-10-28-owned-us-retirement.md)及[进展](./progress-log.md#2026-10-28美国出口退租与替换)。
+<!-- us-retirement-20261028:end -->
+
 <div align="center">
 
 [![Telegram](https://img.shields.io/badge/Telegram-Channel-blue)](https://t.me/XboardOfficial)

@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- us-retirement-20261028:start -->
+美国出口退租迁移工具：[操作脚本](../.docker/dedicated/rotate-us.py)、[受限事务](../.docker/dedicated/rotate-us.php)、[提案](../.agents/notes/proposed/architecture/2026-10-28-owned-us-retirement.md)。普通组目标为 324/323，固定池目标为 14；当前工具已验、生产切换待执行，见[进展](../progress-log.md#2026-10-28美国出口退租与替换)。
+<!-- us-retirement-20261028:end -->
+
 核对日期：2026-10-17；业务代码基线：`61919aa`。此表是检索入口，变更前仍需读当前实现；代码存在、测试存在与生产可用是不同结论。本次核对不包含线上账号、支付、节点或管理后台浏览器验收。
 
 路由总入口为 [RouteServiceProvider](../app/Providers/RouteServiceProvider.php)，分别加载 `/api/v1` 和 `/api/v2`；后台使用动态安全路径及 `admin`、`log` 中间件，用户接口使用 `user` 中间件，实际权限须沿路由逐层检查。

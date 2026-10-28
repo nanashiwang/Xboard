@@ -1,0 +1,136 @@
+"""Fixed-scope US exit retirement. Run on the panel through its existing SSH workflow."""
+import argparse
+import concurrent.futures
+import json
+import os
+from pathlib import Path
+import socket
+import sqlite3
+import subprocess
+import tempfile
+import time
+import urllib.parse
+
+ROOT = Path('/root/Xboard')
+BACKUP = ROOT / 'backups/us-retirement-20261028'
+SIBLING = Path(__file__).resolve().parent
+BINARY = ROOT / 'backups/fleet-20261017/sing-box'
+
+
+def app(mode):
+    boot = "require '/www/vendor/autoload.php';$app=require '/www/bootstrap/app.php';$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();"
+    code = '<?php\n' + boot + '\n$mode=' + json.dumps(mode) + ';\n'
+    code += (SIBLING/'rotate-us.php').read_text().removeprefix('<?php')
+    code += (SIBLING/'rotate-us-driver.php').read_text().removeprefix('<?php')
+    result = subprocess.run(['docker','compose','exec','-T','xboard','php'],input=code,text=True,capture_output=True,cwd=ROOT,timeout=90)
+    if result.returncode:
+        # Only the driver's fixed error codes are safe to print.
+        safe = [line for line in result.stderr.splitlines() if line.startswith('rotation_failed:')]
+        raise RuntimeError('app_'+mode+': '+(';'.join(safe) or 'failed'))
+    return json.loads(result.stdout)
+
+
+def proxy(item):
+    with tempfile.TemporaryDirectory(prefix='us-retirement-') as directory:
+        with socket.socket() as sock:
+            sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
+        path=Path(directory)/'client.json'
+        path.write_text(json.dumps({'log':{'level':'error'},'inbounds':[{'type':'socks','tag':'local','listen':'127.0.0.1','listen_port':port}],
+            'outbounds':[item['outbound']],'route':{'final':'node'}}))
+        with (Path(directory)/'core.log').open('w') as log:
+            core=subprocess.Popen([str(BINARY),'run','-c',str(path)],stdout=log,stderr=log)
+            try:
+                ready=False
+                for _ in range(40):
+                    if core.poll() is not None: break
+                    try:
+                        with socket.create_connection(('127.0.0.1',port),timeout=.1): ready=True;break
+                    except OSError: time.sleep(.1)
+                if not ready: return {'id':item['id'],'kind':item['kind'],'ok':False,'error':'core_start'}
+                checks=[];observed=None
+                for url,expected_status in [('https://www.cloudflare.com/cdn-cgi/trace',200),('https://www.gstatic.com/generate_204',204)]:
+                    r=subprocess.run(['curl','-sS','--max-time','15','--socks5-hostname',f'127.0.0.1:{port}','-w','\n%{http_code}',url],capture_output=True,text=True,timeout=20)
+                    body,_,status=r.stdout.rpartition('\n')
+                    connected=r.returncode==0 and status==str(expected_status)
+                    if expected_status==200 and connected:
+                        observed=next((line[3:] for line in body.splitlines() if line.startswith('ip=')),None)
+                    checks.append(connected and (expected_status!=200 or observed==item['expected']))
+                    if not item['allowed']:
+                        return {'id':item['id'],'kind':item['kind'],'ok':r.returncode!=0,'rejected':r.returncode!=0}
+                return {'id':item['id'],'kind':item['kind'],'ok':all(checks),'exit_ip':observed,'checks':checks}
+            finally:
+                core.terminate()
+                try:core.wait(timeout=3)
+                except subprocess.TimeoutExpired:core.kill();core.wait()
+
+
+def check_all(targets):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        results=list(pool.map(proxy,targets))
+    # Retry only failed positive observations; a successful unauthorized connection is never excused.
+    for index,result in enumerate(results):
+        if not result['ok'] and targets[index]['allowed']:
+            result['retry']=proxy(targets[index]);result['ok']=result['retry']['ok']
+    print(json.dumps({'proxy_checks':results},ensure_ascii=False),flush=True)
+    if not all(row['ok'] for row in results):raise RuntimeError('proxy_acceptance_failed')
+    return results
+
+
+def subscriptions(rows):
+    results=[]
+    for row in rows:
+        url=row['url']+('&' if '?' in row['url'] else '?')+'flag=sing-box'
+        r=subprocess.run(['curl','-fsS','--max-time','25','-A','sing-box/1.12',url],capture_output=True,text=True,timeout=30)
+        if r.returncode: raise RuntimeError('subscription_transport_failed')
+        config=json.loads(r.stdout)
+        names=[x['tag'] for x in config['outbounds'] if x.get('type')=='vless']
+        expected=['美国10｜2×｜家宽','香港01｜1×'] if row['group']==5 else ['美国01｜2×｜家宽','美国02｜2×｜家宽']
+        if not all(name in names for name in expected) or len(names)!=len(set(names)):raise RuntimeError('subscription_content_failed')
+        if row['group']!=5 and '美国10｜2×｜家宽' in names:raise RuntimeError('fixed_route_leaked')
+        if row['group']==5 and sorted(names)!=sorted(expected):raise RuntimeError('fixed_subscription_scope_failed')
+        results.append({'group':row['group'],'format':'sing-box','ok':True,'vless_count':len(names)})
+    print(json.dumps({'https_subscriptions':results},ensure_ascii=False),flush=True)
+
+
+def backup():
+    BACKUP.mkdir(mode=0o700,parents=True,exist_ok=True)
+    descriptor,name=tempfile.mkstemp(prefix='before-',suffix='.sqlite',dir=BACKUP);os.close(descriptor)
+    with sqlite3.connect((ROOT/'.docker/.data/database.sqlite').as_uri()+'?mode=ro',uri=True,timeout=30) as live:
+        with sqlite3.connect(name) as saved:
+            live.backup(saved)
+            if saved.execute('PRAGMA integrity_check').fetchall()!=[('ok',)]:raise RuntimeError('backup_integrity_failed')
+    print(json.dumps({'backup':name,'integrity_check':'ok'}),flush=True)
+
+
+def main():
+    os.umask(0o077)
+    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['preflight','apply','verify','status','cleanup'])
+    operation=parser.parse_args().operation
+    if operation=='status': print(json.dumps(app('status'),ensure_ascii=False));return
+    if operation=='cleanup':print(json.dumps(app('qa-clean')));return
+    if not BINARY.is_file():raise RuntimeError('verified_test_binary_missing')
+    if operation in ('preflight','apply'):
+        pre=app('preflight');check_all(pre.pop('targets'));print(json.dumps({'preflight':pre}),flush=True)
+        if operation=='preflight':return
+        backup();print(json.dumps(app('apply')),flush=True)
+    targets=[]
+    try:
+        print(json.dumps(app('qa-start')),flush=True)
+        time.sleep(75) # Existing REST polling must observe the changed authorization.
+        data=app('qa-targets');targets=data.pop('targets');urls=data.pop('urls')
+        print(json.dumps(data,ensure_ascii=False),flush=True)
+        check_all(targets);subscriptions(urls)
+    finally:
+        print(json.dumps({'qa_cleanup':app('qa-clean')}),flush=True)
+    time.sleep(75)
+    revoked=[dict(row,allowed=False,kind='qa-revoked') for row in targets if row['allowed'] and row['id'] in [322,323,324]]
+    check_all(revoked)
+    print(json.dumps({'late_qa_cleanup':app('qa-clean'),'final':app('status')},ensure_ascii=False),flush=True)
+
+
+if __name__=='__main__':
+    try:main()
+    except Exception as error:
+        if isinstance(error,RuntimeError):print(str(error),flush=True)
+        else:print('rotation_failed:'+type(error).__name__,flush=True)
+        raise SystemExit(1)
