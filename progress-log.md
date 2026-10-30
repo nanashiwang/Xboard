@@ -11,7 +11,11 @@
 - 扩展 Desktop + Probes 95 项有 **2 失败 / 3 错误**，均为既有 ClientDownloadTest：HEAD 中代码索引 0.1.5 安装包，HEAD manifest 为 0.1.9。未把此下载目录问题混入修复。Website Home Checks 增加路径触发、固定摘要内核安装和独立完整订阅测试步骤，仍保留原全套检查，不掩盖既有失败。
 - 香港入口运维文档、未提交架构笔记及原 README/progress-log/能力地图片段保留原归属；既有暂存桌面修订与并行容量看板工作不纳入本轮提交。本地 `python3 .agents/workflow.py verify` 通过（38 篇，含原未提交笔记），工作流 actionlint、diff 和本轮文档链接检查通过。
 
-本轮采用中文提交推送 master；推送后按精确 SHA 回读 README/progress-log，Docker 构建与远端 CI 状态另行追加，当前不将触发视为完成。
+实现提交 `1005bf718e6bc2b0aadfec68ff45a2013faae5be` 已中文提交并推送 master，README/progress-log 已按该 SHA 从 GitHub 回读逐字节一致。只提交本轮 9 个文件/片段；原香港入口两文件与任务开始时逐字节一致，原 4 文件暂存修订保持。
+
+远端验收：[笔记](https://github.com/nanashiwang/Xboard/actions/runs/41000180430)、[节点探针](https://github.com/nanashiwang/Xboard/actions/runs/41000180483)、[邮件检查](https://github.com/nanashiwang/Xboard/actions/runs/41000180511)均成功。[Website Home Checks](https://github.com/nanashiwang/Xboard/actions/runs/41000180502)固定内核下载/摘要校验和完整订阅专项成功（PHP 8.2.35，9 项 / 236 断言）；全套 Desktop 为 77 项 / 767 断言、2 失败 / 3 错误，与本地下载目录基线问题相同，view:cache 跳过，工作流整体为 failure。
+
+[Docker Build and Publish](https://github.com/nanashiwang/Xboard/actions/runs/41000180490)双架构构建及推送成功，源码 revision 为实现 SHA，镜像 `ghcr.io/nanashiwang/xboard:1005bf7`，摘要 `sha256:9ef2985792ea8e993dd023c2bdae5ac14c290763013878f729c19b2a7405827d`。流水线记录编号 `20261030-1005bf7`；该编号不代表生产页面版本已更新。此交付记录使用 `[skip ci]` 文档提交，不重复构建相同代码。
 
 生产数据库模板、节点与应用服务未操作；既有安装需要另行备份、审阅并更新数据库模板后重新导出验收。Xboard 服务端版本沿用 Docker CI 的日期加提交号；没有服务端 GitHub Release/安装包流程，Capybara 发布流程不适用于本次 PHP 模板修改，因此不创建客户端版本或 Release。
 <!-- singbox-template-20261030:end -->
