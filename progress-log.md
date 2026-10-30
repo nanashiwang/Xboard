@@ -43,6 +43,11 @@
 [首次线上看板检查](https://github.com/nanashiwang/Xboard/actions/runs/41011079414)确认未登录真实403、静态JS/CSS HTTP与磁盘SHA一致；独享1人、预留0、占用1/5、当时健康可新增4。但共享列表为空，不能判为功能完整。随后[只读库存](https://github.com/nanashiwang/Xboard/actions/runs/41011235106)定位：公共源323/324、后端336/337仍授权普通组1–4，退役固定池15/16的shared_server_id仍引用这些后端；错误排除全部池关联导致漏报。改为只排除真正独享标记，按普通套餐组判断共享，监控组6单独来源不计入；新增启用/退役池复用回归后，相关PHP 95项576断言、前端5项通过。健康探针会变化，此次库存出口14已不健康，不能把前次4个可售名额当固定保证。
 
 线上`https://taige.us/clients`返回200，五种Capybara安装包均为0.1.9，各下载HEAD200且Content-Length匹配清单，公开更新索引SHA及版本一致；桌面/390px浏览器无脚本错误和横向溢出，截图已核对（全页窄屏拼接出现重复绘制，改独立390px上下文视口截图确认页面正常、H1仅一个）。公共看板静态资产SHA也匹配提交。sing-box代码随整分支部署，既有数据库模板没有自动替换，不声称线上完整订阅已升级。共享统计修正版的构建及再部署随后记录。
+**最终上线结果：** 共享修正`4b2a71a949c7349db1268293c4dcd58c0bb3a9b9`已推送master，README/progress按该SHA远端回读一致。[订单及前端CI](https://github.com/nanashiwang/Xboard/actions/runs/41011544583)、笔记/探针/邮件检查全部通过；[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/41011544656)发布成功，标签`ghcr.io/nanashiwang/xboard:4b2a71a`，manifest摘要`sha256:cc503e52d17d52b1c8e96dab9c65de9cd7117772344f72ab1da79eceb1fd213d`，构建编号`20261030-4b2a71a`。[再次部署](https://github.com/nanashiwang/Xboard/actions/runs/41012053646)于14:06:55完成：一致性备份`before-deploy-hrey261m.sqlite`完整性通过，Nothing to migrate，容器Healthy，运行revision精确匹配4b2a71a。运行配置version仍为1.0.0，不将其与构建编号混同。
+
+[最终线上检查](https://github.com/nanashiwang/Xboard/actions/runs/41012249146)于14:07:47成功：管理员中间件、未登录真实403、HTTP JS/CSS与磁盘及本地提交SHA一致；公共资产也经真实域名核对。共享后端336/337分别为美国02/01，各6位有效普通套餐用户获授权，对应192.220.24.147/216.36.108.128；两行是同一批用户，不能累加。独享套餐5/出口14（216.36.108.173）有效订阅1、已分配1、未分配0、预留0、占用1/5；验收时健康且可新增4。此前观察过健康波动，数字是该时点快照，页面持续刷新且不会把不健康空位当可售。最终部署后再次浏览公开下载页，HTTP200、五个0.1.9安装器链接正确、无脚本错误/横向溢出。后台交互以合成夹具测试，生产验收覆盖真实聚合、鉴权和资产，不声称使用真实管理员账号完成浏览器交互。
+
+本次完成后台能力、下载页修复及用户批准的整主分支应用部署；不修改分配/套餐/节点权限，未更新既有sing-box数据库模板，也不声称恢复外接线路。后台沿用镜像发布，没有独立GitHub Release或新的桌面安装包。本记录以中文文档提交推送，随后按最终提交SHA回读README/progress；保留工作区其他任务的暂存与未暂存改动。
 <!-- residential-capacity-20261030:end -->
 
 <!-- upstream-disappearance-20261028:start -->
