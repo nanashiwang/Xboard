@@ -200,7 +200,7 @@ class SingBox extends AbstractProtocol
 
     /**
      * 根据客户端版本自适应配置格式
-     * 模板基准格式: 1.13.0+ (最新)
+     * 默认模板基准格式: 1.13.0；数据库自定义模板不自动迁移
      */
     protected function adaptConfigForVersion(): void
     {
@@ -223,6 +223,14 @@ class SingBox extends AbstractProtocol
         // < 1.12.0: DNS type+server → 旧 address 格式
         if (version_compare($coreVersion, '1.12.0', '<')) {
             $this->convertDnsServersToLegacy();
+            // 默认模板的节点域名引导解析，旧版通过 DNS outbound 规则表达。
+            $resolver = $this->config['route']['default_domain_resolver'] ?? null;
+            if (is_string($resolver)) {
+                $rules = $this->config['dns']['rules'] ?? [];
+                array_unshift($rules, ['outbound' => ['any'], 'server' => $resolver]);
+                $this->config['dns']['rules'] = $rules;
+                unset($this->config['route']['default_domain_resolver']);
+            }
         }
 
         // < 1.10.0: tun address 数组 → inet4_address/inet6_address
@@ -333,14 +341,38 @@ class SingBox extends AbstractProtocol
         if (!isset($this->config['inbounds'])) {
             return;
         }
+        // 仅降级默认模板使用的无条件动作，不把自定义条件规则扩大到全部入站。
+        $sniff = false;
+        $resolve = false;
+        $this->config['route']['rules'] = array_values(array_filter(
+            $this->config['route']['rules'] ?? [],
+            function ($rule) use (&$sniff, &$resolve) {
+                if ($rule == ['action' => 'sniff']) {
+                    $sniff = true;
+                    return false;
+                }
+                if ($rule == ['action' => 'resolve', 'strategy' => 'prefer_ipv4']) {
+                    $resolve = true;
+                    return false;
+                }
+                return true;
+            }
+        ));
         foreach ($this->config['inbounds'] as &$inbound) {
             if ($inbound['type'] === 'tun') {
                 $inbound['endpoint_independent_nat'] = true;
+            }
+            if ($resolve) {
+                $inbound['domain_strategy'] = 'prefer_ipv4';
+            }
+            if ($sniff) {
+                $inbound['sniff'] = true;
             }
             if (!empty($inbound['sniff'])) {
                 $inbound['sniff_override_destination'] = true;
             }
         }
+        unset($inbound);
     }
 
     /**
@@ -351,9 +383,14 @@ class SingBox extends AbstractProtocol
         if (!isset($this->config['dns']['servers'])) {
             return;
         }
+        $directTag = collect($this->config['outbounds'] ?? [])->firstWhere('type', 'direct')['tag'] ?? null;
         foreach ($this->config['dns']['servers'] as &$server) {
             if (!isset($server['type'])) {
                 continue;
+            }
+            // 新 DNS 默认直连，旧 DNS 未指定 detour 时走默认出站。
+            if ($directTag !== null) {
+                $server['detour'] ??= $directTag;
             }
             $type = $server['type'];
             $host = $server['server'] ?? null;

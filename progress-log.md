@@ -1,5 +1,21 @@
 # Xboard 项目进展记录
 
+<!-- singbox-template-20261030:start -->
+## 2026-10-30：sing-box 默认订阅兼容修复
+
+用户要求复现香港入口完整订阅的旧模板兼容问题，最小修复并保留工作区香港文档，不修改生产。读取未提交香港入口笔记与已提交第一阶段替换笔记后，确认待办属于完整配置格式；单节点代理成功不能覆盖模板验证。
+
+- 数据来源为 SubscribeTemplate 数据库，首次迁移导入仓库文件。适配器声明 1.13 基准，而旧默认仍包含 address DNS、入站 sniff/domain_strategy/endpoint_independent_nat 与特殊出站。使用合成域名和 UUID，经真实 ClientController 导出；旧代码/模板在 1.13.19 check 退出 1（legacy DNS），仅修 DNS 后仍退出 1（legacy inbound fields）。
+- 默认模板采用 typed DNS、default_domain_resolver、resolve/sniff/hijack-dns，移除未引用 block DNS/出站；保留解析 IP、直连/代理选择、TUN 地址与严格 TLS 节点参数。降级器补回旧 DNS 引导及直连 detour、入站字段，避免只更新 JSON 破坏旧客户端。不通用改写数据库自定义规则，取舍见[修复笔记](./.agents/notes/implemented/bug-fix/2026-10-30-singbox-template-compat.md)。
+- PHP 8.2.33 + SQLite 内存库、禁网容器：SingBoxTemplateTest、ClashMetaTemplateTest、SubscriptionNamesTest 与 Probes 合计 **37 项 / 471 断言通过**，本轮新增 9 项。真实 sing-box **1.9.7、1.10.7、1.11.0、1.12.0、1.13.19** 各通过完整导出 check；未启用 legacy 兼容环境变量，没有实际启动 TUN 或连接香港服务器。
+- 扩展 Desktop + Probes 95 项有 **2 失败 / 3 错误**，均为既有 ClientDownloadTest：HEAD 中代码索引 0.1.5 安装包，HEAD manifest 为 0.1.9。未把此下载目录问题混入修复。Website Home Checks 增加路径触发、固定摘要内核安装和独立完整订阅测试步骤，仍保留原全套检查，不掩盖既有失败。
+- 香港入口运维文档、未提交架构笔记及原 README/progress-log/能力地图片段保留原归属；既有暂存桌面修订与并行容量看板工作不纳入本轮提交。本地 `python3 .agents/workflow.py verify` 通过（38 篇，含原未提交笔记），工作流 actionlint、diff 和本轮文档链接检查通过。
+
+本轮采用中文提交推送 master；推送后按精确 SHA 回读 README/progress-log，Docker 构建与远端 CI 状态另行追加，当前不将触发视为完成。
+
+生产数据库模板、节点与应用服务未操作；既有安装需要另行备份、审阅并更新数据库模板后重新导出验收。Xboard 服务端版本沿用 Docker CI 的日期加提交号；没有服务端 GitHub Release/安装包流程，Capybara 发布流程不适用于本次 PHP 模板修改，因此不创建客户端版本或 Release。
+<!-- singbox-template-20261030:end -->
+
 <!-- residential-capacity-20261030:start -->
 ## 2026-10-30：家宽订阅与出口容量看板
 

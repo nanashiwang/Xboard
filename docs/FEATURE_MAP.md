@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- singbox-template-20261030:start -->
+sing-box 订阅兼容（2026-10-30）：`/api/v1/client/subscribe` 沿用用户订阅鉴权及可用节点筛选，经 [ClientController](../app/Http/Controllers/V1/Client/ClientController.php)、[SingBox](../app/Protocols/SingBox.php) 从 [SubscribeTemplate](../app/Models/SubscribeTemplate.php) 数据库读取模板；[默认 JSON](../resources/rules/default.sing-box.json)仅在首次迁移导入。默认基准为现代 DNS/路由动作，按内核版本降级；[专项回归](../tests/Feature/Desktop/SingBoxTemplateTest.php)覆盖完整合成香港入口导出与五版本内核 check。[决定](../.agents/notes/implemented/bug-fix/2026-10-30-singbox-template-compat.md)明确自定义模板不自动迁移、生产未更新，配置检查不代表真实链路或计费验收。
+<!-- singbox-template-20261030:end -->
+
 <!-- residential-capacity-20261030:start -->
 家宽订阅容量：[统计服务](../app/Services/ResidentialCapacityService.php)、[管理接口](../app/Http/Controllers/V2/Admin/ResidentialCapacityController.php)、[首页扩展](../public/assets/residential-capacity.js)；管理员GET `stat/getResidentialCapacity`，有效订阅、独享分配/预留/每IP容量与共享授权分列，无身份凭据输出或分配副作用。健康/套餐上限/备用/停售沿用现行规则；[决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)、[回归](../tests/Feature/Dedicated/ResidentialCapacityTest.php)、[上线状态](../progress-log.md#2026-10-30家宽订阅与出口容量看板)。
 <!-- residential-capacity-20261030:end -->
