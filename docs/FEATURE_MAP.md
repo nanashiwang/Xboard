@@ -5,7 +5,7 @@ sing-box 订阅兼容（2026-10-30）：`/api/v1/client/subscribe` 沿用用户�
 <!-- singbox-template-20261030:end -->
 
 <!-- residential-capacity-20261030:start -->
-家宽订阅容量：[统计服务](../app/Services/ResidentialCapacityService.php)、[管理接口](../app/Http/Controllers/V2/Admin/ResidentialCapacityController.php)、[侧栏模块](../public/assets/residential-capacity.js)；管理员GET `stat/getResidentialCapacity`，有效订阅、独享分配/预留/每IP容量与共享授权分列，无身份凭据输出或分配副作用。共享按当前普通套餐权限识别，不因历史独享池记录漏报；仅监控来源排除。健康/套餐上限/备用/停售沿用现行规则。4b2a71a已生产部署，线上聚合/未登录拒绝/HTTP资产验收通过；[决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)、[回归](../tests/Feature/Dedicated/ResidentialCapacityTest.php)、[上线状态](../progress-log.md#2026-10-30家宽订阅与出口容量看板)。
+家宽订阅容量：[统计服务](../app/Services/ResidentialCapacityService.php)、[管理接口](../app/Http/Controllers/V2/Admin/ResidentialCapacityController.php)、[侧栏模块](../public/assets/residential-capacity.js)；管理员GET `stat/getResidentialCapacity`，有效订阅、独享分配/预留/每IP容量与共享授权分列，无身份凭据输出或分配副作用。共享按当前普通套餐权限识别，不因历史独享池记录漏报；仅监控来源排除。健康/套餐上限/备用/停售沿用现行规则。b138598已生产部署，线上聚合/未登录拒绝/HTTP资产验收通过；[决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)、[回归](../tests/Feature/Dedicated/ResidentialCapacityTest.php)、[上线状态](../progress-log.md#2026-10-30家宽订阅与出口容量看板)。
 下载目录复用[ClientDownloadService](../app/Services/ClientDownloadService.php)，版本从受控分发清单的更新索引读取，历史包不混入当前安装器列表；[下载决定](../.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)。
 后续展示调整：左侧“家宽订阅与容量”进入`#/?page=residential-capacity`独立页面，首页不再挂载或请求家宽统计；侧栏高亮、刷新/历史、手机菜单关闭及退出清理复用现有后台扩展边界。[页面决定](../.agents/notes/implemented/simplification/2026-10-30-residential-capacity-page.md)与前述统计规则分开维护，部署状态见进展。
 <!-- residential-capacity-20261030:end -->

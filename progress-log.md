@@ -53,6 +53,11 @@
 用户明确要求新增左侧模块、移除原仪表盘位置。沿用“节点质量”的独立页面方式，侧栏增加“家宽订阅与容量”，地址`#/?page=residential-capacity`；独立标题/内容区和选中态，离开恢复原页面，首页不加载容量接口。手机版点击后收起菜单，桌面折叠时保留可访问名称和图标，资源版本升到v2。仅变更入口和展示，统计接口/权限/数据口径不变；[新展示决定](./.agents/notes/implemented/simplification/2026-10-30-residential-capacity-page.md)局部替代原首页卡片决策。
 
 本地前端6项、PHP统计API6项34断言及Blade编译通过。实际固定版本React后台壳加载合成接口数据，Playwright覆盖首页无卡片/无家宽请求、侧栏选中、独立标题、直接刷新、浏览器前进后退、节点质量往返、失败/重试、深色/390px、折叠侧栏及退出清理。桌面/手机截图核对且无脚本错误；修正夹具订单汇总缺字段和srcdoc消息来源后通过，未修改生产统计处理。笔记和链接校验执行；此时尚未将侧栏版本部署，CI、镜像及线上结果随后记录。
+侧栏实现`b13859816d96919cf9a880c85c6413072dbd1ea7`已推送master，README/progress按该SHA从GitHub回读一致。[订单及前端检查](https://github.com/nanashiwang/Xboard/actions/runs/41019715691)、[探针检查](https://github.com/nanashiwang/Xboard/actions/runs/41019715806)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/41019715776)全部成功。[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/41019715796)构建与推送成功，标签`ghcr.io/nanashiwang/xboard:b138598`、manifest摘要`sha256:59d916a1ac539dc94789d094df97654d67e7ef5c0203d7e6303e45d5de475cd6`，构建编号`20261030-b138598`。
+
+[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/41020270637)于15:29:22完成：SQLite在线备份`before-deploy-txfdzf9n.sqlite`完整性检查通过、Nothing to migrate、容器Healthy，运行revision精确匹配b138598。[15:30:27线上核对](https://github.com/nanashiwang/Xboard/actions/runs/41020477300)确认管理员中间件、未登录403以及新JS/CSS实际HTTP字节和本地提交SHA一致；另从公开域名获取`?v=2`资产逐字节一致。真实聚合仍为共享两节点各6人授权、独享分配1/5、预留0、验收时健康可新增4。运行配置版本仍1.0.0，与构建编号分开记录。导航交互使用本地实际后台壳加合成数据，生产核对为真实接口/静态资产，不声称使用真实管理员账号完成浏览器操作。
+
+侧栏模块调整已上线，刷新后台即可使用；按既有镜像流程发布，无独立服务端GitHub Release。最终记录以中文文档提交推送master并回读README/progress，不混入其他任务已有暂存及未暂存内容。
 <!-- residential-capacity-20261030:end -->
 
 <!-- upstream-disappearance-20261028:start -->
