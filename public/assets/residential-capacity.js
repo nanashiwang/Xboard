@@ -2,18 +2,28 @@
   'use strict';
   const path = document.body.dataset.adminPath;
   if (!path) return;
-  let panel, request, auth = '', nextRefresh = 0;
+  const pageHash = '#/?page=residential-capacity';
+  const activeClasses = ['bg-secondary', 'text-secondary-foreground', 'shadow-sm', 'hover:bg-secondary/80'];
+  const initialTitle = document.title;
+  let panel, host, heading, title, request, auth = '', nextRefresh = 0;
   const token = () => {
     try {
       const stored = JSON.parse(localStorage.getItem('XBOARD_ACCESS_TOKEN'));
       return stored && (!stored.expire || stored.expire > Date.now()) ? stored.value : '';
     } catch { return ''; }
   };
-  const home = () => ['', '#', '#/'].includes(location.hash);
+  const route = () => {
+    const [pathname, search = ''] = location.hash.slice(1).split('?');
+    return (!pathname || pathname === '/') && new URLSearchParams(search).get('page') === 'residential-capacity';
+  };
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function remove() {
     request?.abort(); request = null;
-    panel?.remove(); panel = null; nextRefresh = 0;
+    panel?.remove(); title?.remove();
+    host?.classList.remove('rc-page-host'); heading?.parentElement?.classList.remove('rc-page-heading');
+    document.body.classList.remove('rc-page-active');
+    if (document.title === '家宽订阅与容量 · ' + initialTitle) document.title = initialTitle;
+    panel = host = heading = title = null; nextRefresh = 0;
   }
   function advice(plan) {
     if (!plan.selling) return '套餐已停售';
@@ -48,7 +58,7 @@
       });
       if (!response.ok) throw new Error(response.status === 403 ? '登录已失效或没有管理员权限，请重新登录。' : '加载失败，请重试。');
       const {data} = await response.json();
-      if (panel !== target || auth !== current || token() !== current || !home()) return;
+      if (panel !== target || auth !== current || token() !== current || !route()) return;
       render(data, target); status.textContent = ''; nextRefresh = Date.now() + 60000;
     } catch (error) {
       if (panel !== target || auth !== current) return;
@@ -65,17 +75,43 @@
   function mount() {
     const current = token();
     if (auth !== current) { remove(); auth = current; }
-    if (!current || !home() || !document.querySelector('nav a[href="#/"]')) { remove(); return; }
+    const homeLink = document.querySelector('nav a[href="#/"]');
+    let nav = document.getElementById('residential-capacity-nav');
+    if (!current || !homeLink || location.hash.startsWith('#/sign-in')) { remove(); nav?.remove(); return; }
+    if (!nav) {
+      nav = document.createElement('a'); nav.id = 'residential-capacity-nav'; nav.href = pageHash;
+      nav.setAttribute('aria-label', '家宽订阅与容量'); nav.title = '家宽订阅与容量';
+      nav.innerHTML = '<div class="mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-8h6v8"/></svg></div><span>家宽订阅与容量</span>';
+      nav.addEventListener('click', event => {
+        if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+          document.querySelector('button[aria-controls="sidebar-menu"][aria-expanded="true"]')?.click();
+        }
+      });
+      (document.getElementById('node-probe-nav') || homeLink).after(nav);
+    }
+    const active = route();
+    nav.className = homeLink.className.split(' ').filter(c => !activeClasses.includes(c)).join(' ') + (active ? ' ' + activeClasses.join(' ') : ' hover:bg-accent');
+    if (active) { nav.setAttribute('aria-current', 'page'); homeLink.removeAttribute('aria-current'); }
+    else { nav.removeAttribute('aria-current'); if (['', '#', '#/'].includes(location.hash)) homeLink.setAttribute('aria-current', 'page'); }
+    if (!active) { remove(); return; }
     if (panel?.isConnected) {
       if (!document.hidden && Date.now() >= nextRefresh) load();
       return;
     }
-    const host = document.querySelector('main > div > div.flex-1');
-    if (!host) return;
-    remove(); panel = document.createElement('section'); panel.id = 'residential-capacity'; panel.setAttribute('aria-label', '家宽订阅与容量');
-    panel.innerHTML = '<div class="rc-heading"><div><h2>家宽订阅与容量</h2><span class="rc-time"></span></div><button type="button">刷新</button></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
-    panel.querySelector('button').addEventListener('click', load); host.prepend(panel); load();
+    const content = document.querySelector('main > div > div.flex-1');
+    const originalHeading = document.querySelector('main h1:not(#node-quality-title):not(#residential-capacity-title)');
+    if (!content || !originalHeading) return;
+    remove(); host = content; heading = originalHeading;
+    title = document.createElement('h1'); title.id = 'residential-capacity-title'; title.className = heading.className; title.textContent = '家宽订阅与容量';
+    heading.parentElement.append(title); heading.parentElement.classList.add('rc-page-heading');
+    panel = document.createElement('section'); panel.id = 'residential-capacity'; panel.setAttribute('aria-label', '家宽订阅与容量');
+    panel.innerHTML = '<div class="rc-heading"><div><h2>独享分配</h2><span class="rc-time"></span></div><button type="button">刷新</button></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
+    panel.querySelector('button').addEventListener('click', load); host.append(panel);
+    host.classList.add('rc-page-host'); document.body.classList.add('rc-page-active'); host.scrollTop = 0;
+    document.title = '家宽订阅与容量 · ' + initialTitle; load();
   }
+  const root = document.getElementById('root');
+  if (root) new MutationObserver(mount).observe(root, {childList: true, subtree: true});
   addEventListener('hashchange', mount); addEventListener('storage', mount);
   setInterval(mount, 1000); mount();
 })();

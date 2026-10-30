@@ -9,3 +9,11 @@
 #residential-capacity .rc-table-wrap{overflow-x:auto}#residential-capacity table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:left}#residential-capacity th{font-weight:500;color:hsl(var(--muted-foreground));font-size:12px}#residential-capacity td,#residential-capacity th{padding:10px 12px;border-bottom:1px solid hsl(var(--border))}#residential-capacity td:first-child,#residential-capacity th:first-child{padding-left:0}#residential-capacity .rc-ip{display:block;font-size:12px;color:hsl(var(--muted-foreground));font-variant-numeric:tabular-nums}
 #residential-capacity .rc-help{margin-top:14px}#residential-capacity .rc-shared{border-top:1px solid hsl(var(--border));margin-top:16px;padding-top:12px}#residential-capacity summary{cursor:pointer;font-weight:500}#residential-capacity .rc-shared li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;flex-wrap:wrap}#residential-capacity .rc-shared strong{font-size:13px}#residential-capacity .rc-empty{padding:20px 0}
 @media(max-width:600px){#residential-capacity{padding:14px}.rc-plan-heading{align-items:flex-start!important}#residential-capacity .rc-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#residential-capacity .rc-stats strong{font-size:23px}}
+.rc-page-host>:not(#residential-capacity){display:none!important}
+.rc-page-active main{height:100dvh}
+.rc-page-host{min-height:0;overflow-y:auto!important;overscroll-behavior:contain}
+.rc-page-heading>h1:not(#residential-capacity-title){display:none}
+.rc-page-active nav a[href="#/"]{background:transparent;box-shadow:none;color:inherit}
+#residential-capacity-nav[aria-current=page]{background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}
+[data-collapsed=true] #residential-capacity-nav>span{display:none}
+[data-collapsed=true] #residential-capacity-nav>div{margin:0}
