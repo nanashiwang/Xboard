@@ -7,11 +7,24 @@ use App\Models\User;
 
 class ClientDownloadService
 {
+    protected function manifest(): array
+    {
+        return json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true, 512, JSON_THROW_ON_ERROR);
+    }
+
     public function catalog(): array
     {
-        $manifest = collect(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true, 512, JSON_THROW_ON_ERROR))->keyBy('name');
+        $manifest = collect($this->manifest())->keyBy('name');
+        $index = $manifest->get('capybara-latest.json');
+        if (!preg_match('~^https://github\.com/nanashiwang/Xboard/releases/download/capybara-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/capybara-latest\.json$~D', $index['url'] ?? '', $match)) {
+            throw new \LogicException('Invalid Capybara release index in download manifest');
+        }
+        $version = $match[1];
         $package = function (string $name, string $label) use ($manifest): array {
             $asset = $manifest->get($name);
+            if (!$asset || ($asset['kind'] ?? 'installer') !== 'installer') {
+                throw new \LogicException('Missing installer in download manifest: '.$name);
+            }
             return [
                 'label' => $label,
                 'url' => '/downloads/' . rawurlencode($name),
@@ -28,31 +41,31 @@ class ClientDownloadService
             'guide' => '安装后打开客户端，在本站点击“一键导入”。导入完成后，在客户端选择订阅并开启系统代理。',
         ];
         $capybara = [
-            'id' => 'capybara', 'name' => '卡皮巴拉', 'version' => '0.1.5',
+            'id' => 'capybara', 'name' => '卡皮巴拉', 'version' => $version,
             'flow' => 'account',
-            'source' => 'https://github.com/nanashiwang/Xboard/tree/capybara-v0.1.5/desktop/capybara',
-            'releases' => 'https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.5',
+            'source' => "https://github.com/nanashiwang/Xboard/tree/capybara-v{$version}/desktop/capybara",
+            'releases' => "https://github.com/nanashiwang/Xboard/releases/tag/capybara-v{$version}",
             'guide' => '打开卡皮巴拉，通过官网账号授权登录，在首页选择节点并连接。无需复制订阅地址，流量与到期状态会自动同步。',
         ];
         return [
             'windows' => $capybara + [
                 'platform' => 'Windows', 'requirement' => 'Windows 10 / 11 · 64 位',
-                'packages' => [$package('Capybara_0.1.5_x86_64-pc-windows-msvc.exe', '下载 Windows x64 安装包')],
+                'packages' => [$package("Capybara_{$version}_x86_64-pc-windows-msvc.exe", '下载 Windows x64 安装包')],
                 'note' => '当前尚无 Windows 发行者签名，安装时可能出现系统提示；不确定时可使用下方第三方客户端。暂不提供 Windows ARM 安装包。',
             ],
             'macos' => $capybara + [
                 'platform' => 'macOS', 'requirement' => 'macOS 12 或更新版本',
                 'packages' => [
-                    $package('Capybara_0.1.5_aarch64-apple-darwin.dmg', '下载 Apple 芯片版（M 系列）'),
-                    $package('Capybara_0.1.5_x86_64-apple-darwin.dmg', '下载 Intel 芯片版'),
+                    $package("Capybara_{$version}_aarch64-apple-darwin.dmg", '下载 Apple 芯片版（M 系列）'),
+                    $package("Capybara_{$version}_x86_64-apple-darwin.dmg", '下载 Intel 芯片版'),
                 ],
                 'note' => '在苹果菜单 → 关于本机中查看芯片。当前未完成 Apple 开发者公证，系统可能阻止打开；请先核对来源与校验值，或使用下方第三方客户端。',
             ],
             'linux' => $capybara + [
                 'platform' => 'Linux', 'requirement' => 'x64 · GNOME 桌面 · 需要系统密钥环',
                 'packages' => [
-                    $package('Capybara_0.1.5_x86_64-unknown-linux-gnu.deb', '下载 DEB（Debian / Ubuntu）'),
-                    $package('Capybara_0.1.5_x86_64-unknown-linux-gnu.AppImage', '下载 AppImage（x64）'),
+                    $package("Capybara_{$version}_x86_64-unknown-linux-gnu.deb", '下载 DEB（Debian / Ubuntu）'),
+                    $package("Capybara_{$version}_x86_64-unknown-linux-gnu.AppImage", '下载 AppImage（x64）'),
                 ],
                 'note' => '自动设置系统代理目前仅支持 GNOME / gsettings；AppImage 需要执行权限及系统运行依赖。KDE、其他桌面或 ARM 设备请使用适配的第三方客户端。',
             ],

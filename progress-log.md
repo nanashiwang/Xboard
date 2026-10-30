@@ -34,6 +34,10 @@
 实现6e077e3a27d5ed971bf531d07d8c5d5e072b5848已提交推送master，README/progress按该SHA从GitHub逐字节回读通过。[订单及前端CI](https://github.com/nanashiwang/Xboard/actions/runs/40999949492)、[笔记](https://github.com/nanashiwang/Xboard/actions/runs/40999949545)、[管理工具](https://github.com/nanashiwang/Xboard/actions/runs/40999949476)、探针/邮件检查均成功。[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/40999949564)构建及推送完成，标签`ghcr.io/nanashiwang/xboard:6e077e3`、manifest摘要`sha256:b735993037ef5740e4a8ab7e0e964c0e9a0e94e715973c3a068f4e91ab4b5fc5`，流水线版本`20261030-6e077e3`。此为构建标识，不是当前线上版本。
 
 生产未部署、未运行线上功能验收。期间并行任务提交1005bf7及记录9ba89fc，该任务明确要求不改生产，且其完整Desktop CI揭示已有下载代码0.1.5与manifest0.1.9不一致。现有管理命令拉取整个master镜像，不能把本次看板等同于授权上线全部并行改动，也不应部署已知会破坏下载目录的整镜像；没有回退他人提交或修改生产以绕过。已向用户提出上线范围选择：修复下载目录后一起部署当前主分支，或先交付本次看板代码。待回复期间保留生产现态。本次后台沿用双架构镜像、日期/提交版本发布方式；无服务端GitHub Release流程，不更新桌面客户端版本或套用其安装包Release。
+
+用户随后明确选择“修复下载页后，一并部署当前主分支”，已授权合并上线范围，前述等待状态结束。下载目录改为从清单中capybara-latest.json的官方发布URL提取版本，五种安装包、版本标签、源码/Release链接一致；历史包保留且不混入当前目录，缺包明确拒绝。复用[下载决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)，没有发布新的桌面安装包或擅自把更新索引升到其他版本。
+
+修复后Desktop/Dedicated/Operations/Payments/Probes合计173项、1441断言通过，初次仅真实内核检查因未指定二进制跳过；随后挂载已验证的1.13.19内核，SingBoxTemplateTest九项236断言全部通过。前端五项及下载同步回归通过。部署前先走既有sync-downloads验证与同步资产；本轮新增线上检查核对未登录API真实403及HTTP返回静态资产与磁盘SHA一致。当前代码检查完成，构建及部署结果随后记录。
 <!-- residential-capacity-20261030:end -->
 
 <!-- upstream-disappearance-20261028:start -->
