@@ -83,6 +83,8 @@
   <div id="root"></div>
   <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=5">
   <script src="/assets/node-probe-dashboard.js?v=5" defer></script>
+  <link rel="stylesheet" href="/assets/residential-capacity.css?v=1">
+  <script src="/assets/residential-capacity.js?v=1" defer></script>
 </body>
 
 </html>

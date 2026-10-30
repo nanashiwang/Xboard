@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- residential-capacity-20261030:start -->
+家宽订阅容量：[统计服务](../app/Services/ResidentialCapacityService.php)、[管理接口](../app/Http/Controllers/V2/Admin/ResidentialCapacityController.php)、[首页扩展](../public/assets/residential-capacity.js)；管理员GET `stat/getResidentialCapacity`，有效订阅、独享分配/预留/每IP容量与共享授权分列，无身份凭据输出或分配副作用。健康/套餐上限/备用/停售沿用现行规则；[决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)、[回归](../tests/Feature/Dedicated/ResidentialCapacityTest.php)、[上线状态](../progress-log.md#2026-10-30家宽订阅与出口容量看板)。
+<!-- residential-capacity-20261030:end -->
+
 <!-- upstream-disappearance-20261028:start -->
 外接线路当前状态（2026-10-28）：41条中31条被保护器撤下，四档可见外接0/0/2/10；剩余10条公开路径双目标也均失败。本次只读诊断与候选观察，未恢复或接纳新身份；守护的运行时证书覆盖仅28条AnyTLS，其余协议仍显示不等于健康。见[证据/后续恢复边界](../progress-log.md#2026-10-28外接节点消失与全量不可用复核)；下表历史接入/恢复数量不代表现态。
 <!-- upstream-disappearance-20261028:end -->

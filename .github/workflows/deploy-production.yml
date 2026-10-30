@@ -14,6 +14,7 @@ on:
           - inspect-mail
           - inspect-browser-login
           - inspect-dedicated
+          - inspect-residential-capacity
           - preview-owned-dedicated
           - attach-owned-dedicated
           - verify-owned-dedicated
@@ -82,6 +83,11 @@ jobs:
               "python3 '$remote_dir/sync.py' --database /root/Xboard/.docker/.data/database.sqlite --article-id 5 --backup-dir /root/xboard-backups/knowledge --apply"
             exit 0
           fi
+          if [ "$OPERATION" = inspect-residential-capacity ]; then
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker compose exec -T xboard php' < .docker/dedicated/inspect-capacity.php
+            exit 0
+          fi
           if [ "$OPERATION" = inspect-dedicated ]; then
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker compose exec -T xboard php' < .docker/dedicated/inspect.php
@@ -95,6 +101,7 @@ jobs:
             exit 0
           fi
           if [ "$OPERATION" = preview-owned-dedicated ] || [ "$OPERATION" = attach-owned-dedicated ]; then
+            # shellcheck disable=SC2016 # The command substitution runs on the remote host.
             actual=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker inspect --format '\''{{index .Config.Labels "org.opencontainers.image.revision"}}'\'' "$(docker compose ps -q xboard)"')
             test "$actual" = "$EXPECTED_REVISION"

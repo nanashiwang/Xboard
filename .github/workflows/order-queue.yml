@@ -2,9 +2,9 @@ name: Order Queue Checks
 on:
   push:
     branches: [master]
-    paths: ['app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/DedicatedExitHealthService.php', 'app/Console/Commands/AttachOwnedDedicatedExits.php', 'app/Models/DedicatedExit.php', 'database/migrations/**', 'tests/Feature/Probes/**', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
+    paths: ['app/Services/ResidentialCapacityService.php', 'app/Http/Controllers/V2/Admin/ResidentialCapacityController.php', 'app/Http/Routes/V2/AdminRoute.php', 'public/assets/residential-capacity.*', 'resources/views/admin.blade.php', 'tests/Frontend/residential-capacity.test.cjs', 'app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/DedicatedExitHealthService.php', 'app/Console/Commands/AttachOwnedDedicatedExits.php', 'app/Models/DedicatedExit.php', 'database/migrations/**', 'tests/Feature/Probes/**', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
   pull_request:
-    paths: ['app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/DedicatedExitHealthService.php', 'app/Console/Commands/AttachOwnedDedicatedExits.php', 'app/Models/DedicatedExit.php', 'database/migrations/**', 'tests/Feature/Probes/**', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
+    paths: ['app/Services/ResidentialCapacityService.php', 'app/Http/Controllers/V2/Admin/ResidentialCapacityController.php', 'app/Http/Routes/V2/AdminRoute.php', 'public/assets/residential-capacity.*', 'resources/views/admin.blade.php', 'tests/Frontend/residential-capacity.test.cjs', 'app/Http/Controllers/V2/Admin/OrderController.php', 'app/Http/Controllers/V2/Admin/SystemController.php', 'app/Services/DedicatedExitService.php', 'app/Services/DedicatedExitHealthService.php', 'app/Console/Commands/AttachOwnedDedicatedExits.php', 'app/Models/DedicatedExit.php', 'database/migrations/**', 'tests/Feature/Probes/**', 'app/Services/OrderService.php', 'app/Jobs/OrderHandleJob.php', 'app/Console/Commands/CheckOrder.php', 'app/Exceptions/DedicatedExitUnavailableException.php', 'tests/Feature/Dedicated/**', 'tests/Feature/Operations/**', 'tests/Feature/Payments/**', 'composer.*', '.github/workflows/order-queue.yml']
 permissions:
   contents: read
 jobs:
@@ -19,3 +19,7 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: vendor/bin/phpunit tests/Feature/Dedicated tests/Feature/Operations tests/Feature/Payments tests/Feature/Probes
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/Frontend/residential-capacity.test.cjs
