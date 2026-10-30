@@ -18,19 +18,20 @@ class ResidentialCapacityService
 
     private function sharedNodes(): array
     {
-        $dedicatedBackends = DedicatedExit::pluck('shared_server_id')->filter()->all();
         $nodes = Server::where('show', true)->where('name', 'like', '%家宽%')
             ->whereNull('dedicated_exit_id')->with('parent')->get()
-            ->filter(fn ($node) => !app(DedicatedExitService::class)->nodeExitId($node)
-                && !in_array($node->parent_id ?: $node->id, $dedicatedBackends));
+            ->filter(fn ($node) => !app(DedicatedExitService::class)->nodeExitId($node));
         return $nodes->groupBy(fn ($node) => $node->parent_id ?: $node->id)->map(function ($aliases, $backendId) {
             $groups = $aliases->flatMap(fn ($node) => $node->group_ids ?? [])->unique()->values();
             $plans = Plan::where('dedicated', false)->whereIn('group_id', $groups)->pluck('id');
+            // A shared backend may also have a current or retired dedicated-pool
+            // record. Public access comes from ordinary plan groups, not pool history.
+            if ($plans->isEmpty()) return null;
             return [
                 'id' => (int) $backendId, 'name' => $aliases->pluck('name')->unique()->implode(' / '),
                 'subscribers' => $this->subscribers()->whereIn('plan_id', $plans)->whereIn('group_id', $groups)->count(),
             ];
-        })->values()->all();
+        })->filter()->values()->all();
     }
 
     public function summary(): array

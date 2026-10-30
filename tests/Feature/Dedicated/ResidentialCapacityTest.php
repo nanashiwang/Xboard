@@ -127,4 +127,28 @@ class ResidentialCapacityTest extends TestCase
         Server::where('parent_id', $backend->id)->update(['show' => false]);
         $this->assertSame([], app(ResidentialCapacityService::class)->summary()['shared_nodes']);
     }
+
+    public function test_pool_history_does_not_hide_public_authorization_and_monitor_only_sources_are_excluded(): void
+    {
+        $ordinary = $this->plan(['dedicated' => false, 'group_id' => 1]);
+        $dedicated = $this->plan();
+        $this->user(['plan_id' => $ordinary->id, 'group_id' => 1]);
+        $this->user(['plan_id' => $dedicated->id, 'group_id' => 5]);
+        $this->user(['plan_id' => null, 'group_id' => 6]);
+        $defaults = ['type' => 'vless', 'host' => 'node.test', 'port' => 443, 'server_port' => 31001, 'rate' => 2];
+        foreach ([false, true] as $enabled) {
+            $backend = Server::create($defaults + ['name' => '隐藏后端', 'show' => false, 'group_ids' => ['1', '5', '6']]);
+            $exit = $this->exit($dedicated, ['shared_server_id' => $backend->id, 'enabled' => $enabled]);
+            Server::create($defaults + ['name' => '美国01｜2×｜家宽', 'show' => true, 'parent_id' => $backend->id, 'group_ids' => ['1', '6']]);
+            Server::create($defaults + ['name' => '独享家宽', 'show' => true, 'parent_id' => $backend->id,
+                'dedicated_exit_id' => $exit->id, 'group_ids' => ['5']]);
+        }
+        Server::create($defaults + ['name' => '美国10｜2×｜家宽', 'show' => true, 'group_ids' => ['6']]);
+        $rows = app(ResidentialCapacityService::class)->summary()['shared_nodes'];
+        $this->assertCount(2, $rows);
+        foreach ($rows as $row) {
+            $this->assertSame('美国01｜2×｜家宽', $row['name']);
+            $this->assertSame(1, $row['subscribers']);
+        }
+    }
 }

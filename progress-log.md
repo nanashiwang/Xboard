@@ -38,6 +38,11 @@
 用户随后明确选择“修复下载页后，一并部署当前主分支”，已授权合并上线范围，前述等待状态结束。下载目录改为从清单中capybara-latest.json的官方发布URL提取版本，五种安装包、版本标签、源码/Release链接一致；历史包保留且不混入当前目录，缺包明确拒绝。复用[下载决定](./.agents/notes/implemented/feature/2026-10-23-capybara-client-downloads.md)，没有发布新的桌面安装包或擅自把更新索引升到其他版本。
 
 修复后Desktop/Dedicated/Operations/Payments/Probes合计173项、1441断言通过，初次仅真实内核检查因未指定二进制跳过；随后挂载已验证的1.13.19内核，SingBoxTemplateTest九项236断言全部通过。前端五项及下载同步回归通过。部署前先走既有sync-downloads验证与同步资产；本轮新增线上检查核对未登录API真实403及HTTP返回静态资产与磁盘SHA一致。当前代码检查完成，构建及部署结果随后记录。
+下载修复40fe26b74600f48181a5f54b6abbea73f306817e已推送master并回读README/progress一致。[Website检查](https://github.com/nanashiwang/Xboard/actions/runs/41010210411)恢复成功，笔记/探针/邮件CI通过；[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/41010210450)发布成功，manifest摘要`sha256:6c299d234fd7dd269d77ab31267ef18f2f5d6ee7c42373e1ba897cb79108b569`。[资产同步](https://github.com/nanashiwang/Xboard/actions/runs/41010116135)逐文件大小/SHA及更新索引引用校验通过；[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/41010840562)于北京时间13:54完成，SQLite一致性备份`before-deploy-gmcgyafx.sqlite`完整性通过、Nothing to migrate、容器Healthy且revision匹配40fe26b。流水线编号20261030-40fe26b，应用配置version仍为1.0.0（Dockerfile从固定源码重新克隆，不能将流水线改写值当成运行值）。
+
+[首次线上看板检查](https://github.com/nanashiwang/Xboard/actions/runs/41011079414)确认未登录真实403、静态JS/CSS HTTP与磁盘SHA一致；独享1人、预留0、占用1/5、当时健康可新增4。但共享列表为空，不能判为功能完整。随后[只读库存](https://github.com/nanashiwang/Xboard/actions/runs/41011235106)定位：公共源323/324、后端336/337仍授权普通组1–4，退役固定池15/16的shared_server_id仍引用这些后端；错误排除全部池关联导致漏报。改为只排除真正独享标记，按普通套餐组判断共享，监控组6单独来源不计入；新增启用/退役池复用回归后，相关PHP 95项576断言、前端5项通过。健康探针会变化，此次库存出口14已不健康，不能把前次4个可售名额当固定保证。
+
+线上`https://taige.us/clients`返回200，五种Capybara安装包均为0.1.9，各下载HEAD200且Content-Length匹配清单，公开更新索引SHA及版本一致；桌面/390px浏览器无脚本错误和横向溢出，截图已核对（全页窄屏拼接出现重复绘制，改独立390px上下文视口截图确认页面正常、H1仅一个）。公共看板静态资产SHA也匹配提交。sing-box代码随整分支部署，既有数据库模板没有自动替换，不声称线上完整订阅已升级。共享统计修正版的构建及再部署随后记录。
 <!-- residential-capacity-20261030:end -->
 
 <!-- upstream-disappearance-20261028:start -->
