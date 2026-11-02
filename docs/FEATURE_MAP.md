@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- capybara-login-latency-20261103:start -->
+登录启动性能：[home.js](../public/assets/capybara-home/home.js)跨home/panel边界整页刷新，再动态加载umi.js；[模板](../theme/Xboard/dashboard.blade.php)只有引导脚本defer，未提前加载主脚本，[入口样式](../public/assets/capybara-home/entry.css)在panel模式隐藏按钮。主JS约1.42MB/压缩434KB且未明确设置资源缓存头，等待期间无进度UI；公开配置请求不是根应用挂载的前置await。优化尚未实施，现有hash历史行为继续保留；[诊断证据](../progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
+<!-- capybara-login-latency-20261103:end -->
+
 <!-- capybara-go-relay-20261103:start -->
 Go 网络入口：仅 DNS A155.103.118.155 → 严格 HTTPS107.173.191.23；[跳板配置](../.docker/production/go-relay.conf)、[受控安装/回退](../.docker/production/go-relay-deploy.py)、[源站独立信任工作流](../.github/workflows/go-relay-origin.yml)。共享站点不变，身份头覆盖、源站信任、webroot续期模拟和ACME fallback已验；最终Windows普通解析首页/API/完整JS通过且哈希匹配，但前序独立连接仍超时，稳定性未完成验收。Hub Pages及旧客户端0.1.9边界保留。见[实施决定](../.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)及[证据](../progress-log.md#2026-11-03go-应用关闭橙云并切至跳板)。
 <!-- capybara-go-relay-20261103:end -->

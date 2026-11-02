@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- capybara-login-latency-20261103:start -->
+### 点击后登录页显示慢（2026-11-03）
+
+用户明确慢在点击“进入官网”之后。代码确认此时整页刷新，home.js到达并执行后才注入主登录脚本；主JS解压1420663字节、gzip传输约434KB，空app容器在加载期间没有进度提示。当前响应中Hub首页public/max-age=300，Go HTML为no-cache/private，主JS没有明确Cache-Control/ETag/Last-Modified；不能从导航很快推断登录链同样快，也不能把缺少明确缓存策略写成每次必定重下载。
+
+新一轮无代理Windows首页/API约0.80s/0.77s，主JS约2.45s；跳板侧小请求约0.11–0.26s，但完整JS也有4.73s样本，尚未隔离具体传输慢段。建议优先优化版本化静态缓存、登录资源提前加载与等待提示，独立处理间歇超时；本轮只诊断，未部署这些优化。见[证据及后续行动](./progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
+<!-- capybara-login-latency-20261103:end -->
+
 <!-- capybara-go-relay-20261103:start -->
 ### 应用入口已改为直连跳板（2026-11-03）
 

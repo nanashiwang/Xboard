@@ -1,5 +1,22 @@
 # Xboard 项目进展记录
 
+<!-- capybara-login-latency-20261103:start -->
+## 2026-11-03：点击进入官网后登录页显示延迟
+
+用户反馈导航顺畅、Go界面慢，进一步确认发生在点击“进入官网”后、登录页出现前。只读检查当前代码、真实浏览器DOM/错误日志、同一无代理Windows和跳板，不修改生产或用户代理/DNS。
+
+- 链路：home.js通过popstate/hashchange检测home/panel切换后location.reload；新文档defer加载home.js，再动态注入module umi.js。模板未为umi.js设置预加载；入口CSS在panel模式隐藏按钮，app初始只有noscript，因此脚本未到达时缺少进度反馈。错误提示只有main.onerror触发后出现。
+- 资源：仓库主JS1420663字节。当前浏览器实际脚本均为同源，引导/主JS/desktop-login-return/gift-card/client-download-entry，未见外部验证码脚本；本次错误日志为空，不能把minified文件里存在的第三方URL误判成实际阻塞请求。
+- 配置：登录组件在挂载生命周期启动guest/comm/config，但未将该请求await为根应用挂载条件；不能把接口耗时机械叠加为登录表单必然等待时间。有历史登录态时另有用户鉴权路由分支，本轮未验真实账户分支。
+- Windows00:34起：再次确认ProxyEnable=0/PAC未设/代理环境变量0，所有探针no_proxy并保留证书校验。Go首页200/0.805s（TLS0.473s），主JS200/2.445s（首字节0.748s、gzip433928字节），公开配置200/0.774s，均连接155.103.118.155。Hub首轮TCP连接5秒超时，随后HEAD200；用户浏览器导航快的体验不被单台探针否定，缓存或连接复用只是可能解释，没有观测用户缓存命中。
+- 当前HEAD：Hub首页Cache-Control public,max-age=300、CF-Cache-Status DYNAMIC；Go首页no-cache,private；Go主JS有gzip/Vary，但无Cache-Control、ETag、Last-Modified。这里只确认缺少显式资源缓存策略，不声称所有浏览器必定每次重新下载。
+- 跳板侧：首次SSH建连超时，复测成功，负载约0.22/0.20/0.20。到源站首页/API约0.227s/0.249s、JS1.42MB约0.642s；经本机跳板首页/API约0.109s/0.262s、压缩JS约4.728s（首字节0.095s）。小请求未见持续后台排队，但完整资源传输仍有慢样本；非同时同连接的短样本不足以定位客户端公网、跳板回源、压缩或传输中的单一根因。
+
+结论：已确认按钮后整页刷新与动态主脚本构成串行依赖、较大启动资源、缺少明确静态缓存和等待反馈；前轮15–25秒超时会进一步放大等待。不能据此声称全部延迟都由1.42MB或某台服务器造成。后续优先版本化静态缓存/提前加载主脚本/可见等待与失败恢复；若调整整页切换，需要保留已有history/popstate/hash/BFCache回归。账号API、订阅、授权和支付不得进入公共缓存。独立线路与客户端恢复仍是另一工作项。
+
+本轮记录到README、能力地图及[现有入口决定](./.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)，仅诊断文档；笔记/相对链接检查后中文commit、push master，并按精确SHA回读README/progress。生产应用仍0a068f7、客户端0.1.9，无新构建、Release或部署；保留其他暂存/未暂存改动。
+<!-- capybara-login-latency-20261103:end -->
+
 <!-- capybara-go-relay-20261103:start -->
 ## 2026-11-03：Go 应用关闭橙云并切至跳板
 
