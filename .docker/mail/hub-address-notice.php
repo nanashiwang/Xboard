@@ -8,7 +8,7 @@ class HubAddressNotice
     public const TEMPLATE = 'hubAddressUpdate20261103';
     public const CONTENT = "你好，卡皮巴拉用户：\n\n为方便你在访问入口调整时找到我们，我们启用了新的统一导航地址：\n\nhttps://capybarahub.fyi/\n\n请将这个地址加入浏览器书签，或保存本邮件。今后可从导航页进入应用、查找客户端下载入口。\n\n更换网页访问入口后，仍使用原来的卡皮巴拉账号；账号、套餐和剩余权益不会因本次地址更新而改变，无需重新注册。\n\n如果旧网址无法打开，请从新导航页进入应用。我们会持续优化访问体验与服务稳定性，继续为大家提供更可靠的服务。\n\n感谢你的理解与支持。\n卡皮巴拉";
 
-    public function __construct(private string $directory, private int $delay = 1500000) {}
+    public function __construct(private string $directory, private int $delay = 3000000) {}
 
     public function recipients(): array
     {
@@ -89,7 +89,7 @@ class HubAddressNotice
             $category = 'other';
             foreach ([
                 'daily_quota' => '/daily.{0,40}(quota|limit)|24.?hour.{0,40}(quota|limit)/i',
-                'sending_rate' => '/maximum sending rate|sending rate exceeded|rate limit exceeded/i',
+                'sending_rate' => '/maximum sending rate|sending rate exceeded|throttling failure.{0,12}rate exceeded|rate limit exceeded/i',
                 'rate_or_quota' => '/rate.?limit|throttl|too many|daily|quota exceeded/i',
                 'authentication' => '/authenticat|credentials/i',
                 'recipient_rejected' => '/user unknown|unknown user|no such user|recipient address rejected|mailbox.{0,40}(not exist|unavailable)|email account.{0,60}does not exist|invalid recipient/i',
@@ -151,7 +151,7 @@ class HubAddressNotice
                     // Daily quotas, transport ambiguity and ordinary failures remain untouched.
                     if (($target['rate_retries'] ?? 0) >= 1 ||
                         !preg_match('/got code\s+"?454/i', $error) ||
-                        !preg_match('/maximum sending rate|sending rate exceeded/i', $error) ||
+                        !preg_match('/maximum sending rate|sending rate exceeded|throttling failure.{0,12}rate exceeded/i', $error) ||
                         preg_match('/daily|quota|24.?hour/i', $error)) continue;
                     $target['rate_retries'] = 1;
                     $target['status'] = 'pending';

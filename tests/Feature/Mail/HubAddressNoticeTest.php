@@ -87,7 +87,7 @@ class HubAddressNoticeTest extends TestCase
     public function test_explicit_rate_rejection_can_be_retried_once_but_daily_quota_cannot(): void
     {
         $this->user('rate@example.test');
-        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('Expected response code "250" but got code "454", with message "454 Maximum sending rate exceeded"'));
+        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('Expected response code "250" but got code "454", with message "454 Throttling failure: Rate exceeded"'));
         $notice = new \HubAddressNotice($this->directory, 0);
         $result = $notice->sendBatch();
         $this->assertSame(1, $result['smtp_error_summary']->{'sending_rate:454'});
