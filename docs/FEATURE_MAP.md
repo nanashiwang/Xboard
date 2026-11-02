@@ -3,9 +3,7 @@
 <!-- capybara-migration-20261103:start -->
 ### 客户端入口同步迁移（0.1.12）
 
-[Account](../desktop/capybara/src-tauri/src/account.rs)固定Go同源承载登录、订阅、套餐和刷新；[更新器](../desktop/capybara/src-tauri/src/updates.rs)读取Go新版索引且限制精确版本化包路径；[发布脚本](../desktop/capybara/scripts/update-manifest.mjs)同时生成旧版兼容与新版索引；[分发同步](../.docker/downloads/sync.py)先验证附件及全部索引再发布。安装身份/公钥不变，帮助页可打开Hub；旧域已断旧版需覆盖升级，自动多源选路与离线恢复仍待实施。本地75前端/17脚本/60 Rust及7分发测试通过；Release、线上同步和无代理升级待验。见[决定](../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
-
-发布进度：原构建41501325119四平台全部通过，发布阶段两次HTTP403；未公开不完整版本。Windows已覆盖安装0.1.12，设备标识/分流/更新记录保留、代理关闭。加入仅复用已验证构建和已有草稿的恢复工作流；附件及线上分发仍待最终验收。
+[Account](../desktop/capybara/src-tauri/src/account.rs)固定Go同源承载登录、订阅、套餐和刷新；[更新器](../desktop/capybara/src-tauri/src/updates.rs)读取Go新版索引、限制精确版本化包路径；[发布脚本](../desktop/capybara/scripts/update-manifest.mjs)生成旧版兼容及新版索引；[分发同步](../.docker/downloads/sync.py)先验证附件及全部索引再发布。安装身份/公钥不变，帮助页打开Hub；旧域已断需覆盖升级，多源选路与离线恢复待实施。本地75前端/17脚本/60 Rust及7分发测试通过，四目标与19附件已公开；Windows安装版本/配置保留已验。官网15项151断言、教程4项、Hub静态构建通过；线上分发和Mac验收待完成。见[决定](../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

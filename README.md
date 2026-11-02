@@ -3,13 +3,11 @@
 <!-- capybara-migration-20261103:start -->
 ### 客户端新入口迁移 0.1.12（2026-11-03）
 
-客户端账号、授权、套餐与节点订阅统一切至 capybarago.uk，帮助页增加 capybarahub.fyi 官方导航；保留安装标识、原账号和更新公钥。新版读取 capybara-current.json，旧 capybara-latest.json 保留旧域包地址，避免旧版白名单拒绝更新。旧域不可达的旧版仍需从导航覆盖安装一次；macOS 可能需重新授权登录。多入口自动选路及离线恢复尚未实现。
+[0.1.12 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.12) 已公开，四目标构建、19附件摘要和更新签名均已验；原发布创建Release返回403，已用原签名产物通过恢复工作流41506476094发布。源码标签指向9f36320。客户端账号、授权、套餐与订阅统一切至 capybarago.uk，帮助页增加 capybarahub.fyi 官方导航；安装身份、原账号和更新公钥保留。
 
-已核对 GitHub 最高正式版为0.1.11（不能按 Release 列表顺序推断），官网分发及 Windows 测试机仍0.1.9，Mac安装版0.1.5；下方历史“客户端0.1.9”指当时官网分发而非最高 Release。0.1.12 本地前端75/脚本17/Rust60通过（1项钥匙串手工测试未执行），下载同步7项及构建通过。四目标发布、线上分发和无代理安装验收进行中，未宣称客户已自动升级。见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-11-03客户端新入口同步迁移)。
+新版读取capybara-current.json；旧capybara-latest.json保留旧域包地址，避免旧版白名单拒绝升级。旧域不可达的旧版需从导航覆盖安装一次；macOS可能需重新授权登录，第三方客户端已保存的旧订阅链接需重新导入。多入口自动选路及离线恢复尚未实现。
 
-发布进度：原构建41501325119四平台全部通过，发布阶段两次HTTP403；未公开不完整版本。Windows已覆盖安装0.1.12，设备标识/分流/更新记录保留、代理关闭。加入仅复用已验证构建和已有草稿的恢复工作流；附件及线上分发仍待最终验收。
-
-恢复发布已将19附件上传草稿；修复草稿使用公开tag查询返回404的验收错误，待云端完整摘要校验后公开。
+Windows测试机已从0.1.9覆盖升级0.1.12，设备标识/分流/更新记录保持、代理关闭；官网及Hub分发同步中。下方历史“客户端0.1.9”指当时官网分发，GitHub此前最高稳定版实际为0.1.11。见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-11-03客户端新入口同步迁移)。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

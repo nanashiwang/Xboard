@@ -3,16 +3,14 @@
 <!-- capybara-migration-20261103:start -->
 ## 2026-11-03：客户端新入口同步迁移
 
-用户要求将客户端登录、更新地址与订阅同步一起迁到新入口。只读核对：GitHub最高数字稳定版0.1.11（18附件），Go公开更新索引仍0.1.9且全部包URL为旧域；后端app_url/subscribe_url已是Go（配置只读验证41498407598成功），源配置未改；Mac已装0.1.5、Windows已装0.1.9。不能把GitHub Release、官网分发与用户实际安装混为一谈。
+用户要求将客户端登录、更新地址与订阅同步迁到新入口。审计：GitHub此前最高数字稳定版0.1.11（18附件），Go官网索引仍0.1.9且包URL均为旧域；后端app_url/subscribe_url已为Go（只读配置验证41498407598），Mac已装0.1.5、Windows0.1.9。不能把Release、官网分发与客户实际版本混为一谈。
 
-- 0.1.12：API/授权/账户/套餐/订阅/邀请/公告相对地址迁Go；帮助页新增Hub导航；规则模式增加新域直连，保留旧域及用户规则优先级。设备与存储身份、更新公钥保持原值；macOS已有二进制身份隔离仍可能要求重新登录。
-- 新版索引capybara-current.json使用Go包URL；旧capybara-latest.json仍使用taige.us，两个索引同一批签名包，发布时均纳入摘要。分发必须附件和全部索引校验完才发布任何索引；失败保留既有指针。新索引严格验证Go域与精确包名，保留用户确认安装和DEB手动边界。
-- 本地：前端75、授权/签名脚本17、Rust60通过/1项钥匙串手工测试未运行、下载同步7项通过、Vite构建通过；覆盖旧新索引包/签名一致、错误域/版本/凭据/查询拒绝、第二索引损坏不发布任何指针。工作流结构验证通过。四目标构建、Release附件、线上同步、Mac/Windows安装和无代理实测尚未完成。
-- 范围：同步新入口，不承诺旧域已断的旧版本能自动获取补丁；需要Hub覆盖安装一次。多入口选路、独立更新镜像、冷启动离线恢复仍是[后续规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)。沿用[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)和[同源授权](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)，不新增重复架构决定。
-
-发布进度：原构建41501325119四平台全部通过，发布阶段两次HTTP403；未公开不完整版本。Windows已覆盖安装0.1.12，设备标识/分流/更新记录保留、代理关闭。加入仅复用已验证构建和已有草稿的恢复工作流；附件及线上分发仍待最终验收。
-
-恢复发布41505949728已下载原四目标、重验全部签名并上传19附件；最终GET releases/tags对草稿返回404而停止，草稿仍未公开。改为Release列表精确tag+draft筛选；actionlint与笔记校验通过，重试后仍须远端摘要及公开状态验收。
+- 源码9f363204010ffb4e4a1307bc034b8fa0f4a883fa，tag capybara-v0.1.12；API/授权/账户/套餐/节点订阅/邀请/公告相对地址迁Go；帮助页新增Hub，规则模式加新域直连并保留旧域及用户规则优先级。设备存储标识与更新公钥保持原值；macOS既有二进制身份隔离仍可能需重登。
+- capybara-current.json使用Go包URL，兼容capybara-latest.json保留taige.us URL；同一批签名包、两个索引均入摘要。全部附件与索引校验后才替换指针，第二索引损坏保留原有指针。安装仍由用户确认，DEB交由系统安装器。
+- 本地前端75、授权/签名脚本17、Rust60通过/1钥匙串手工测试未执行、Vite构建、下载同步7项通过；工作流/笔记校验通过。下载目录更新后PHP15项151断言、教程4项、Hub静态构建通过。
+- 原构建41501325119四平台成功，发布两次HTTP403。使用既有仓库权限创建固定源码标签与草稿，未扩大Actions权限或更换签名密钥。恢复流程41505949728上传19附件后因公开tag查询不返回草稿而404，未公开不完整版本；修正草稿列表查询，41506476094成功，复验四目标签名、19个附件远端摘要后正式公开[0.1.12](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.12)。恢复流程提交03b2389/1882993，README与progress按提交回读一致。
+- Windows原无系统/WinHTTP/环境代理、无PAC/相关hosts/TUN进程；CI Windows包归档摘要和旧公钥验签通过，覆盖安装退出0，登记版本0.1.12，device-id/routing.json/update-check.json摘要不变，代理仍0且未自动运行。无代理Go授权页面200/0.90s；公开API先有一次15秒超时，复测200/0.92s且app_url为Go，不能外推长期稳定。
+- 当前发布与本地分发清单已完成，生产安装包/双索引、官网目录、Hub和教程同步及Mac原生验收仍待完成。旧域不可达的旧客户端必须从Hub覆盖安装一次；第三方客户端旧订阅链接需重新导入。自动多入口选路、独立更新镜像和冷启动离线恢复仍属[后续规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)。沿用[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[同源授权](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

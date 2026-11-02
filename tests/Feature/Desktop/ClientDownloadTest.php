@@ -34,15 +34,15 @@ class ClientDownloadTest extends TestCase
             $client = $catalog[$platform];
             $this->assertSame('capybara', $client['id']);
             $this->assertSame('account', $client['flow']);
-            $this->assertSame('0.1.9', $client['version']);
+            $this->assertSame('0.1.12', $client['version']);
             $this->assertCount($count, $client['packages']);
             $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
             $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
             $this->assertStringContainsString('正式版', $section->textContent);
             $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
             foreach ($client['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.9_', $package['url']);
-                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.9/', $package['official_url']);
+                $this->assertStringStartsWith('/downloads/Capybara_0.1.12_', $package['url']);
+                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.12/', $package['official_url']);
             }
         }
         $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
@@ -79,7 +79,7 @@ class ClientDownloadTest extends TestCase
         $packages = collect(app(ClientDownloadService::class)->catalog())->pluck('packages')->flatten(1);
         $local = $packages->filter(fn ($package) => isset($package['sha256']));
         $this->assertCount(11, $local);
-        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], 'Capybara_0.1.9_')));
+        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], 'Capybara_0.1.12_')));
         $this->assertFalse($local->contains(fn ($package) => str_contains($package['url'], 'Capybara_0.1.8_')));
         foreach ($local as $package) {
             $asset = $manifest->get(rawurldecode(basename($package['url'])));
@@ -92,7 +92,7 @@ class ClientDownloadTest extends TestCase
     public function test_catalog_tracks_the_selected_index_version_without_selecting_historical_installers(): void
     {
         $assets = json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true);
-        $assets = json_decode(str_replace('0.1.9', '0.1.42', json_encode($assets)), true);
+        $assets = json_decode(str_replace('0.1.12', '0.1.42', json_encode($assets)), true);
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }
@@ -111,7 +111,7 @@ class ClientDownloadTest extends TestCase
     public function test_incomplete_selected_release_is_rejected_instead_of_mixing_old_packages(): void
     {
         $assets = array_values(array_filter(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true),
-            fn ($asset) => $asset['name'] !== 'Capybara_0.1.9_x86_64-pc-windows-msvc.exe'));
+            fn ($asset) => $asset['name'] !== 'Capybara_0.1.12_x86_64-pc-windows-msvc.exe'));
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }
