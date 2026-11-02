@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- capybara-direct-check-20261102:start -->
+### 新双域无代理实测（2026-11-02 23:39–23:45）
+
+同局域网 Windows 已确认无系统/WinHTTP/环境代理、无 PAC、仅 WLAN、无相关 hosts 覆盖。新导航及应用都有严格 TLS/HTTP 200 样本，公开 API 和安装包分段下载也成功；但顺序复测仍出现 IPv4/IPv6 超时，登录主脚本等待 20 秒无响应，**尚不能认定整套应用已稳定直连可用**。百度同期 2/2 正常，网关 8/8、1–3ms；只支持当前到 Cloudflare 路径存在异常样本，不确定具体故障设备。未修改 DNS、代理、生产或客户端。详见[单点实测](./progress-log.md#2026-11-02新双域-windows-无代理验收)。
+<!-- capybara-direct-check-20261102:end -->
+
 <!-- capybara-cloud-entry-20261102:start -->
 ### 双域网站已上线（2026-11-02）
 

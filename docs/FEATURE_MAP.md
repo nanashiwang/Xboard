@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- capybara-direct-check-20261102:start -->
+新域单点直连验收：Windows 无代理环境下 Hub/Go 首页、Go 公开 API、安装包 Range 有成功样本；顺序访问仍间歇超时、登录主脚本 20 秒失败，完整无代理用户流程尚未通过，不能标记为稳定恢复。见[实测证据](../progress-log.md#2026-11-02新双域-windows-无代理验收)；无配置/客户端变更。
+<!-- capybara-direct-check-20261102:end -->
+
 <!-- capybara-cloud-entry-20261102:start -->
 双域网页已上线：[Go 域名准入](../app/Services/WebsiteEntryService.php)、[白底按钮视图](../resources/views/home/entry.blade.php)、[独立 Hub 构建](../.docker/hub/build.py)、[Pages 发布源](../.docker/hub/README.md)、[域名运维](../.github/workflows/configure-go-domain.yml)。仅 Go 根页使用按钮；API/订阅/授权/下载、hash 面板与旧域继续原业务。主链接 app_url/subscribe_url 已切 Go，显式白名单保留旧域且拒绝未知域；promote/rollback-settings 只修改两项公开地址。生产 revision 0a068f7 与公开流程验收见[进展](../progress-log.md#2026-11-02双域云端上线)；客户端多入口恢复仍待实施。
 <!-- capybara-cloud-entry-20261102:end -->

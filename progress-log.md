@@ -1,5 +1,23 @@
 # Xboard 项目进展记录
 
+<!-- capybara-direct-check-20261102:start -->
+## 2026-11-02：新双域 Windows 无代理验收
+
+用户要求使用没有代理的电脑验证新入口。23:39–23:45（北京时间）通过既有固定 SSH 主机验证连接同局域网 Windows PRESSURE；未启停客户端、修改 DNS/hosts/代理、改 Cloudflare 或生产。
+
+- 环境：ProxyEnable=0，PAC 未配置，WinHTTP 明确 Direct access，无 HTTP/HTTPS/ALL/NO_PROXY 环境变量；仅 Intel WLAN Up，无 Mihomo/Clash/v2ray/sing-box/xray 进程，默认 v4/v6 路由均为 WLAN。相关 hosts 条目 0。每个 HTTP 探针显式 --noproxy '*'，保留 Schannel 证书验证，未使用 insecure 或吊销检查绕过。
+- DNS：Hub A 为 172.67.177.150 / 104.21.43.92，Go A 为 172.67.198.242 / 104.21.58.28，均有对应 Cloudflare AAAA。旧 taige A 仍为 46.82.174.69，普通直连超时；不把新域当前 Cloudflare 地址归为旧域同样的污染。
+- 第一轮默认解析：Hub 首页 200、2.46s，下载页 308 → 200、1.60s，正文匹配正式内容；Go 首页 200、5.46s，包含进入按钮。Go 公开 API、主脚本、安装包 Range 与旧域请求均在约 6 秒连接阶段超时。并行初测后又做顺序复测，未以单次结果判定稳定。
+- 固定 IP 对照（保留域名/SNI/证书）：Go 172 地址首页 200、3.33s；104 地址首页超时，但相同 104 地址公开 API 随后 200、1.13s，JSON 中 app_url=https://capybarago.uk。两个指定 IPv6 首页均在约 6 秒超时；不能据此将 IPv6 关闭视为充分修复，因为 IPv4 同样有成功及超时。
+- 顺序默认复测：Hub 0.96s/200 后一轮约 5 秒连接超时；Go 一轮通过 IPv6 完成 TLS 后 8 秒无响应，下一轮通过 IPv4 1.60s/200。详细连接跟踪确认 curl 同时尝试正常解析出的 v6/v4 地址，并非使用本机代理。
+- 延长等待：强制 IPv4 获取 /theme/Xboard/assets/umi.js，TCP 0.23s、TLS 0.75s，20 秒仍无响应字节，故**登录主脚本及完整无代理登录流程未验收通过**。随后同一 172 地址 Windows 安装器 Range 0–4095 返回 206，1.52s、4096 字节，Content-Range 总大小 28593366 匹配发布清单；不代表完整包已下载/安装。
+- 对照：百度严格 HTTPS 连续 2 次 200，约 0.36s/0.15s，使用本地 IPv6；网关 ping 8/8 无丢包，1–3ms、均值2ms。这些短样本不支持“本机完全断网”或“所有 IPv6 不通”；不能据其精确定位运营商、跨境路由、CF 边缘或中间设备。
+
+结论：两个新域**可以出现无代理直连成功，但目前不稳定，完整应用使用尚未恢复验收**。证据不同于旧 taige 固定 IP 后立即 TLS 重置的表现，不能直接判定新域已被同样方式封锁。下一步应核对另一国内网络/运营商及独立应用服务路径，继续按[双域实施边界](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)和[容错提案](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)推进；当前只报告单台机器、单条接入网络的短时结果，不承诺三网稳定。
+
+测试证据仅保留脱敏状态、地址和指标，不保存凭据或用户数据。记录到 README、能力地图与已有实施笔记；文档/相对链接和笔记检查后中文提交、push master，并按精确 SHA 回读 README/progress。仅诊断文档更新，沿用 [skip ci]，无新镜像、版本、Release 或部署，既有暂存/未暂存工作保留。
+<!-- capybara-direct-check-20261102:end -->
+
 <!-- capybara-cloud-entry-20261102:start -->
 ## 2026-11-02：双域云端上线
 
