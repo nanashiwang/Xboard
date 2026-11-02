@@ -16,6 +16,8 @@
 已准备客户地址更新邮件，统一指向 [capybarahub.fyi](https://capybarahub.fyi/)，提醒收藏并说明原账号与权益保留。发送复用现有 SMTP，按有效唯一注册邮箱分批，持久去重且不盲目重试不确定结果。本地测试及真实浏览器故障场景通过；**本次 CI、生产部署和邮件发送尚待完成**，不代表客户已收到通知。见[进展](./progress-log.md#2026-11-03登录加载优化与地址通知)、[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。客户端仍为0.1.9。
 
 浏览器补充复核修复：网络失败后的pageshow/hash事件保持失败提示，不重新开始等待倒计时；Node10项回归通过。
+
+通知进行中：127个快照地址已接受71封、失败1封、待发送55封；已暂停该批并加入仅类别/SMTP码的私有日志聚合诊断，原因待核对。新增活动专项4项/22断言通过；此运维诊断随工作流执行，应用仍d7b4659，不重新部署网站。
 <!-- capybara-panel-update-20261103:end -->
 
 <!-- capybara-login-latency-20261103:start -->

@@ -71,11 +71,37 @@ class HubAddressNotice
                 ->where('template_name', 'mail.default.' . self::TEMPLATE)->whereNull('error')->count(),
             'smtp_error_logs' => App\Models\MailLog::where('subject', self::SUBJECT)
                 ->where('template_name', 'mail.default.' . self::TEMPLATE)->whereNotNull('error')->count(),
+            'smtp_error_summary' => $this->errorSummary(),
             'template_available' => Illuminate\Support\Facades\View::exists('mail.default.' . self::TEMPLATE),
             'template_override' => App\Models\MailTemplate::where('name', self::TEMPLATE)->exists(),
             'mail_transport' => config('mail.driver'),
             'smtp_configured' => (bool) admin_setting('email_host') && (bool) admin_setting('email_from_address'),
         ];
+    }
+
+    private function errorSummary(): object
+    {
+        $counts = [];
+        $errors = App\Models\MailLog::where('subject', self::SUBJECT)
+            ->where('template_name', 'mail.default.' . self::TEMPLATE)->whereNotNull('error')->pluck('error');
+        foreach ($errors as $error) {
+            $category = 'other';
+            foreach ([
+                'rate_or_quota' => '/rate.?limit|throttl|too many|daily|quota exceeded/i',
+                'authentication' => '/authenticat|credentials/i',
+                'recipient_rejected' => '/user unknown|unknown user|no such user|recipient address rejected|mailbox.{0,40}(not exist|unavailable)|email account.{0,60}does not exist|invalid recipient/i',
+                'transport' => '/timed? out|timeout|connection|socket|network/i',
+                'policy_or_reputation' => '/blacklist|blocklist|spam|reputation|policy/i',
+            ] as $label => $pattern) {
+                if (preg_match($pattern, (string) $error)) { $category = $label; break; }
+            }
+            preg_match('/got code\s+"?([45][0-9]{2})/i', (string) $error, $match);
+            if (!$match) preg_match('/\b([45][0-9]{2})\b/', (string) $error, $match);
+            $key = $category . ':' . ($match[1] ?? 'unknown');
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+        // Never include raw errors, addresses, SMTP credentials, or server configuration.
+        return (object) $counts;
     }
 
     public function sendBatch(int $limit = 25): array

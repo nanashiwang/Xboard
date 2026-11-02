@@ -65,4 +65,22 @@ class HubAddressNoticeTest extends TestCase
         $state = json_decode(file_get_contents($path), true); $state['fingerprint'] = 'changed'; file_put_contents($path, json_encode($state));
         $this->expectException(\RuntimeException::class); $notice->sendBatch();
     }
+
+    public function test_failed_recipient_stops_batch_and_only_safe_diagnostics_are_exposed(): void
+    {
+        $this->user('a@example.test'); $this->user('b@example.test');
+        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('550 5.1.1 User unknown a@example.test private-detail'));
+        $notice = new \HubAddressNotice($this->directory, 0);
+        $result = $notice->sendBatch();
+        $this->assertSame(1, $result['counts']->failed);
+        $this->assertSame(1, $result['counts']->pending);
+        $this->assertSame(1, $result['smtp_error_summary']->{'recipient_rejected:550'});
+        $this->assertStringNotContainsString('a@example.test', json_encode($result));
+        $this->assertStringNotContainsString('private-detail', json_encode($result));
+        Mail::shouldReceive('send')->once()->andReturn(null);
+        $result = $notice->sendBatch();
+        $this->assertSame(1, $result['counts']->sent);
+        $this->assertSame(1, $result['counts']->failed);
+        $this->assertSame(2, MailLog::count());
+    }
 }
