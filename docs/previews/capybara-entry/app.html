@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+  <title>卡皮巴拉 · 登录衔接预览</title><link rel="icon" href="assets/icon.webp"><link rel="stylesheet" href="style.css">
+  <script defer src="preview.js"></script>
+</head>
+<body class="login-page">
+  <header class="simple-header"><a href="index.html" class="wordmark"><img src="assets/icon.webp" width="36" height="36" alt="">卡皮巴拉</a><a href="index.html">返回导航 ↗</a></header>
+  <main class="login-main">
+    <section class="login-card" aria-labelledby="login-title">
+      <img class="login-icon" src="assets/icon.webp" width="64" height="64" alt="">
+      <h1 id="login-title">欢迎回来</h1><p class="login-subtitle">登录你的卡皮巴拉账号</p>
+      <label for="email">邮箱</label><input id="email" type="text" inputmode="email" placeholder="请输入邮箱地址" readonly aria-describedby="preview-note">
+      <div class="password-label"><label for="password">密码</label><button class="text-button" type="button" data-preview="找回密码">忘记密码？</button></div>
+      <input id="password" type="password" placeholder="请输入密码" readonly aria-describedby="preview-note">
+      <button class="primary-button" type="button" data-preview="账号登录">登录</button>
+      <p class="register-link">还没有账号？<button class="text-button" type="button" data-preview="账号注册">注册账号</button></p>
+      <p class="preview-note" id="preview-note">登录衔接示意 · 不收集账号或密码<br>正式应用复用现有用户中心</p>
+    </section>
+  </main>
+  <dialog id="preview-dialog"><h2 id="dialog-title">页面预览</h2><p id="dialog-copy"></p><form method="dialog"><button class="primary-button">知道了</button></form></dialog>
+</body>
+</html>

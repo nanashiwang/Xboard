@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- capybara-domain-preview-20261102:start -->
+### Hub 导航与 Go 应用入口（2026-11-02，仅方案与预览）
+
+用户指定 `capybarahub.fyi` 做导航、`capybarago.uk` 承载现有应用，并确认 Go 首屏按截图只显示白底蓝色「点击进入官网」按钮。已制作[可点击导航预览](./docs/previews/capybara-entry/index.html)，流程为导航 → 单按钮入口 → 登录衔接；含下载示意和访问帮助，登录/下载均不接入真实服务。
+
+[双域方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)明确 Hub 独立静态托管、Go 复用同一账号、API/订阅/授权绕过按钮、旧域兼容和客户端升级边界。两域不是两条应用备用线路，按钮不构成防封能力。当前为 proposed；未修改 DNS、生产页面、客户端或发布版本。验证与交付见[进展](./progress-log.md#2026-11-02hub-导航与-go-应用入口预览)。
+<!-- capybara-domain-preview-20261102:end -->
+
 <!-- client-stability-plan-20261102:start -->
 ### 长期稳定方案（2026-11-02，待实施）
 
