@@ -11,6 +11,8 @@
 - 发布：此提交待GitHub检查与双架构镜像构建、精确SHA生产部署和无代理验收；真实邮件尚未发送。网站无独立GitHub Release流程，沿用镜像/Production Deploy；客户端0.1.9未变，不创建客户端Release。
 
 [加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。首次提交后补充实际运行revision、工作流结果、发送汇总及未完成事项；保留无关暂存与未暂存改动，推送后按精确SHA回读README/progress。
+
+浏览器补充复核修复：网络失败后的pageshow/hash事件保持失败提示，不重新开始等待倒计时；Node10项回归通过。
 <!-- capybara-panel-update-20261103:end -->
 
 <!-- capybara-login-latency-20261103:start -->

@@ -30,6 +30,8 @@ test('slow load can still succeed after the waiting message', () => {
 });
 test('network failure shows recovery and retry preserves current hash', () => {
   const s = boot('#/register'); s.handlers['xboard:panel-error'](); assert.match(s.message.textContent, /页面加载失败/);
+  s.handlers.pageshow(); s.handlers.hashchange(); s.timeout();
+  assert.match(s.message.textContent, /页面加载失败/);
   assert.equal(s.timers.size, 0); assert.equal(s.retry(), true); assert.equal(s.reloads, 1); assert.equal(s.location.hash, '#/register');
 });
 test('homepage does not start waiting timer, but a later panel transition does', () => {

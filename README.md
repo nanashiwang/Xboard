@@ -6,6 +6,8 @@
 登录主包现在在 Go 按钮页提前加载；公开 JS/CSS 使用内容哈希地址、一年 immutable 缓存及 ETag/304。内联启动器减少串行请求，等待期间立即显示加载状态、重新加载和返回入口；10秒仍未就绪给出提示，加载成功自动移除。现有前进后退和账号/接口缓存边界保留。
 
 已准备客户地址更新邮件，统一指向 [capybarahub.fyi](https://capybarahub.fyi/)，提醒收藏并说明原账号与权益保留。发送复用现有 SMTP，按有效唯一注册邮箱分批，持久去重且不盲目重试不确定结果。本地测试及真实浏览器故障场景通过；**本次 CI、生产部署和邮件发送尚待完成**，不代表客户已收到通知。见[进展](./progress-log.md#2026-11-03登录加载优化与地址通知)、[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。客户端仍为0.1.9。
+
+浏览器补充复核修复：网络失败后的pageshow/hash事件保持失败提示，不重新开始等待倒计时；Node10项回归通过。
 <!-- capybara-panel-update-20261103:end -->
 
 <!-- capybara-login-latency-20261103:start -->

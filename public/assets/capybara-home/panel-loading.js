@@ -6,6 +6,7 @@
   if (!loader || !app) return;
   var timer;
   var observer;
+  var failed = false;
   function isPanel() { return location.hash.indexOf('#/') === 0; }
   function ready() {
     if (!app.querySelector('input, button, a[href]')) return false;
@@ -19,6 +20,7 @@
     loader.hidden = false;
     if (ready()) return;
     clearTimeout(timer);
+    if (failed) return;
     timer = setTimeout(function () {
       message.textContent = '加载时间有点长，你可以继续等待，或重新加载。';
     }, 10000);
@@ -28,6 +30,7 @@
     location.reload();
   });
   window.addEventListener('xboard:panel-error', function () {
+    failed = true;
     clearTimeout(timer);
     message.textContent = '页面加载失败，请重新加载，或返回入口。';
   });
