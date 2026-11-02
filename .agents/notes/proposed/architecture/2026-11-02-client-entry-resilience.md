@@ -10,6 +10,8 @@ Status: proposed
 
 ## Existing capabilities and impact
 
+下表记录 2026-11-02 提案时的基线；0.1.12 已将固定账号与更新入口迁至 Go，阶段结果见下文和进展记录，尚未实现本提案的多入口与离线恢复。
+
 | 已核对能力 | 当前行为及影响 | 复用或扩展 |
 | --- | --- | --- |
 | [账号与订阅](../../../../desktop/capybara/src-tauri/src/account.rs) | ORIGIN 固定 taige.us；HTTP no_proxy、禁止重定向；8 秒连接及 20 秒请求上限 | 保留原生凭据和严格 HTTPS，增加统一可信入口选择；不以移除 no_proxy 作为通用修复 |
@@ -24,9 +26,9 @@ Status: proposed
 
 ## Proposal
 
-2026-11-03 用户授权同步更新客户端。先实施可独立验收的迁移阶段：账号、授权、订阅及网页链接切至 capybarago.uk，帮助页增加 capybarahub.fyi 导航入口；保留安装身份与更新公钥。新版读取 `capybara-current.json`，旧版读取的 `capybara-latest.json` 保留 taige.us 安装包地址，两个索引指向同一批签名包。先校验全部附件及两个索引，再发布索引。已无法访问旧域的旧客户端仍需从导航页覆盖安装一次；不声称网站换域会自动修改旧客户端。多入口选路、独立安装包镜像、离线许可仍保留为后续提案。
+2026-11-03 用户授权同步更新客户端。已发布并部署可独立验收的 0.1.12 迁移阶段：账号、授权、订阅及网页链接切至 capybarago.uk，帮助页增加 capybarahub.fyi 导航入口；保留安装身份与更新公钥。新版读取 `capybara-current.json`，旧版读取的 `capybara-latest.json` 保留 taige.us 安装包地址，两个索引指向同一批签名包。先校验全部附件及两个索引，再发布索引。已无法访问旧域的旧客户端仍需从导航页覆盖安装一次；不声称网站换域会自动修改旧客户端。多入口选路、独立安装包镜像、离线许可仍保留为后续提案。
 
-用户已指定 capybarahub.fyi 为导航/恢复域、capybarago.uk 为应用域，网页流程和本地预览归属[Hub/Go 网页实施](../../implemented/architecture/2026-11-02-hub-application-domain-split.md)。网页已按独立导航与同源应用上线，这不是两条应用备用路线；第二服务入口与独立更新源仍按本提案分阶段建设。网站上线不改变客户端固定入口。
+用户已指定 capybarahub.fyi 为导航/恢复域、capybarago.uk 为应用域，网页流程和本地预览归属[Hub/Go 网页实施](../../implemented/architecture/2026-11-02-hub-application-domain-split.md)。网页已按独立导航与同源应用上线，这不是两条应用备用路线；第二服务入口与独立更新源仍按本提案分阶段建设。网站上线本身不改变已安装客户端；本次 0.1.12 的固定入口随客户端升级切换，详见[实施与验收](../../../../progress-log.md#2026-11-03客户端新入口同步迁移)。
 
 ### 长期稳定方案与交付门槛
 

@@ -7,7 +7,7 @@
 
 新版读取capybara-current.json；旧capybara-latest.json保留旧域包地址，避免旧版白名单拒绝升级。旧域不可达的旧版需从导航覆盖安装一次；macOS可能需重新授权登录，第三方客户端已保存的旧订阅链接需重新导入。多入口自动选路及离线恢复尚未实现。
 
-Windows测试机已从0.1.9覆盖升级0.1.12，设备标识/分流/更新记录保持、代理关闭；官网及Hub分发同步中。下方历史“客户端0.1.9”指当时官网分发，GitHub此前最高稳定版实际为0.1.11。见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-11-03客户端新入口同步迁移)。
+生产官网、Hub下载页、恢复教程、安装包及新旧索引均已上线0.1.12。无代理Windows从0.1.9覆盖升级，配置保留；新域完整下载安装包4.57秒、摘要匹配。Mac从0.1.5覆盖升级，原账号经新域重新授权后已同步套餐与节点，手动订阅更新和应用更新检查成功；一次更新网络失败重试恢复。Mac现有代理环境保持，不能算无代理样本。下方历史“客户端0.1.9”指当时官网分发，GitHub此前最高稳定版实际为0.1.11。见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-11-03客户端新入口同步迁移)。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

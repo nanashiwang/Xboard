@@ -3,7 +3,7 @@
 <!-- capybara-migration-20261103:start -->
 ### 客户端入口同步迁移（0.1.12）
 
-[Account](../desktop/capybara/src-tauri/src/account.rs)固定Go同源承载登录、订阅、套餐和刷新；[更新器](../desktop/capybara/src-tauri/src/updates.rs)读取Go新版索引、限制精确版本化包路径；[发布脚本](../desktop/capybara/scripts/update-manifest.mjs)生成旧版兼容及新版索引；[分发同步](../.docker/downloads/sync.py)先验证附件及全部索引再发布。安装身份/公钥不变，帮助页打开Hub；旧域已断需覆盖升级，多源选路与离线恢复待实施。本地75前端/17脚本/60 Rust及7分发测试通过，四目标与19附件已公开；Windows安装版本/配置保留已验。官网15项151断言、教程4项、Hub静态构建通过；线上分发和Mac验收待完成。见[决定](../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
+[Account](../desktop/capybara/src-tauri/src/account.rs)固定Go同源承载登录、订阅、套餐和刷新；[更新器](../desktop/capybara/src-tauri/src/updates.rs)读取Go新版索引、限制精确版本化包路径；[发布脚本](../desktop/capybara/scripts/update-manifest.mjs)生成旧版兼容及新版索引；[分发同步](../.docker/downloads/sync.py)先验证附件及全部索引再发布。安装身份/公钥不变，帮助页打开Hub；旧域已断需覆盖升级，多源选路与离线恢复待实施。本地75前端/17脚本/60 Rust及7分发测试通过，四目标与19附件已公开；Windows安装版本/配置保留已验。官网15项151断言、教程4项、Hub静态构建通过；生产分发、官网目录、Hub及教程已上线；Mac0.1.5覆盖升级后完成Go授权、套餐/节点同步、手动订阅刷新及更新检查。Windows无代理完整Go包下载与摘要通过；不把配置同步当节点转发验收。见[决定](../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->
