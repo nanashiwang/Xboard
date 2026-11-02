@@ -12,6 +12,8 @@
 - 技术依据另核对 Tauri 官方更新文档、RFC 8305 和 RFC 9110，引用及现有笔记审计收在[提案](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)。提案保持 proposed，明确未知结果的写请求不重放、缓存到期/撤权边界、双栈失败、包下载故障及滚动发布验收。
 
 规划文档按笔记结构、内部链接及新增锚点检查后中文提交推送 master，纯文档沿用 `[skip ci]`；推送后按提交 SHA 从 GitHub 回读 README/progress。未跑业务构建、未发新版/Release、未部署或发送客户消息；没有把上述规划记为现成能力，原暂存和未暂存改动保持原归属。实际检查、提交与远端回读结果在本轮聊天报告。
+追加更新可达性核验：Windows 卸载登记读取到 Capybara 0.1.9；从 GitHub 精确读取 capybara-v0.1.9 的 account.rs / updates.rs，确认 API 与更新索引固定 taige.us、no_proxy，安装包仅允许 taige.us。该 Windows 对原更新索引连接超时；--resolve 固定 155.103.118.155 后约 0.21 秒 TCP 建立、约 0.26 秒 TLS 重置；固定 board 的可达 IPv4 取得 HTTP 200 并解析索引，版本仍 0.1.9，四个平台 URL 均回到 taige.us。索引有签名字段不等于包下载/验签已完成，本轮未下载或安装。当前发布机制为每 6 小时自动检查、用户确认后安装；主域不可达者收不到新版提示，不能宣称发布新版即可自动触达。最小恢复范围仍是可信 API/网页/索引/安装包备用入口一起落地，再在故障 Windows 上覆盖升级验收；已失联旧版需要一次可达渠道交付，尚未制作修复版或改生产更新源。
+
 <!-- client-resilience-plan-20261102:end -->
 
 <!-- taige-access-20261102:start -->
