@@ -24,7 +24,7 @@ Status: proposed
 
 ## Proposal
 
-用户已指定 capybarahub.fyi 为导航/恢复域、capybarago.uk 为应用域，网页流程和本地预览归属[Hub/Go 分工提案](2026-11-02-hub-application-domain-split.md)。这实现的是职责规划，不是两条应用备用路线；第二服务入口与独立更新源仍按本提案分阶段建设。本轮仅预览，不改变客户端固定入口。
+用户已指定 capybarahub.fyi 为导航/恢复域、capybarago.uk 为应用域，网页流程和本地预览归属[Hub/Go 网页实施](../../implemented/architecture/2026-11-02-hub-application-domain-split.md)。网页已按独立导航与同源应用上线，这不是两条应用备用路线；第二服务入口与独立更新源仍按本提案分阶段建设。网站上线不改变客户端固定入口。
 
 ### 长期稳定方案与交付门槛
 

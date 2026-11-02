@@ -3,12 +3,20 @@
 <!-- capybara-cloud-entry-20261102:start -->
 ## 2026-11-02：双域云端上线
 
-用户明确要求直接上线，授权从本地预览进入生产部署。复读当前源站：生产仍在 107.173.191.23，容器监听 127.0.0.1:7001；原 taige vhost SHA256 为 4625d1ef7e981fa42365fdde775bcd37605c6256835a5f9e166b8d8118bd5029。新 Go DNS 初始为 0 条记录，尚无旧记录需要替换。
+用户明确要求直接上线，授权从本地预览进入生产部署。生产仍在 107.173.191.23，同一 Xboard 数据源、容器端口 127.0.0.1:7001。新增 Go vhost，原 taige 配置 SHA256 `4625d1ef7e981fa42365fdde775bcd37605c6256835a5f9e166b8d8118bd5029` 保持不变；旧域、支付通知地址、节点和独享出口未迁移。
 
-- 实现：Go 仅根浏览器页面显示进入按钮，沿用 hash 面板加载和历史边界；域名准入集中到 WebsiteEntryService，safe_mode 仍拒绝未知域。旧 taige/board 路径继续兼容。导航正式产物不含模拟登录、模拟下载或预览脚本，使用真实安装包与独立 GitHub 备用链接。
-- 运维：独立 Go vhost 从已核对的源配置派生，保留下载与应用转发、去掉节点路由和旧跳板信任，源配置摘要不匹配即停止。prepare/activate/verify/rollback 复用原 SSH Secret、固定主机公钥和生产互斥组；nginx 检查失败恢复原候选前状态；已有 ACME 账号和续期 hook 复用。
-- 验证：首页/下载 PHP 21 项、198 断言及前端 6 项通过；新增源配置漂移、节点路由隔离和 nginx 失败恢复检查。首次 Go 断言误计了页面 meta 描述，已同步独立入口描述并复验通过。
-- 状态：代码准备完成，生产部署、DNS/TLS 和最终公开访问尚在执行；未升级客户端、未改节点身份、未发送客户通知。Sites 创建和源码同步成功，但发布归档上传遭遇网络失败，正在恢复或改用已有云端静态托管；未将创建项目视为网站上线。详细边界见[方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)。
+- 应用：Go 根网页使用单按钮，保留原 hash 生命周期、历史跳转和深链接；WebsiteEntryService 允许已确认自有域名，safe_mode 继续拒绝未知域。机器 API、订阅、桌面授权、下载和回调不经过按钮。运行镜像 `20261102-0a068f7`，完整 revision `0a068f78a70e3c36bff118a55ef75d5bdbc716e6`。
+- 导航：Cloudflare Pages 项目 capybarahub，部署 `9156107f-1a62-4077-bebf-8e89f87b51f7`，[正式导航](https://capybarahub.fyi/) 的 CNAME 指向 capybarahub.pages.dev，控制台回读「活动 / SSL 已启用」。六个静态文件无模拟登录、下载按钮或 API 依赖；独立下载页列出五种当前 0.1.9 安装包、Go 主链和 GitHub Release 备用链接。首次 Sites 归档上传失败，未产生版本/公开部署，已切 Pages；私有草稿不是生产依赖。
+- 域名：Go A → 107.173.191.23、橙云、TTL 自动；源站证书和续期计时器通过验证，Cloudflare 保存并回读「完全（严格）」。运维复用既有 SSH Secret、固定主机公钥、生产互斥组和 ACME 账号；源配置漂移拒绝继续，nginx 失败恢复配置。
+- 主链接：[promote 41471128961](https://github.com/nanashiwang/Xboard/actions/runs/41471128961) 成功；仅将 app_url/subscribe_url 从 taige 改为 Go，原值受控备份，Octane 已重载。公网公开配置另实测返回 https://capybarago.uk；支付 notify_domain 保留。运行时读取数据库配置，不改 APP_URL 文件或客户端更新索引。
+- 本地验证：PHP 首页/下载 21 测试、198 断言；前端 6 测试；域名运维最终 7 测试；模板缓存、actionlint、笔记与相对链接检查通过。首次 Go 测试误匹配营销 meta，已独立描述并复验。受控设置切换、非预期旧值拒绝、回退及私有备份权限有专项覆盖。
+- CI / 部署：[网站检查 41466038013](https://github.com/nanashiwang/Xboard/actions/runs/41466038013)、工作流/管理脚本/邮件/探针检查及[双架构镜像 41466037953](https://github.com/nanashiwang/Xboard/actions/runs/41466037953) 成功；[Production Deploy 41468674095](https://github.com/nanashiwang/Xboard/actions/runs/41468674095) 输出运行 revision 为 0a068f7。
+- 生产验收：首次 activate 41469142675 已签发证书并通过 nginx 重载，随后立即回环 TLS 探针报 issuer 错误而运行失败；[稍后原探针复验 41470464617](https://github.com/nanashiwang/Xboard/actions/runs/41470464617) 五项均通过，计时器 active。该暂态根因未独立证实，没有跳过证书校验；后续探针改用已验证的实际源站地址。主链接切换后的[最终 verify 41471413646](https://github.com/nanashiwang/Xboard/actions/runs/41471413646) 成功。
+- 公网与 UI：实际点击 Hub → Go 蓝色按钮 → 正式登录页，独立下载页面与返回导航通过；新域公开 API 为 JSON，desktop/login 不含按钮，board 原首页保留。五种安装包的 Range 为 206，Content-Range 大小均匹配清单；Hub 五项、Go 40 项 SHA256 清单匹配仓库记录。未重新完整下载所有包、未进行安装或使用真实凭据登录/支付。
+- 网络边界：Mac 请求 GitHub、新站部分 URL 和旧 taige 出现间歇超时，浏览器/换路径有成功样本；源站最终检查成功不能代表大陆三网稳定。未修改用户代理，也未做新的干净 Windows 直连验收。旧客户端仍硬编码 taige.us，网站上线不等于恢复版或自动切换；未改客户端版本、节点身份、未发客户通知。
+- 提交：代码 0a068f7、主域运维 22b98e7、探针 465cde3 均中文提交并推送 master；后续运维/文档用 [skip ci]，运行镜像仍为 0a068f7。本次没有新客户端版本或 GitHub Release；现有安装包仍来自 capybara-v0.1.9。完成时按精确提交回读 GitHub README/progress，回读结果另在任务回复报告。
+
+[实施决定](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md) 已转 implemented；[客户端恢复](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md) 保持 proposed。下方预览记录保留为上线前历史。
 <!-- capybara-cloud-entry-20261102:end -->
 
 <!-- capybara-domain-preview-20261102:start -->
@@ -16,7 +24,7 @@
 
 用户提供两个新域名及三毛导航/应用站参考，随后明确「先完善方案和页面预览」；截图纠正了首次访问的含义：Go 根页为白底、仅一个蓝色「点击进入官网」按钮，而非直接 dashboard 或只有 Logo。按该要求交付独立静态四页预览，复用卡皮巴拉图标，不复制参考站的新老账号隔离。
 
-- 方案：Hub 为不依赖应用 API/数据库的静态导航和未来独立恢复分发；Go 根页按钮进入现有 hash 登录/用户中心；机器 API、订阅、桌面授权、下载与回调直接访问。用户、套餐、订单和节点出口继续复用，旧域先兼容。见[双域 proposed 笔记](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)；原恢复提案与官网决定已互链。
+- 方案：Hub 为不依赖应用 API/数据库的静态导航和未来独立恢复分发；Go 根页按钮进入现有 hash 登录/用户中心；机器 API、订阅、桌面授权、下载与回调直接访问。用户、套餐、订单和节点出口继续复用，旧域先兼容。见[双域 proposed 笔记](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)；原恢复提案与官网决定已互链。
 - 当前证据：参考导航页已实际读取和浏览器查看；参考应用在现有会话中直接进入 dashboard，首次按钮形式以用户后附截图为准。Google DoH 查得两新域使用相同 Cloudflare NS；Go A 查询无 Answer，Hub A 查询超时，因此未声称新域已上线或网络独立。
 - 预览：Hub → Go → 登录衔接可点击；下载与登录按钮只弹出「预览」说明，无账号提交或安装包请求。导航/入口本身无脚本依赖，静态资源全部本地。原图浏览器书签和账号信息没有进入仓库。
 - 验证：本机 HTTP 200，桌面/390 像素导航截图、四页 320 像素宽度无横向溢出、FAQ 展开、登录与下载预览提示通过；还核对 readonly 输入、HTML 相对资源与锚点、JS 语法及笔记结构。浏览器禁止 file 协议导航，未尝试绕过；真实 UI 验证使用回环 HTTP，静态文件另交付用户自行打开。未验收生产登录、订阅、支付、更新或新域可达性。
@@ -25,7 +33,7 @@
 
 ### 导航精简反馈
 
-用户要求移除导航页的账号说明、帮助标题与三项问答、品牌页脚和“交互预览，尚未上线”。已删除对应区块，并移除指向已删除帮助区的访问帮助卡片；客户端下载改为单列横向卡片。应用入口、Go 单按钮页、登录与下载示意保持原流程。更新[预览说明](./docs/previews/capybara-entry/README.md)和[双域提案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)，方案仍为 proposed。
+用户要求移除导航页的账号说明、帮助标题与三项问答、品牌页脚和“交互预览，尚未上线”。已删除对应区块，并移除指向已删除帮助区的访问帮助卡片；客户端下载改为单列横向卡片。应用入口、Go 单按钮页、登录与下载示意保持原流程。更新[预览说明](./docs/previews/capybara-entry/README.md)和[双域提案](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)，方案仍为 proposed。
 
 本轮验收：桌面及 390/320 像素导航布局、应用和下载入口、相对资源与无失效帮助锚点；笔记结构和差异检查通过。仅精简本地预览，无生产部署、客户端更新、版本或 Release；中文提交推送 master 后按 SHA 回读 README/progress，结果在聊天报告。此前原版 FAQ 的验收记录保留为历史证据。
 <!-- capybara-domain-preview-20261102:end -->

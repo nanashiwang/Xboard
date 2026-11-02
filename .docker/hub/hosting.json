@@ -1,6 +1,10 @@
 {
-  "project_id": "appgprj_6ae8a0241b58819186ea05aba4a42726",
-  "static": {
-    "directory": "dist"
-  }
+  "provider": "cloudflare-pages",
+  "account_id": "de22a5980366090b1f4be9b93118ee2d",
+  "project_name": "capybarahub",
+  "production_branch": "main",
+  "custom_domain": "capybarahub.fyi",
+  "default_domain": "capybarahub.pages.dev",
+  "deployment_id": "9156107f-1a62-4077-bebf-8e89f87b51f7",
+  "source_revision": "0a068f78a70e3c36bff118a55ef75d5bdbc716e6"
 }

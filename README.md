@@ -1,17 +1,21 @@
 # Xboard
 
 <!-- capybara-cloud-entry-20261102:start -->
-### 双域云端上线（2026-11-02，实施验收中）
+### 双域网站已上线（2026-11-02）
 
-用户已授权将精简导航与单按钮应用入口上线。Go 通过明确的自有域名白名单复用原用户中心，旧域保持兼容；API、订阅、授权和下载不经过按钮。导航正式构建移除模拟页面，下载使用当前 0.1.9 安装包与 GitHub Release 备用来源。见[实施方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)、[导航发布源](./.docker/hub/README.md)及[进展](./progress-log.md#2026-11-02双域云端上线)。当前代码与本地回归已完成，云端构建、证书、DNS 和生产验收仍需分别核实；客户端版本未改变。
+[capybarahub.fyi](https://capybarahub.fyi/) 为独立 Cloudflare Pages 导航与下载页；[capybarago.uk](https://capybarago.uk/) 为原 Xboard 应用，根页仅显示蓝色「点击进入官网」按钮，点击进入真实登录/用户中心。账号、套餐及节点沿用原数据；API、订阅、桌面授权和下载绕过按钮，旧域配置保留。
+
+生产镜像 `20261102-0a068f7` 已核对运行 revision，Go DNS、证书、Cloudflare 完全（严格）、主链接 app_url/subscribe_url 切换和发布后五项源站检查通过。真实浏览器已通过导航 → 按钮 → 登录页，五种现有安装包 Range 与校验清单已核对。见[实施决定](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)、[导航发布源](./.docker/hub/README.md)及[验收记录](./progress-log.md#2026-11-02双域云端上线)。
+
+客户端仍为 0.1.9，尚未实现新入口自动切换；本次不发行客户端或 GitHub Release。Mac 公网请求有间歇超时，未做大陆三网长期直连、真实账号权益/支付或覆盖升级验收；网页上线不代表旧客户端恢复，也不承诺永久不受阻。
 <!-- capybara-cloud-entry-20261102:end -->
 
 <!-- capybara-domain-preview-20261102:start -->
-### Hub 导航与 Go 应用入口（2026-11-02，仅方案与预览）
+### Hub 导航与 Go 应用入口预览（2026-11-02，历史设计）
 
 用户指定 `capybarahub.fyi` 做导航、`capybarago.uk` 承载现有应用，并确认 Go 首屏按截图只显示白底蓝色「点击进入官网」按钮。已制作[可点击导航预览](./docs/previews/capybara-entry/index.html)，流程为导航 → 单按钮入口 → 登录衔接；保留下载示意；按用户反馈移除导航页账号说明、帮助问答及页脚，并去掉关联的访问帮助卡片。登录/下载均不接入真实服务。
 
-[双域方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)明确 Hub 独立静态托管、Go 复用同一账号、API/订阅/授权绕过按钮、旧域兼容和客户端升级边界。两域不是两条应用备用线路，按钮不构成防封能力。当前为 proposed；未修改 DNS、生产页面、客户端或发布版本。验证与交付见[进展](./progress-log.md#2026-11-02hub-导航与-go-应用入口预览)。
+[双域方案](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)明确 Hub 独立静态托管、Go 复用同一账号、API/订阅/授权绕过按钮、旧域兼容和客户端升级边界。两域不是两条应用备用线路，按钮不构成防封能力。预览阶段未修改生产；随后已授权上线，当前实现见上方双域网站记录。验证与交付见[进展](./progress-log.md#2026-11-02hub-导航与-go-应用入口预览)。
 <!-- capybara-domain-preview-20261102:end -->
 
 <!-- client-stability-plan-20261102:start -->
