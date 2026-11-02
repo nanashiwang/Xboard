@@ -11,6 +11,8 @@
 - 范围：同步新入口，不承诺旧域已断的旧版本能自动获取补丁；需要Hub覆盖安装一次。多入口选路、独立更新镜像、冷启动离线恢复仍是[后续规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)。沿用[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)和[同源授权](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)，不新增重复架构决定。
 
 发布进度：原构建41501325119四平台全部通过，发布阶段两次HTTP403；未公开不完整版本。Windows已覆盖安装0.1.12，设备标识/分流/更新记录保留、代理关闭。加入仅复用已验证构建和已有草稿的恢复工作流；附件及线上分发仍待最终验收。
+
+恢复发布41505949728已下载原四目标、重验全部签名并上传19附件；最终GET releases/tags对草稿返回404而停止，草稿仍未公开。改为Release列表精确tag+draft筛选；actionlint与笔记校验通过，重试后仍须远端摘要及公开状态验收。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

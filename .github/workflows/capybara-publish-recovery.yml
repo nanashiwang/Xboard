@@ -73,7 +73,7 @@ jobs:
           node desktop/capybara/scripts/update-manifest.mjs release-assets
           (cd release-assets && sha256sum --check SHA256SUMS-*.txt && sha256sum Capybara_* capybara-latest.json capybara-current.json > SHA256SUMS.txt)
           gh release upload "$TAG" release-assets/* --clobber
-          gh api "repos/$GH_REPO/releases/tags/$TAG" > /tmp/release.json
+          gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\" and .draft == true)" > /tmp/release.json
           python3 - <<'PY'
           from pathlib import Path
           import hashlib, json
