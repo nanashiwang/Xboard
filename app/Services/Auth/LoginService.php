@@ -94,7 +94,9 @@ class LoginService
         }
 
         // 验证邮箱验证码
-        if ((string) Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $email)) !== (string) $emailCode) {
+        if (app(RegistrationGuard::class)->enabled()
+            ? !app(RegistrationGuard::class)->consumeEmailCode($email, $emailCode)
+            : (string) Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $email)) !== (string) $emailCode) {
             Cache::put($forgetRequestLimitKey, $forgetRequestLimit ? $forgetRequestLimit + 1 : 1, 300);
             return [false, [400, __('Incorrect email verification code')]];
         }
@@ -119,7 +121,9 @@ class LoginService
         HookManager::call('user.password.reset.after', $user);
 
         // 清除邮箱验证码
-        Cache::forget(CacheKey::get('EMAIL_VERIFY_CODE', $email));
+        if (!app(RegistrationGuard::class)->enabled()) {
+            Cache::forget(CacheKey::get('EMAIL_VERIFY_CODE', $email));
+        }
 
         return [true, true];
     }

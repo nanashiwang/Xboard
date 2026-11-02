@@ -11,6 +11,13 @@ on:
         type: choice
         options:
           - inspect
+          - registration-proxy-prepare
+          - registration-proxy-apply
+          - registration-proxy-verify
+          - registration-proxy-rollback
+          - registration-inspect
+          - registration-apply
+          - registration-rollback
           - inspect-mail
           - inspect-browser-login
           - inspect-dedicated
@@ -61,6 +68,33 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [[ "$OPERATION" == registration-proxy-* ]]; then
+            remote_dir=/root/xboard-registration-tools-20261103
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "install -d -m 700 '$remote_dir'"
+            sshpass -e scp "${ssh_opts[@]}" .docker/production/{registration-proxy.py,registration-proxy-verify.py,website-relay-origin.py} "root@107.173.191.23:$remote_dir/"
+            action="${OPERATION#registration-proxy-}"
+            if [ "$action" = verify ]; then
+              sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "python3 '$remote_dir/registration-proxy-verify.py'"
+            else
+              sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "python3 '$remote_dir/registration-proxy.py' board '$action'"
+            fi
+            exit 0
+          fi
+          if [[ "$OPERATION" == registration-* ]]; then
+            actual=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker inspect --format '\''{{index .Config.Labels "org.opencontainers.image.revision"}}'\'' "$(docker compose ps -q xboard)"')
+            test "$actual" = "$EXPECTED_REVISION"
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker inspect --format '\''{{range .Mounts}}{{println .Destination}}{{end}}'\'' "$(docker compose ps -q xboard)"'
+            action="${OPERATION#registration-}"
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              "cd /root/Xboard && docker compose exec -T xboard php artisan security:registration '$action'"
+            if [ "$action" != inspect ]; then
+              sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+                'cd /root/Xboard && docker compose exec -T xboard php artisan octane:reload'
+            fi
+            exit 0
+          fi
           if [ "$OPERATION" = inspect-browser-login ]; then
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker compose exec -T xboard php' < .docker/production/inspect-browser-login.php

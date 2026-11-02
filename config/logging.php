@@ -8,6 +8,12 @@ return [
     'default' => env('LOG_CHANNEL', 'daily'),
 
     'channels' => [
+        'registration' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/registration.log'),
+            'level' => 'info',
+            'days' => 7,
+        ],
         'stack' => [
             'driver' => 'stack',
             'channels' => ['daily'],

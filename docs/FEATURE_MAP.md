@@ -1,7 +1,7 @@
 # Xboard 能力地图
 
 <!-- registration-abuse-20261103:start -->
-注册防护：[PassportRoute](../app/Http/Routes/V1/PassportRoute.php) → [RegisterService](../app/Services/Auth/RegisterService.php)、[发码控制器](../app/Http/Controllers/V1/Passport/CommController.php)、[CaptchaService](../app/Services/CaptchaService.php)；桌面注册沿用官网。成功后IP计数为非原子get/put，发码仅每邮箱60秒冷却，API全局throttle未启用。11-03生产邮箱验证开、验证码/IP限制/邮箱白名单关、试用关；注册/发码/Kernel运行文件哈希与本地一致。63个集中同域账号及CF来源混淆见[排查](../progress-log.md#2026-11-03批量注册排查)；[分层防护](../.agents/notes/proposed/feature/2026-11-03-registration-abuse-defense.md)仍为proposed，未部署。
+注册防滥用：[RegistrationGuard](../app/Services/Auth/RegistrationGuard.php) + 路由中间件限定注册/发码/恢复，Redis原子多维额度、验证码单次消费，已有用户恢复保留；[配置API规则](../app/Http/Requests/Admin/ConfigSave.php)、[策略快照命令](../app/Console/Commands/RegistrationSecurity.php)、[Turnstile维护源](../theme/Xboard/patches/turnstile-component.js)、[代理修正](../.docker/production/registration-proxy.py)与[线上身份验证](../.docker/production/registration-proxy-verify.py)。[操作边界](../scripts/security/README.md)及[进展](../progress-log.md#2026-11-03注册防护实施)区分本地、CI、生产和真人验收；原63账号不自动处置，发信/订单/流量继续独立复核。
 <!-- registration-abuse-20261103:end -->
 
 <!-- capybara-panel-update-20261103:start -->

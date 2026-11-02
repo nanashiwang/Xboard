@@ -26,7 +26,7 @@ class RegisterService
     public function validateRegister(Request $request): array
     {
         // 检查IP注册限制
-        if ((int) admin_setting('register_limit_by_ip_enable', 0)) {
+        if (!app(RegistrationGuard::class)->enabled() && (int) admin_setting('register_limit_by_ip_enable', 0)) {
             $registerCountByIP = Cache::get(CacheKey::get('REGISTER_IP_RATE_LIMIT', $request->ip())) ?? 0;
             if ((int) $registerCountByIP >= (int) admin_setting('register_limit_count', 3)) {
                 return [
@@ -80,20 +80,22 @@ class RegisterService
             }
         }
 
+        // 检查邮箱是否存在
+        $exist = User::byEmail($request->input('email'))->first();
+        if ($exist) {
+            return [false, [400201, __('Email already exists')]];
+        }
+
         // 检查邮箱验证
         if ((int) admin_setting('email_verify', 0)) {
             if (empty($request->input('email_code'))) {
                 return [false, [422, __('Email verification code cannot be empty')]];
             }
-            if ((string) Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $request->input('email'))) !== (string) $request->input('email_code')) {
+            if (app(RegistrationGuard::class)->enabled()
+                ? !app(RegistrationGuard::class)->consumeEmailCode($request->input('email'), $request->input('email_code'))
+                : (string) Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $request->input('email'))) !== (string) $request->input('email_code')) {
                 return [false, [400, __('Incorrect email verification code')]];
             }
-        }
-
-        // 检查邮箱是否存在
-        $exist = User::byEmail($request->input('email'))->first();
-        if ($exist) {
-            return [false, [400201, __('Email already exists')]];
         }
 
         return [true, null];
@@ -142,6 +144,10 @@ class RegisterService
             return [false, $error];
         }
 
+        if (app(RegistrationGuard::class)->enabled()) {
+            app(RegistrationGuard::class)->reserveRegistration($request);
+        }
+
         HookManager::call('user.register.before', $request);
 
         $email = $request->input('email');
@@ -167,10 +173,11 @@ class RegisterService
             return [false, [500, __('Register failed')]];
         }
 
+        $request->attributes->set('registration_guard_user_id', $user->id);
         HookManager::call('user.register.after', $user);
 
         // 清除邮箱验证码
-        if ((int) admin_setting('email_verify', 0)) {
+        if (!app(RegistrationGuard::class)->enabled() && (int) admin_setting('email_verify', 0)) {
             Cache::forget(CacheKey::get('EMAIL_VERIFY_CODE', $email));
         }
 
@@ -179,7 +186,7 @@ class RegisterService
         $user->save();
 
         // 更新IP注册计数
-        if ((int) admin_setting('register_limit_by_ip_enable', 0)) {
+        if (!app(RegistrationGuard::class)->enabled() && (int) admin_setting('register_limit_by_ip_enable', 0)) {
             $registerCountByIP = Cache::get(CacheKey::get('REGISTER_IP_RATE_LIMIT', $request->ip())) ?? 0;
             Cache::put(
                 CacheKey::get('REGISTER_IP_RATE_LIMIT', $request->ip()),

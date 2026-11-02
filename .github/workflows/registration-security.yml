@@ -1,0 +1,35 @@
+name: Registration Security Checks
+on:
+  push:
+    branches: [master]
+    paths: ['app/Services/Auth/**', 'app/Services/CaptchaService.php', 'app/Http/Middleware/RegistrationGuard.php', 'app/Http/Routes/V1/PassportRoute.php', 'app/Http/Controllers/V1/Passport/**', 'app/Http/Requests/Admin/ConfigSave.php', 'app/Http/Controllers/V2/Admin/ConfigController.php', 'app/Console/Commands/RegistrationSecurity.php', 'config/logging.php', 'theme/Xboard/**', 'scripts/security/**', 'tests/Feature/Security/**', 'tests/Frontend/turnstile.test.cjs', '.docker/production/registration-*.py', 'tests/Operations/test_registration_proxy.py', '.github/workflows/registration-security.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      GUARD_CONCURRENCY_STORE: redis
+      REDIS_HOST: 127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sqlite3, pdo_sqlite, redis, pcntl, gmp, bcmath
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: vendor/bin/phpunit tests/Feature/Security tests/Feature/Desktop/BrowserLoginTest.php
+      - run: node --check theme/Xboard/assets/umi.js
+      - run: node --test tests/Frontend/turnstile.test.cjs
+      - run: python3 scripts/security/patch-turnstile.py && git diff --exit-code -- theme/Xboard/assets/umi.js
+      - run: python3 -m unittest tests/Operations/test_registration_proxy.py
