@@ -5,7 +5,7 @@
 <!-- registration-abuse-20261103:end -->
 
 <!-- capybara-panel-update-20261103:start -->
-登录加载：[WebsiteAssetService](../app/Services/WebsiteAssetService.php)固定三文件白名单、SHA256路径、immutable/ETag/304、错误版本404；[模板](../theme/Xboard/dashboard.blade.php)提前modulepreload并内联启动器，[加载反馈](../public/assets/capybara-home/panel-loading.js)观察真实控件、10秒提示、失败/重试，保留历史模式刷新。HTML、API、订阅不进入公共缓存。客户通知：[固定活动](../.docker/mail/hub-address-notice.php)、[工作流](../.github/workflows/hub-address-notice.yml)、[模板](../resources/views/mail/default/hubAddressUpdate20261103.blade.php)，全体有效唯一注册邮箱、持久去重、每批25封、精确生产revision校验，仅输出聚合数据。实现/本地验证完成，生产与发送结果见[进展](../progress-log.md#2026-11-03登录加载优化与地址通知)。
+登录加载：[WebsiteAssetService](../app/Services/WebsiteAssetService.php)固定三文件白名单、SHA256路径、immutable/ETag/304及错误版本404；[模板](../theme/Xboard/dashboard.blade.php)提前modulepreload并内联启动器，[加载反馈](../public/assets/capybara-home/panel-loading.js)观察控件、10秒提示、失败/重试，保留历史模式刷新及pageshow错误状态。HTML/API/订阅不公共缓存。客户通知：[固定活动](../.docker/mail/hub-address-notice.php)、[工作流](../.github/workflows/hub-address-notice.yml)、[模板](../resources/views/mail/default/hubAddressUpdate20261103.blade.php)，每批25封、持久去重及生产revision校验、仅聚合输出。生产d7b4659 Healthy、无代理完整主包及304通过；已发送快照127封，SMTP接受127/最终失败0/待发送0，1次历史454限流已恢复；收件箱结果未验证。详情见[进展](../progress-log.md#2026-11-03登录加载优化与地址通知)。
 <!-- capybara-panel-update-20261103:end -->
 
 <!-- capybara-login-latency-20261103:start -->

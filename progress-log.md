@@ -23,24 +23,20 @@
 <!-- capybara-panel-update-20261103:start -->
 ## 2026-11-03：登录加载优化与地址通知
 
-用户授权实施提前加载、版本化静态缓存、立即显示加载与重试，并向所有客户发送导航地址更新邮件。
+用户授权实施提前加载、版本化静态缓存、立即显示加载与重试，并向所有客户发送导航地址更新邮件。方案取舍见[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)和[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。
 
-- 实现：Go按钮页modulepreload登录主包，主加载器内联，固定三项公开资源使用SHA256 URL、一年public immutable及ETag/304。HTML/API/订阅不缓存；hash/popstate/BFCache契约保留。加载状态在文档中提供，10秒提示、网络错误和原URL重试；真实表单出现后隐藏。
-- 邮件：固定中文主题/正文和Hub按钮，提醒收藏新导航，原账号/套餐继续使用，承诺持续优化而非绝对稳定。现有SMTP逐封发送，首发冻结有效唯一邮箱、每批25、0.5秒间隔；持久私有账本记录用户ID/邮箱哈希，成功跳过，中断或不确定结果不盲目重发，不导出名单。
-- 本地：Node10项、PHP相关40项/307断言、Blade编译、actionlint通过。真实Chrome正常按钮→登录→返回通过；隔离环境12秒延迟后表单出现，503显示错误/重试；错误哈希/路径404与304已测。Docker actionlint镜像拉取超时后改用Go同版校验成功。
-- 发布：此提交待GitHub检查与双架构镜像构建、精确SHA生产部署和无代理验收；真实邮件尚未发送。网站无独立GitHub Release流程，沿用镜像/Production Deploy；客户端0.1.9未变，不创建客户端Release。
+- 实现：Go按钮页modulepreload登录主包，启动器内联；固定三项公开资源SHA256 URL、一年public immutable、ETag/304，错误哈希或路径404。HTML/API/订阅保持私有边界；hash/popstate/BFCache契约保留。加载状态、10秒提示、失败和原URL重试，实际控件出现后隐藏；浏览器复核补修pageshow/hash事件不能覆盖错误提示。
+- 本地：Node10项、PHP相关40项/307断言、Blade编译、actionlint、最终45篇笔记及相对链接检查通过；通知限流追加专项5项/31断言通过。Chrome正常进入/返回、隔离未登录表单、12秒延迟后恢复和503错误/重试通过。Docker actionlint镜像拉取超时后用Go同版完成校验。
+- CI：实现提交1bb069f，补修d7b4659；最终[Website Home Checks 41488328389](https://github.com/nanashiwang/Xboard/actions/runs/41488328389)、[笔记41488328281](https://github.com/nanashiwang/Xboard/actions/runs/41488328281)、[节点检查41488328165](https://github.com/nanashiwang/Xboard/actions/runs/41488328165)成功；邮件代码[Mail Reminder Checks 41487938347](https://github.com/nanashiwang/Xboard/actions/runs/41487938347)成功。
+- 构建：[Docker41488327678](https://github.com/nanashiwang/Xboard/actions/runs/41488327678)成功，GHCR d7b4659 manifest含linux/amd64与linux/arm64，摘要分别6087b680…/c32dbb7d…。网站沿用镜像版本流程，无网站GitHub Release流程；客户端0.1.9未变，无新安装包或客户端Release。
+- 生产：[Deploy41489054959](https://github.com/nanashiwang/Xboard/actions/runs/41489054959)成功，部署前SQLite在线备份已验证，迁移Nothing to migrate；容器Healthy，运行revision `d7b465932c455eebc323d2dc68263b653bd5a1d1`，公开页面版本 `20261103-d7b4659`。源站/跳板/橙云配置未改变。
+- 无代理验收：01:10 Windows系统代理0、无PAC/代理环境变量/代理进程、WinHTTP直连、WLAN且相关hosts0；01:16普通DNS连接155.103.118.155，严格TLS首页200/0.929秒、主包200/1.325秒（gzip434231字节，解压1420663，SHA25669ff1e68…匹配），If-None-Match304/0.325秒零正文。HTMLno-cache/private，主包immutable/max-age31536000/public，预载和实际脚本URL相同。随后Hub无代理严格TLS返回200/1.684秒，内容匹配导航页。短样本不证明长期稳定或三网可用。
+- 真实浏览器：正式Go按钮→加载提示→已有登录会话仪表盘、返回入口通过；未登录表单及慢/失败场景在隔离环境完成，不把已有会话跳转写成正式未登录验收。没有提交账号/付款操作或清理用户会话。
+- 邮件：预检41488124408为126个有效邮箱；上线后预检41489531584为127，首发冻结127个唯一有效注册邮箱，无无效/重复。主题“卡皮巴拉访问地址更新｜请收藏新导航页”，正文/按钮指向https://capybarahub.fyi/，原账号套餐不变，仅承诺持续优化。每批25，初始间隔0.5秒，遇到454后降速至3秒；仅明确454 Throttling failure: Rate exceeded、无成功日志允许一次补发，daily/quota/不确定结果不重试；成功检查点与MailLog核对，重复调用跳过成功，不确定结果不盲目重发，邮箱未导出。
+- 发信结果：首次41489770055接受25封、41491621983累计50；41492197723累计71后遇1封454而暂停，41495149573安全词表确认为速率限制，dfb56e7降为3秒并允许明确拒绝补发一次。后续分批发送，最终[工作流41496643556](https://github.com/nanashiwang/Xboard/actions/runs/41496643556)确认快照127、sent=127、pending=0、SMTP成功日志127、历史454错误1条已恢复，最终无failed/uncertain/changed。发送期间新增注册邮箱不补入本次快照；SMTP接受不等于全部收件箱送达，后续退信仍可能发生。
+- 提交与回读：实现1bb069f/d7b4659及通知运维6a507aa/57b7cff/f75fb6d/dfb56e7已push master，各提交README/progress均按精确SHA从GitHub回读一致；其中运维提交[skip ci]，活动专项本地5项/31断言及生产工作流单独验收，未重新部署应用。本次收尾只补验证记录并使用[skip ci]，不重建相同应用；保留无关暂存/未暂存改动，最终提交后再核对远端文档。
 
-[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。首次提交后补充实际运行revision、工作流结果、发送汇总及未完成事项；保留无关暂存与未暂存改动，推送后按精确SHA回读README/progress。
-
-浏览器补充复核修复：网络失败后的pageshow/hash事件保持失败提示，不重新开始等待倒计时；Node10项回归通过。
-
-通知进行中：127个快照地址已接受71封、失败1封、待发送55封；已暂停该批并加入仅类别/SMTP码的私有日志聚合诊断，原因待核对。新增活动专项4项/22断言通过；此运维诊断随工作流执行，应用仍d7b4659，不重新部署网站。
-
-通知限流处理：已有1封SMTP454拒绝，诊断区分每日额度与发送速率；间隔改为1.5秒，仅明确速率拒绝允许一次补发，未知/每日额度不重试。专项5项/31断言通过；等待生产细分诊断，应用仍d7b4659。
-
-通知诊断补充：生产454尚未匹配具体额度类型，使用固定词表聚合信号继续定位；专项5项/31断言通过，失败地址仍未补发。
-
-通知限流已定位：生产安全词表确认Throttling failure: Rate exceeded；间隔改3秒，明确454限速拒绝允许一次补发，日额度/不确定结果不重试。专项5项/31断言通过，准备继续剩余通知。
+后续：独立线路超时与原生客户端多入口恢复仍是单独工作项；未承诺当前客户端自动换域或已完成长期三网稳定性验收。
 <!-- capybara-panel-update-20261103:end -->
 
 <!-- capybara-login-latency-20261103:start -->
