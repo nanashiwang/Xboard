@@ -7,7 +7,7 @@ on:
         required: true
         type: choice
         default: inspect
-        options: [inspect, prepare, activate, verify, rollback]
+        options: [inspect, prepare, activate, verify, promote, rollback-settings, rollback]
 permissions:
   contents: read
 concurrency:
@@ -25,7 +25,7 @@ jobs:
           OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
-          case "$OPERATION" in inspect|prepare|activate|verify|rollback) ;; *) exit 1 ;; esac
+          case "$OPERATION" in inspect|prepare|activate|verify|promote|rollback-settings|rollback) ;; *) exit 1 ;; esac
           test -n "$SSHPASS"
           sudo apt-get update -qq
           sudo apt-get install -y -qq sshpass

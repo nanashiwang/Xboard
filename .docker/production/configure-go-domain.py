@@ -102,11 +102,64 @@ def verify():
     return result
 
 
+
+
+def application_settings(expected=None, replacement=None):
+    """Read/update only the two public origins through the application's cache API."""
+    payload = json.dumps({"expected": expected, "replacement": replacement})
+    php = r"""<?php
+require '/www/vendor/autoload.php';
+$app = require '/www/bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$change = json_decode(PAYLOAD, true, 512, JSON_THROW_ON_ERROR);
+$read = static fn() => ['app_url' => admin_setting('app_url'), 'subscribe_url' => admin_setting('subscribe_url')];
+if ($change['replacement'] !== null) {
+    Illuminate\Support\Facades\DB::transaction(function () use ($change, $read) {
+        if ($read() !== $change['expected']) throw new RuntimeException('Application origins drifted');
+        admin_setting($change['replacement']);
+    });
+}
+echo json_encode($read(), JSON_THROW_ON_ERROR);
+""".replace('PAYLOAD', "'" + payload.replace('\\', '\\\\').replace("'", "\\'") + "'")
+    completed = subprocess.run(["docker", "compose", "exec", "-T", "xboard", "php"], input=php, text=True, capture_output=True, check=True)
+    return json.loads(completed.stdout)
+
+
+def change_primary(operation):
+    """Keep old services and callbacks; change only generated application/subscription links."""
+    backup = BACKUP / "settings.before.json"
+    current = application_settings()
+    desired = {"app_url": "https://" + DOMAIN, "subscribe_url": "https://" + DOMAIN}
+    if operation == "promote":
+        verify()  # Never promote before strict TLS and real application readiness.
+        old = {"app_url": "https://taige.us", "subscribe_url": "https://taige.us"}
+        if current not in (old, desired):
+            raise RuntimeError("Unexpected application origins; refusing to overwrite")
+        if not backup.exists():
+            if current != old:
+                raise RuntimeError("No original settings backup")
+            with backup.open('x') as stream:
+                os.chmod(backup, 0o600)
+                json.dump(current, stream)
+        if json.loads(backup.read_text()) != old:
+            raise RuntimeError("Original settings backup drifted")
+        result = application_settings(current, desired)
+    else:
+        original = json.loads(backup.read_text())
+        if current != desired or original != {"app_url": "https://taige.us", "subscribe_url": "https://taige.us"}:
+            raise RuntimeError("Settings drifted; refusing rollback")
+        result = application_settings(current, original)
+    run("docker", "compose", "exec", "-T", "xboard", "php", "artisan", "octane:reload")
+    return {"origins": result, "changed_keys": ["app_url", "subscribe_url"], "payment_callbacks_unchanged": True}
+
+
 def main(operation):
     os.chdir("/root/Xboard")
     if operation == "inspect":
         return {"source_sha256": digest(SOURCE.read_bytes()), "target_exists": TARGET.exists(), "nginx": run("nginx", "-t"), "container": run("docker", "compose", "ps", "xboard")}
     BACKUP.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if operation in ("promote", "rollback-settings"):
+        return change_primary(operation)
     if operation == "prepare":
         source = SOURCE.read_bytes()
         candidate = https_config(source)
@@ -128,7 +181,7 @@ def main(operation):
         assert digest(SOURCE.read_bytes()) == SOURCE_SHA
         return {"activated": True, "certificate": run("openssl", "x509", "-in", "/etc/letsencrypt/live/" + DOMAIN + "/fullchain.pem", "-noout", "-dates", "-ext", "subjectAltName"), "checks": verify()}
     if operation == "verify":
-        return {"checks": verify(), "renewal_timer": run("systemctl", "is-active", "certbot.timer")}
+        return {"checks": verify(), "renewal_timer": run("systemctl", "is-active", "certbot.timer"), "origins": application_settings()}
     if operation == "rollback":
         assert TARGET.read_bytes() in (http_config().encode(), (BACKUP / "candidate.conf").read_bytes()), "Go vhost drifted"
         before = TARGET.read_bytes()
@@ -145,5 +198,5 @@ def main(operation):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["inspect", "prepare", "activate", "verify", "rollback"])
+    parser.add_argument("operation", choices=["inspect", "prepare", "activate", "verify", "promote", "rollback-settings", "rollback"])
     print(json.dumps(main(parser.parse_args().operation), ensure_ascii=False, indent=2))

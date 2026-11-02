@@ -70,5 +70,25 @@ class GoDomainTests(unittest.TestCase):
             self.assertEqual(target.read_bytes(), b'# another owner\n')
 
 
+    def test_promote_rejects_unexpected_origins_without_writing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(domain, 'BACKUP', Path(directory)), patch.object(domain, 'verify'), patch.object(domain, 'application_settings', return_value={'app_url': 'https://other.example', 'subscribe_url': 'https://taige.us'}) as settings:
+                with self.assertRaisesRegex(RuntimeError, 'Unexpected application origins'):
+                    domain.change_primary('promote')
+                settings.assert_called_once_with()
+                self.assertFalse((Path(directory) / 'settings.before.json').exists())
+
+    def test_promote_backs_up_only_origins_and_supports_guarded_rollback(self):
+        old = {'app_url': 'https://taige.us', 'subscribe_url': 'https://taige.us'}
+        new = {'app_url': 'https://capybarago.uk', 'subscribe_url': 'https://capybarago.uk'}
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(domain, 'BACKUP', Path(directory)), patch.object(domain, 'verify'), patch.object(domain, 'run'), patch.object(domain, 'application_settings', side_effect=[old, new, new, old]) as settings:
+                self.assertEqual(domain.change_primary('promote')['origins'], new)
+                self.assertEqual((Path(directory) / 'settings.before.json').stat().st_mode & 0o777, 0o600)
+                self.assertEqual(domain.change_primary('rollback-settings')['origins'], old)
+                self.assertEqual(settings.call_args_list[1].args, (old, new))
+                self.assertEqual(settings.call_args_list[3].args, (new, old))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -55,6 +55,8 @@ Hub 视觉参考简单导航卡片，但只保留同一服务入口，不分裂�
 
 用户随后明确授权直接部署。已实现 Go 自有域名入口模式与显式主机白名单、保留旧域和 hash 加载；导航产物由 `.docker/hub/build.py` 从已确认布局及版本清单生成，移除预览交互。下载提供 Go 文件分发和独立 GitHub Release 备用。新 Go vhost 采用独立文件，从核对过摘要的源站配置派生，去掉节点路由，保留严格 HTTPS、下载路由及客户端身份清洗；操作复用已有 GitHub Actions SSH Secret 和证书账号，不修改旧 vhost。
 
+应用主域迁移只修改 app_url/subscribe_url 两个公开地址，先校验 Go HTTPS 与接口，再以原 taige 地址为比较条件写入；原值保存在仅 root 可读的备份中。运行时 ApplyRuntimeSettings 优先读取数据库设置，因此无需改 APP_URL 或数据库/账号/套餐；支付 notify_domain 保留原值，实际支付另行验收。提供受控 rollback-settings，恢复前检查新地址未漂移。
+
 代码验证不等于线上完成；导航托管上传、应用镜像、DNS、证书、业务接口与真实浏览器需分别验收，当前提案保持 proposed。客户端恢复仍属于原独立提案，本轮不发行新客户端。
 
 ## Existing decision audit
