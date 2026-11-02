@@ -75,6 +75,8 @@ class CaptchaService
     private function turnstileFailure(Request $request, string $reason, int $status = 400): array
     {
         $request->attributes->set('registration_guard_reason', 'captcha_' . $reason);
+        // FormRequest copies attributes; middleware audits the original request.
+        request()->attributes->set('registration_guard_reason', 'captcha_' . $reason);
         return [false, [$status, $status === 503
             ? '人机验证服务暂时不可用，请稍后重新点击发送或注册。'
             : '人机验证未完成或已过期，请重新点击发送或注册进行验证。']];

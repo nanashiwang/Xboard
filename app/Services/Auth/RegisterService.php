@@ -174,6 +174,7 @@ class RegisterService
         }
 
         $request->attributes->set('registration_guard_user_id', $user->id);
+        request()->attributes->set('registration_guard_user_id', $user->id);
         HookManager::call('user.register.after', $user);
 
         // 清除邮箱验证码

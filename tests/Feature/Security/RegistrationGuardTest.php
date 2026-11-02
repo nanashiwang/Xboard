@@ -33,6 +33,24 @@ class RegistrationGuardTest extends TestCase
     {
         return $this->postJson('/api/v1/passport/auth/register', ['email' => $email, 'password' => 'test-password', 'email_code' => $code]);
     }
+    public function test_form_requests_preserve_captcha_reason_and_created_user_in_audit(): void
+    {
+        $events = [];
+        $logger = \Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $logger->shouldReceive('info')->andReturnUsing(function ($message, $context) use (&$events) { $events[] = $context; });
+        \Illuminate\Support\Facades\Log::shouldReceive('channel')->with('registration')->andReturn($logger);
+        admin_setting(['captcha_enable' => 1, 'captcha_type' => 'turnstile']);
+        $this->postJson('/api/v1/passport/comm/sendEmailVerify', ['email' => 'audit-missing@example.com'])->assertStatus(400);
+        $this->assertSame('captcha_missing_token', $events[0]['reason']);
+        $this->assertNull($events[0]['user_id']);
+        admin_setting(['captcha_enable' => 0]);
+        $this->code('audit-ok@example.com');
+        $this->signup('audit-ok@example.com')->assertOk();
+        $this->assertSame(User::byEmail('audit-ok@example.com')->value('id'), $events[1]['user_id']);
+        $this->assertSame('accepted', $events[1]['reason']);
+        $this->assertNotSame($events[0]['request_id'], $events[1]['request_id']);
+        Queue::assertNotPushed(SendEmailJob::class);
+    }
     public function test_blocked_domain_rejects_signup_and_new_mail_before_dispatch(): void
     {
         $this->signup('Random@FLDUBAI.COM')->assertStatus(403);
