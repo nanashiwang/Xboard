@@ -12,6 +12,8 @@
 
 机制与节点对照：同一无代理 Windows 上，node.lumavia.fyi 通过证书/域名验证完成 TLS 1.3，edge.lumavia.fyi 也返回 HTTPS 404；主域固定正确 IP 后仍 TLS 重置。404 仅证明节点 HTTPS 入口可达，实际代理未验。过滤可能按域名/SNI/IP分别生效，无法据现象确定主域被列入规则的触发原因，也不能承诺节点永久安全。建议“两条不同主域、不同网络路径的服务入口 + 一条独立静态恢复入口”，节点域名保持隔离；详细机制、研究依据和故障覆盖矩阵见[提案](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。
 
+橙云补充对照：无代理 Windows 指定两个 Cloudflare IP 访问 taige.us 仍 TLS 重置，同IP访问 board 返回200；Mac代理路径访问CF上的taige也返回200。权威DNS仍指原跳板，本轮未切换生产。证据不支持把“只开橙云”作为当前旧客户端恢复方案，详见[入口规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。
+
 <!-- client-resilience-plan-20261102:end -->
 
 <!-- taige-access-20261102:start -->

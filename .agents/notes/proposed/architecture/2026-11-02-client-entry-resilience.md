@@ -98,6 +98,8 @@ IPv4/IPv6 采用有界交错尝试，不能等坏 IPv6 长超时后才走 IPv4�
 
 推荐落地为“两条服务入口 + 一条静态恢复入口”：A/B 具有不同注册主域与网络路径，接现有同一权威账号系统；C 独立分发签名入口清单、恢复说明和安装包。节点域名继续独立，避免把网站/API 全部搬到 lumavia.fyi 后重新形成共同故障范围。board 作为现有应急路径保留，但 taige.us 与 board.taige.us 不能算两个独立主域。不同域名和线路必须同时内置或提前可信下发给客户端；没有选择能力的旧版不会因为服务端增加入口而自动获知。实际域名/线路所有权、证书、可达性和分发验收须在实施时确认，不以域名数量替代故障演练。
 
+橙云只读对照（2026-11-02 13:43–13:44 北京时间）：无代理 Windows 使用 --resolve 保留 taige.us 的 Host/SNI 和证书校验，分别指定 Cloudflare 172.67.132.124 / 104.21.13.31，TCP 建立后约0.25/0.30秒 TLS 重置；相同172地址访问 board.taige.us 严格 TLS/HTTP200。当前 Mac 代理路径以相同两地址访问 taige.us 均严格 TLS/HTTP200、Server Cloudflare，说明边缘确实能服务主域，不能把 Windows 重置简单归因于该域未配置在边缘。权威 A 仍为155.103.118.155，本次未切生产DNS；固定地址对照不能冒充实际启用橙云后的全网验收，但已表明仅改目的地址为CF没有解决本网络主域握手问题。[代理状态文档](https://developers.cloudflare.com/dns/proxy-status/)说明橙云返回CF地址；它不会自动消除域名过滤。ECH属于另外的端到端能力，现有客户端未验，不作为已失联旧版自动更新的恢复保证。
+
 ### 故障期间的客户触达
 
 现有[管理员群发](../../../../app/Http/Controllers/V2/Admin/UserController.php)支持指定/筛选用户，使用 [SendEmailJob](../../../../app/Jobs/SendEmailJob.php) 的 send_email_mass 队列及既有 SMTP；[Horizon 配置](../../../../config/horizon.php)包含队列。生产投递仍须单独验证，接口入队成功不等于收件箱送达，更不等于客户已阅读。当前[桌面公告](../../../../desktop/capybara/src-tauri/src/notices.rs)仍读取 account::ORIGIN，没有独立推送，不能依靠在主域发新公告覆盖失联用户。
