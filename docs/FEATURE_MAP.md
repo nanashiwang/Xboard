@@ -7,7 +7,7 @@
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->
-注册防滥用：[RegistrationGuard](../app/Services/Auth/RegistrationGuard.php) + 路由中间件限定注册/发码/恢复，Redis原子多维额度、验证码单次消费，已有用户恢复保留；[配置API规则](../app/Http/Requests/Admin/ConfigSave.php)、[策略快照命令](../app/Console/Commands/RegistrationSecurity.php)、[Turnstile维护源](../theme/Xboard/patches/turnstile-component.js)、[代理修正](../.docker/production/registration-proxy.py)与[线上身份验证](../.docker/production/registration-proxy-verify.py)。[操作边界](../scripts/security/README.md)及[进展](../progress-log.md#2026-11-03注册防护实施)区分本地、CI、生产和真人验收；原63账号不自动处置，发信/订单/流量继续独立复核。
+注册防滥用：[RegistrationGuard](../app/Services/Auth/RegistrationGuard.php) + 路由中间件限定注册/发码/恢复，Redis原子多维额度、验证码单次消费，已有用户恢复保留；[配置API规则](../app/Http/Requests/Admin/ConfigSave.php)、[策略快照命令](../app/Console/Commands/RegistrationSecurity.php)、[Turnstile维护源](../theme/Xboard/patches/turnstile-component.js)、[代理修正](../.docker/production/registration-proxy.py)与[线上身份验证](../.docker/production/registration-proxy-verify.py)。[操作边界](../scripts/security/README.md)及[进展](../progress-log.md#2026-11-03注册防护实施)已上线并区分本地、CI、生产和真人验收；原63账号不自动处置，发信/订单/流量继续独立复核。
 <!-- registration-abuse-20261103:end -->
 
 <!-- capybara-panel-update-20261103:start -->

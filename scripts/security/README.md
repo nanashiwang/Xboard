@@ -23,8 +23,10 @@
 
 `registration-proxy.py board|relay inspect|prepare|apply|rollback` 仅接受已检查的生产配置SHA，复用原备份/原子替换/nginx -t/失败恢复工具。board源站及taige跳板仅信任CF官方22个IPv4/IPv6网段；公开请求身份头用可信 `$remote_addr` 覆盖，Go直连配置保持原先规则。官方地址2026-11-03核对：[IPv4](https://www.cloudflare.com/ips-v4)、[IPv6](https://www.cloudflare.com/ips-v6)。旧安装模板保留为历史基线；已加固配置不能用旧模板覆盖。
 
-源站运行 `registration-proxy-verify.py`，检查三个公网域名、直连伪造头和跳板伪造头，并将实际收到的头送入已安装Laravel TrustProxies核验。随机临时诊断路径限定来源、关闭日志，finally恢复配置；失败应核对清理标志，不能以200替代身份断言。
+源站运行 `registration-proxy-verify.py`，使用IPv4检查三个公网域名、直连伪造头和跳板伪造头，并将实际收到的头送入已安装Laravel TrustProxies核验；IPv6信任范围有配置及单测覆盖，但未完成公网IPv6实测。随机临时诊断路径限定来源、关闭日志，finally恢复配置；失败应核对清理标志，不能以200替代身份断言。
 
 主题只提供压缩产物，维护源放在 `theme/Xboard/patches/turnstile-component.js`，运行 `python3 scripts/security/patch-turnstile.py` 幂等重建；未知上游锚点拒绝修改。表单每次发码/注册取独立token，失败显示提示等待显式重试，不再自动 reset 循环。服务端核对 hostname/action、单次token、3秒连接/8秒总超时；不匹配或服务异常拒绝。
 
-检查：`node --test tests/Frontend/turnstile.test.cjs`，PHP Security及BrowserLogin回归；CI使用真实Redis和8个独立进程验证并发名额/一次性码。测试中的模拟挑战不能代表生产真人完整注册验收。
+检查：`node --test tests/Frontend/turnstile.test.cjs`，PHP Security及BrowserLogin回归；CI使用真实Redis和8个独立进程验证并发名额/一次性码。测试中的模拟挑战不能代表生产真人完整注册验收。`registration-verify` 使用随机合成地址发起必须拒绝的请求，核验跨域共用IP桶、脱敏审计和零账号/零邮件写入，不进行真实发信。
+
+只读观察使用Production Deploy的`registration-observe`：核对启用时间、当前受限域账号数量、启用后新增数和快照存在，不发起合成请求，不消耗限流额度。公开版本以镜像revision及页面资源标识为准，CLI静态app.version不作为发布证据。

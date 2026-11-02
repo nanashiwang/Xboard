@@ -37,16 +37,19 @@
 
 ## 2026-11-03：注册防护实施
 
-用户明确“这些都弄上吧”，本轮按已授权范围实现并准备上线。原诊断快照保留，后续数字不覆盖历史。
+用户明确“这些都弄上吧”，本轮实施并上线；原诊断快照保留，后续数字不覆盖历史。核心提交 `5d40b6b`，持久快照修正 `89b2f90`，审计请求关联修正 `e048abc`；均沿master提交推送，保留其他任务的暂存/未暂存改动。
 
-- 规则：发码IP 5/10分钟、20/小时、50/天；邮箱1/分钟、5/小时、10/天。注册请求IP 10/分钟、60/小时、100/天；验证成功前预占3名额/小时、10名额/天；每邮箱5次验证码校验/5分钟，重发不重置。
-- `fldubai.com` 新注册/新用户发码定点限制；精确邮箱例外、已有用户登录/恢复和关闭注册时恢复均覆盖。验证码使用random_int，Redis锁下正确码先消费再写库；失败下游不返还名额。
-- CF控制台确认原widget仅board.taige.us，已补齐taige.us/capybarago.uk，保存后列表显示3个主机名，托管模式和密钥不变。组件采用手动失败重试，服务端核验hostname/action/超时，其他接口不叠加挑战。
-- 代理准备：生产taige跳板模板SHA9cfef765、board源站SHAe2f2991f；CF官方15个IPv4及7个IPv6网段核对一致。受控修正/验证工具已准备，尚未宣称生产已应用。
-- 检查：真实Redis缓存、8个fork进程的并发名额和单次验证码，合并后端/桌面BrowserLogin 24项183断言；前端5项、代理转换3项通过。配置应用/幂等/改后拒绝回退/安全回退、参数边界和日志通道有回归。CI及双架构镜像、Production Deploy尚待；未发送真实验证码、未创建真实账号、未完成真人完整注册。
-- 运维：沿用Production Deploy，新增revision核验后的registration-inspect/apply/rollback，策略私有快照及7天到期复核；脱敏日志保留7天，单域小时增速只警告不自动封禁。现有63账号保留；客户端0.1.9不变，网站按镜像版本发布，无独立GitHub Release。
+- 规则：发码IP 5/10分钟、20/小时、50/天；邮箱1/分钟、5/小时、10/天。注册请求IP 10/分钟、60/小时、100/天；验证成功前预占3名额/小时、10名额/天；每邮箱5次验证码校验/5分钟，重发不重置。Redis锁下正确码先消费再写库，失败下游保留名额。
+- `fldubai.com` 只限制新注册/新用户发码，支持精确邮箱例外；已有用户登录/恢复、停止新注册时的找回均有回归。未删除或封禁原63个账号，未改变订单、额度和付费权益。
+- CF控制台确认原widget仅board.taige.us，已补齐taige.us/capybarago.uk并保存为3个主机名，托管模式和密钥不变。Turnstile启用，服务端核验hostname/action及短超时，组件失败/过期等待明确重试，不自动循环reset；机器接口不叠加挑战。
+- taige跳板与board源站已备份、校验并reload；board配置SHA由e2f2991f变为0bdb8070，relay由9cfef765变为1a7fdf5c。CF官方15个IPv4和7个IPv6网段核对一致。[来源链验收](https://github.com/nanashiwang/Xboard/actions/runs/41505393950)成功：三个公网域、三条直连伪造头、两条跳板伪造头，共8组路径的IP/HTTPS/host均经已安装Laravel断言通过；临时诊断全部清理。公网实测强制IPv4，IPv6只覆盖配置/单测。此前taige公网伪造头探针403，普通公网请求通过；不把边缘拒绝当应用来源解析结果。
+- 本地真实Redis及8进程并发回归、前端和代理测试通过。最终[安全CI](https://github.com/nanashiwang/Xboard/actions/runs/41509801515)为25项191断言、前端5项、代理转换3项；包含配置幂等、冲突回退、一次性码、跨IP/邮箱额度和完整HTTP请求审计。最初CI因Redis健康检查命令的单引号失败，改双引号后重跑成功。另有桌面专项84项923断言、1项跳过，不作为该跳过能力的验收。
+- [双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/41509801492)发布成功，[最终部署](https://github.com/nanashiwang/Xboard/actions/runs/41510715926)确认运行revision `e048abc9345d1196c730ba67eeb11f8065bc3363`，资源版本 `20261103-e048abc`。首次部署曾被latest与目标SHA不一致的校验阻止，未在不匹配时重启；后续使用经核对的精确版本部署。网站沿用镜像版本发布，没有独立GitHub Release；本任务未发布客户端，其他任务的客户端版本独立记录。
+- [策略应用](https://github.com/nanashiwang/Xboard/actions/runs/41506268941)成功，镜像重建后的[最终公网验收](https://github.com/nanashiwang/Xboard/actions/runs/41510975229)再次成功：三域各两个受限域请求403，两次缺token400，第六个同IP发码请求429；九条审计包含请求ID，验证码缺失原因明确，零测试账号/邮件，当前受限域账号67。后续[只读观察](https://github.com/nanashiwang/Xboard/actions/runs/41511722007)确认：较初始快照新增的4个均早于策略启用；最后注册为北京时间02:29:51，策略03:03:48启用，截至03:38:11启用后新增0，仅代表约34分钟观察窗口。生产发现FormRequest复制导致详细原因/账号ID未回传原始请求，已修正并追加HTTP回归；没有仅以HTTP200作业务验收。
+- 已核实生产只挂载storage/logs等子目录；回退快照改放其独立0700目录，文件0600，容器重建后仍存在。参数回退有当前值冲突保护。审计保留7天，单域1小时8个成功注册仅警告；上线7天后09:00调度提示复核，域规则不自动失效，不发送外部告警。
+- 本地完整界面模拟发送→注册取得两个独立token，失败/过期能清理状态，未发真实邮件/建号。CLI静态app.version仍为1.0.0，不作为发布证据；页面资源已回读20261103-e048abc。正式浏览器测试经用户单独授权，实际Turnstile组件显示并回调，后端记录两次受限邮箱发码403，零账号/零邮件；初次空白弹层刷新后能显示验证并退出，未证明历史循环的唯一原因，也未完成真实邮箱收信→建号→桌面返回。后续需观察正常转化和误拦截，必要时调整共享出口额度或精确邮箱例外。
 
-[实施决定](./.agents/notes/implemented/feature/2026-11-03-registration-abuse-defense.md)、[额度与操作](./scripts/security/README.md)。发布完成后补记精确SHA、工作流与生产验证，不能将已触发构建视为上线成功。
+[实施决定](./.agents/notes/implemented/feature/2026-11-03-registration-abuse-defense.md)、[额度与回退](./scripts/security/README.md)。README、能力地图与本记录同步；最终文档提交完成后按该SHA从GitHub回读README/progress-log核对，结果在交付回复中报告。
 <!-- registration-abuse-20261103:end -->
 
 <!-- capybara-panel-update-20261103:start -->
