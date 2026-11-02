@@ -14,7 +14,7 @@ export async function noticePreview(
                       id: 1,
                       title: "卡皮巴拉系统通知，现在与你同步",
                       content:
-                          "## 每一次更新，都在这里\n\n官网发布的系统公告会同步到客户端，无需切换窗口。\n\n- 点击通知可以查看详情\n- 阅读后，未读标记会自动消除\n- 通知内容更新后，会再次提醒你\n\n[访问官网](https://taige.us/)",
+                          "## 每一次更新，都在这里\n\n官网发布的系统公告会同步到客户端，无需切换窗口。\n\n- 点击通知可以查看详情\n- 阅读后，未读标记会自动消除\n- 通知内容更新后，会再次提醒你\n\n[访问官网](https://capybarago.uk/)",
                       published_at: "2026-10-26T04:00:00Z",
                       level: "info",
                       image_url: null,

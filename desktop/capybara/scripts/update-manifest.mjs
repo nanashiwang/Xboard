@@ -56,6 +56,32 @@ export const targets = {
     "windows-x86_64": ["x86_64-pc-windows-msvc", ".exe"],
     "linux-x86_64": ["x86_64-unknown-linux-gnu", ".AppImage"],
 };
+// Older installed clients only accept taige.us package URLs. Keep their feed
+// compatible while migrated clients use a separate, canonical Go feed.
+export function updateIndexes(result) {
+    return Object.fromEntries(
+        [
+            ["capybara-latest.json", "https://taige.us"],
+            ["capybara-current.json", "https://capybarago.uk"],
+        ].map(([name, origin]) => [
+            name,
+            {
+                ...result,
+                platforms: Object.fromEntries(
+                    Object.entries(targets).map(
+                        ([platform, [target, extension]]) => [
+                            platform,
+                            {
+                                signature: result.platforms[platform].signature,
+                                url: `${origin}/downloads/Capybara_${result.version}_${target}${extension}`,
+                            },
+                        ],
+                    ),
+                ),
+            },
+        ]),
+    );
+}
 export async function generate(directory) {
     const root = path.resolve(import.meta.dirname, "..");
     const { version } = JSON.parse(
@@ -79,13 +105,14 @@ export async function generate(directory) {
         verifySignature(data, signature, config.plugins.updater.pubkey);
         result.platforms[platform] = {
             signature,
-            url: `https://taige.us/downloads/${name}`,
         };
     }
-    await writeFile(
-        path.join(directory, "capybara-latest.json"),
-        JSON.stringify(result, null, 2) + "\n",
-    );
+    for (const [name, index] of Object.entries(updateIndexes(result))) {
+        await writeFile(
+            path.join(directory, name),
+            JSON.stringify(index, null, 2) + "\n",
+        );
+    }
     console.log(
         `已验证 ${Object.keys(result.platforms).length} 个目标的更新签名并生成索引`,
     );

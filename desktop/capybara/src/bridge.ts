@@ -306,10 +306,11 @@ export async function command<T = View>(
         } as T;
     if (name === "open_link") {
         const urls: Record<string, string> = {
-            account: "https://taige.us/#/dashboard",
-            plans: "https://taige.us/#/plan",
-            support: "https://taige.us/#/ticket",
-            register: "https://taige.us/#/register",
+            account: "https://capybarago.uk/#/dashboard",
+            plans: "https://capybarago.uk/#/plan",
+            support: "https://capybarago.uk/#/ticket",
+            register: "https://capybarago.uk/#/register",
+            navigation: "https://capybarahub.fyi/",
             releases:
                 "https://github.com/nanashiwang/Xboard/releases?q=capybara",
         };

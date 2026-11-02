@@ -26,7 +26,7 @@ vi.mock("../src/bridge", () => ({
 const notice = (id = 1): SystemNotice => ({
     id,
     title: `公告 ${id}`,
-    content: "**消息正文** [官网](https://taige.us/)",
+    content: "**消息正文** [官网](https://capybarago.uk/)",
     published_at: "2026-10-26T00:00:00Z",
     image_url: null,
     level: "info",
@@ -82,7 +82,7 @@ it("syncs the official feed; opening the bell does not mark notices read, detail
     fireEvent.click(screen.getByRole("link", { name: "官网" }));
     await waitFor(() =>
         expect(command).toHaveBeenCalledWith("open_notice_link", {
-            url: "https://taige.us/",
+            url: "https://capybarago.uk/",
         }),
     );
     view.unmount();
@@ -167,7 +167,7 @@ it("empty feed and initial failure are distinct; polling runs every five minutes
 });
 it("storage errors are explicit and malicious content cannot add executable markup or local links", async () => {
     const html = noticeHtml(
-        '<script>alert(1)</script><img src="https://tracker.invalid/pixel" onerror="alert(1)"><iframe src="https://evil.invalid"></iframe><p style="color:red" onclick="alert(1)">正文</p><a href="javascript:alert(1)">坏链接</a><a href="https://taige.us/">官网</a><svg onload="alert(1)"></svg>',
+        '<script>alert(1)</script><img src="https://tracker.invalid/pixel" onerror="alert(1)"><iframe src="https://evil.invalid"></iframe><p style="color:red" onclick="alert(1)">正文</p><a href="javascript:alert(1)">坏链接</a><a href="https://capybarago.uk/">官网</a><svg onload="alert(1)"></svg>',
     );
     expect(html).toContain("正文");
     expect(html).not.toMatch(
@@ -181,7 +181,7 @@ it("storage errors are explicit and malicious content cannot add executable mark
         "https://evil.invalid/\n",
     ])
         expect(noticeLink(url)).toBeNull();
-    expect(noticeLink("/#/plan")).toBe("https://taige.us/#/plan");
+    expect(noticeLink("/#/plan")).toBe("https://capybarago.uk/#/plan");
     localStorage.setItem(readKey, "malformed");
     expect(loadReadMarks()).toEqual({});
     render(<Notifications />);

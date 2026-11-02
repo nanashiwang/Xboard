@@ -504,6 +504,14 @@ export default function App() {
                         <div className="help-actions">
                             <button
                                 className="secondary-button"
+                                onClick={() => void link("navigation")}
+                            >
+                                <Compass size={17} />
+                                官方导航
+                                <ArrowUpRight size={15} />
+                            </button>
+                            <button
+                                className="secondary-button"
                                 onClick={() => void link("support")}
                             >
                                 <LifeBuoy size={17} />

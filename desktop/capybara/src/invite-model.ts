@@ -26,6 +26,6 @@ export type InviteHistory = {
     page_size: number;
 };
 export const invitationLink = (code: string) =>
-    `https://taige.us/#/register?code=${encodeURIComponent(code)}`;
+    `https://capybarago.uk/#/register?code=${encodeURIComponent(code)}`;
 export const invitationDate = (timestamp: number) =>
     new Date(timestamp * 1000).toLocaleDateString("zh-CN");

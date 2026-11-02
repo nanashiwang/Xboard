@@ -307,6 +307,8 @@ fn sanitize_routing(
     } else {
         rules.splice(0..0, PRIVATE_RULES.iter().map(|rule| (*rule).into()));
         rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+        rules.insert(0, "DOMAIN,capybarahub.fyi,DIRECT".into());
+        rules.insert(0, "DOMAIN,capybarago.uk,DIRECT".into());
         for rule in settings.rules.iter().rev() {
             rules.insert(0, rule.line().into());
         }
@@ -1275,7 +1277,9 @@ mod tests {
         assert!(data["listeners"].is_null());
         assert!(data["external-ui"].is_null());
         assert!(data["dns"]["listen"].is_null());
-        assert_eq!(data["rules"][0], "DOMAIN,taige.us,DIRECT");
+        assert_eq!(data["rules"][0], "DOMAIN,capybarago.uk,DIRECT");
+        assert_eq!(data["rules"][1], "DOMAIN,capybarahub.fyi,DIRECT");
+        assert_eq!(data["rules"][2], "DOMAIN,taige.us,DIRECT");
     }
     #[test]
     fn direct_dns_defaults_to_system_without_replacing_subscription_policies() {
@@ -1350,7 +1354,7 @@ mod tests {
         let rule_config = sanitize_routing(raw, 1, 2, "x", &settings).unwrap();
         let rule_data: serde_yaml::Value = serde_yaml::from_str(&rule_config).unwrap();
         assert_eq!(rule_data["rules"][0], "DOMAIN-SUFFIX,example.com,代理组");
-        assert_eq!(rule_data["rules"][1], "DOMAIN,taige.us,DIRECT");
+        assert_eq!(rule_data["rules"][1], "DOMAIN,capybarago.uk,DIRECT");
         assert_eq!(data["proxy-groups"][0]["proxies"][0], "two");
         assert_eq!(data["proxy-groups"][1]["name"], "GLOBAL");
         assert_eq!(

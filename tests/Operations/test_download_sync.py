@@ -77,6 +77,38 @@ class DownloadSyncTest(unittest.TestCase):
             self.run_sync()
         self.assertEqual(self.feed_path.read_bytes(), b'old published index')
 
+    def add_current_index(self):
+        feed = json.loads(self.payloads[self.manifest[-1]['url']])
+        for entry in feed['platforms'].values():
+            entry['url'] = entry['url'].replace('https://taige.us/', 'https://capybarago.uk/')
+        self.add_asset('capybara-current.json', json.dumps(feed).encode())
+        return self.directory / 'capybara-current.json'
+
+    def test_both_indexes_publish_after_verified_packages(self):
+        current = self.add_current_index()
+        self.run_sync()
+        self.assertEqual(current.read_bytes(), self.payloads[self.manifest[-1]['url']])
+        self.assertEqual(self.feed_path.read_bytes(), self.payloads[self.manifest[-2]['url']])
+        self.run_sync()
+
+    def test_corrupt_current_index_keeps_both_previous_pointers(self):
+        current = self.add_current_index()
+        current.write_bytes(b'old current index')
+        self.payloads[self.manifest[-1]['url']] = b'corrupt'
+        with self.assertRaises(RuntimeError):
+            self.run_sync()
+        self.assertEqual(current.read_bytes(), b'old current index')
+        self.assertEqual(self.feed_path.read_bytes(), b'old published index')
+
+    def test_new_index_cannot_send_migrated_clients_back_to_legacy_domain(self):
+        self.add_current_index()
+        bad_feed = self.payloads[self.manifest[-2]['url']]
+        self.manifest.pop()
+        self.add_asset('capybara-current.json', bad_feed)
+        with self.assertRaises(RuntimeError):
+            self.run_sync()
+        self.assertEqual(self.feed_path.read_bytes(), b'old published index')
+
 
 if __name__ == '__main__':
     unittest.main()

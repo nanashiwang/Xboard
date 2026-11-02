@@ -633,17 +633,18 @@ async fn check_connection(state: State<'_, AppState>) -> Result<View, Fault> {
 fn open_link(app: tauri::AppHandle, target: String) -> Result<(), Fault> {
     use tauri_plugin_opener::OpenerExt;
     let url = match target.as_str() {
-        "account" => "https://taige.us/#/dashboard",
-        "plans" => "https://taige.us/#/plan",
-        "support" => "https://taige.us/#/ticket",
-        "register" => "https://taige.us/#/register",
-        "invite" => "https://taige.us/#/invite",
+        "account" => "https://capybarago.uk/#/dashboard",
+        "plans" => "https://capybarago.uk/#/plan",
+        "support" => "https://capybarago.uk/#/ticket",
+        "register" => "https://capybarago.uk/#/register",
+        "invite" => "https://capybarago.uk/#/invite",
+        "navigation" => "https://capybarahub.fyi/",
         "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara",
         _ => return Err(Fault::local("不支持的链接")),
     };
     app.opener()
         .open_url(url, None::<&str>)
-        .map_err(|_| Fault::local("无法打开浏览器，请访问 taige.us"))
+        .map_err(|_| Fault::local("无法打开浏览器，请访问 capybarago.uk"))
 }
 mod store;
 

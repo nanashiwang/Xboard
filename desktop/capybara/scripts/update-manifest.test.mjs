@@ -6,7 +6,7 @@ import {
     randomBytes,
     createHash,
 } from "node:crypto";
-import { verifySignature, targets } from "./update-manifest.mjs";
+import { verifySignature, targets, updateIndexes } from "./update-manifest.mjs";
 const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 const id = randomBytes(8),
     data = Buffer.from("installer fixture");
@@ -60,4 +60,34 @@ test("four release targets are explicit and Linux updater uses AppImage", () => 
         "x86_64-unknown-linux-gnu",
         ".AppImage",
     ]);
+});
+test("legacy and migrated clients receive identical signed packages through their trusted hosts", () => {
+    const release = {
+        version: "0.1.12",
+        notes: "迁移",
+        pub_date: "2026-11-03T00:00:00Z",
+        platforms: Object.fromEntries(
+            Object.keys(targets).map((platform) => [
+                platform,
+                { signature: encoded },
+            ]),
+        ),
+    };
+    const indexes = updateIndexes(release);
+    assert.deepEqual(Object.keys(indexes), [
+        "capybara-latest.json",
+        "capybara-current.json",
+    ]);
+    for (const platform of Object.keys(targets)) {
+        const legacy = indexes["capybara-latest.json"].platforms[platform];
+        const current = indexes["capybara-current.json"].platforms[platform];
+        assert.equal(new URL(legacy.url).origin, "https://taige.us");
+        assert.equal(new URL(current.url).origin, "https://capybarago.uk");
+        assert.equal(
+            new URL(legacy.url).pathname,
+            new URL(current.url).pathname,
+        );
+        assert.equal(current.signature, legacy.signature);
+        verifySignature(data, current.signature, key);
+    }
 });

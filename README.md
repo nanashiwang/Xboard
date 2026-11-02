@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- capybara-migration-20261103:start -->
+### 客户端新入口迁移 0.1.12（2026-11-03）
+
+客户端账号、授权、套餐与节点订阅统一切至 capybarago.uk，帮助页增加 capybarahub.fyi 官方导航；保留安装标识、原账号和更新公钥。新版读取 capybara-current.json，旧 capybara-latest.json 保留旧域包地址，避免旧版白名单拒绝更新。旧域不可达的旧版仍需从导航覆盖安装一次；macOS 可能需重新授权登录。多入口自动选路及离线恢复尚未实现。
+
+已核对 GitHub 最高正式版为0.1.11（不能按 Release 列表顺序推断），官网分发及 Windows 测试机仍0.1.9，Mac安装版0.1.5；下方历史“客户端0.1.9”指当时官网分发而非最高 Release。0.1.12 本地前端75/脚本17/Rust60通过（1项钥匙串手工测试未执行），下载同步7项及构建通过。四目标发布、线上分发和无代理安装验收进行中，未宣称客户已自动升级。见[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)与[进展](./progress-log.md#2026-11-03客户端新入口同步迁移)。
+<!-- capybara-migration-20261103:end -->
+
 <!-- registration-abuse-20261103:start -->
 ### 注册防护（2026-11-03）
 

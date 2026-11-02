@@ -105,7 +105,7 @@ jobs:
           node desktop/capybara/scripts/update-manifest.mjs release-assets
           cd release-assets
           sha256sum --check SHA256SUMS-*.txt
-          sha256sum Capybara_* capybara-latest.json > SHA256SUMS.txt
+          sha256sum Capybara_* capybara-latest.json capybara-current.json > SHA256SUMS.txt
           cd ..
           RELEASE_FLAGS=(--latest)
           if [[ "$VERSION" == *-* ]]; then RELEASE_FLAGS=(--prerelease --latest=false); fi

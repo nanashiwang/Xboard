@@ -143,7 +143,7 @@ mod tests {
         ] {
             assert!(notice_url(value).is_err(), "{value}");
         }
-        assert!(notice_url("https://taige.us/#/plan").is_ok());
+        assert!(notice_url("https://capybarago.uk/#/plan").is_ok());
     }
     #[tokio::test]
     async fn notices_use_the_public_endpoint_without_account_credentials() {

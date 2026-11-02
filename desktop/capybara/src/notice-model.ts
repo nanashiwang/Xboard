@@ -54,7 +54,7 @@ export function noticeLink(value: string): string | null {
     try {
         if (value.length > 4096 || /[\s\u0000-\u001f\u007f]/.test(value))
             return null;
-        const url = new URL(value, "https://taige.us/");
+        const url = new URL(value, "https://capybarago.uk/");
         return ["https:", "http:"].includes(url.protocol) &&
             !url.username &&
             !url.password

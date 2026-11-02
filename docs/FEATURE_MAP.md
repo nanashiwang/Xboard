@@ -1,5 +1,11 @@
 # Xboard 能力地图
 
+<!-- capybara-migration-20261103:start -->
+### 客户端入口同步迁移（0.1.12）
+
+[Account](../desktop/capybara/src-tauri/src/account.rs)固定Go同源承载登录、订阅、套餐和刷新；[更新器](../desktop/capybara/src-tauri/src/updates.rs)读取Go新版索引且限制精确版本化包路径；[发布脚本](../desktop/capybara/scripts/update-manifest.mjs)同时生成旧版兼容与新版索引；[分发同步](../.docker/downloads/sync.py)先验证附件及全部索引再发布。安装身份/公钥不变，帮助页可打开Hub；旧域已断旧版需覆盖升级，自动多源选路与离线恢复仍待实施。本地75前端/17脚本/60 Rust及7分发测试通过；Release、线上同步和无代理升级待验。见[决定](../.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)。
+<!-- capybara-migration-20261103:end -->
+
 <!-- registration-abuse-20261103:start -->
 注册防滥用：[RegistrationGuard](../app/Services/Auth/RegistrationGuard.php) + 路由中间件限定注册/发码/恢复，Redis原子多维额度、验证码单次消费，已有用户恢复保留；[配置API规则](../app/Http/Requests/Admin/ConfigSave.php)、[策略快照命令](../app/Console/Commands/RegistrationSecurity.php)、[Turnstile维护源](../theme/Xboard/patches/turnstile-component.js)、[代理修正](../.docker/production/registration-proxy.py)与[线上身份验证](../.docker/production/registration-proxy-verify.py)。[操作边界](../scripts/security/README.md)及[进展](../progress-log.md#2026-11-03注册防护实施)区分本地、CI、生产和真人验收；原63账号不自动处置，发信/订单/流量继续独立复核。
 <!-- registration-abuse-20261103:end -->

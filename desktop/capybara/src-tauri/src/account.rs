@@ -8,7 +8,7 @@ use std::{
 };
 use uuid::Uuid;
 
-pub const ORIGIN: &str = "https://taige.us";
+pub const ORIGIN: &str = "https://capybarago.uk";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const CORE_VERSION: &str = "1.19.33";
 pub fn platform() -> &'static str {
@@ -70,12 +70,12 @@ fn network_fault(error: reqwest::Error) -> Fault {
     } else if error.is_timeout() {
         (
             "NETWORK_TIMEOUT",
-            "连接 taige.us 超时，请检查网络后重试（NETWORK_TIMEOUT）",
+            "连接 capybarago.uk 超时，请检查网络后重试（NETWORK_TIMEOUT）",
         )
     } else if error.is_connect() {
         (
             "NETWORK_CONNECT",
-            "无法连接 taige.us，请检查网络或防火墙设置（NETWORK_CONNECT）",
+            "无法连接 capybarago.uk，请检查网络或防火墙设置（NETWORK_CONNECT）",
         )
     } else {
         (

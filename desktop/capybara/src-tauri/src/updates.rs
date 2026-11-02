@@ -12,7 +12,7 @@ use tauri::{Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const INTERVAL: u64 = 6 * 60 * 60;
-const FEED: &str = "https://taige.us/downloads/capybara-latest.json";
+const FEED: &str = "https://capybarago.uk/downloads/capybara-current.json";
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 struct Schedule {
@@ -109,15 +109,25 @@ impl Monitor {
 }
 
 fn trusted_asset(update: &Update) -> bool {
-    let url = &update.download_url;
+    trusted_download(&update.download_url, &update.version)
+}
+
+fn trusted_download(url: &reqwest::Url, version: &str) -> bool {
     url.scheme() == "https"
-        && url.host_str() == Some("taige.us")
+        && url.host_str() == Some("capybarago.uk")
         && url.port().is_none()
         && url.username().is_empty()
         && url.password().is_none()
-        && url
-            .path()
-            .starts_with(&format!("/downloads/Capybara_{}_", update.version))
+        && url.query().is_none()
+        && url.fragment().is_none()
+        && [
+            "aarch64-apple-darwin.app.tar.gz",
+            "x86_64-apple-darwin.app.tar.gz",
+            "x86_64-pc-windows-msvc.exe",
+            "x86_64-unknown-linux-gnu.AppImage",
+        ]
+        .iter()
+        .any(|target| url.path() == format!("/downloads/Capybara_{version}_{target}"))
 }
 
 pub fn start(app: &tauri::AppHandle, dir: &Path, installing: Arc<AtomicBool>) {
@@ -234,10 +244,10 @@ pub async fn install_update(
         use tauri_plugin_opener::OpenerExt;
         let result = app
             .opener()
-            .open_url("https://taige.us/clients#linux", None::<&str>);
+            .open_url("https://capybarago.uk/clients#linux", None::<&str>);
         monitor.installing.store(false, Ordering::SeqCst);
         if result.is_err() {
-            monitor.fail("无法打开下载页，请访问 taige.us/clients 下载安装 DEB 更新");
+            monitor.fail("无法打开下载页，请访问 capybarago.uk/clients 下载安装 DEB 更新");
         } else {
             let mut data = monitor.data.lock().unwrap();
             data.view.phase = "available".into();
@@ -289,6 +299,26 @@ pub fn prevent_exit(app: &tauri::AppHandle) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn migrated_updates_only_accept_exact_signed_package_locations() {
+        let path = "/downloads/Capybara_0.1.12_x86_64-pc-windows-msvc.exe";
+        assert!(trusted_download(
+            &format!("https://capybarago.uk{path}").parse().unwrap(),
+            "0.1.12"
+        ));
+        for url in [
+            format!("https://taige.us{path}"),
+            format!("https://capybarago.uk.evil.invalid{path}"),
+            format!("http://capybarago.uk{path}"),
+            format!("https://capybarago.uk:444{path}"),
+            format!("https://user@capybarago.uk{path}"),
+            format!("https://capybarago.uk{path}?redirect=other"),
+            format!("https://capybarago.uk{path}.sig"),
+            format!("https://capybarago.uk{}", path.replace("0.1.12", "0.1.11")),
+        ] {
+            assert!(!trusted_download(&url.parse().unwrap(), "0.1.12"), "{url}");
+        }
+    }
     fn fixture() -> (std::path::PathBuf, Monitor) {
         let dir = std::env::temp_dir().join(format!("capybara-update-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();

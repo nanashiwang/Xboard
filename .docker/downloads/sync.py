@@ -9,6 +9,12 @@ import subprocess
 import tempfile
 
 
+INDEX_ORIGINS = {
+    "capybara-latest.json": "https://taige.us",
+    "capybara-current.json": "https://capybarago.uk",
+}
+
+
 def checksum(path):
     digest = hashlib.sha256()
     with path.open('rb') as stream:
@@ -17,7 +23,8 @@ def checksum(path):
     return digest.hexdigest()
 
 
-def validate_update_index(path, manifest, directory):
+def validate_update_index(path, manifest, directory, name="capybara-latest.json"):
+    origin = INDEX_ORIGINS[name]
     """Publish the pointer only after every referenced, versioned asset is verified."""
     feed = json.loads(path.read_text())
     targets = {
@@ -32,7 +39,7 @@ def validate_update_index(path, manifest, directory):
     for platform, (target, extension) in targets.items():
         name = f"Capybara_{feed['version']}_{target}{extension}"
         entry = feed['platforms'][platform]
-        if entry['url'] != 'https://taige.us/downloads/' + name:
+        if entry['url'] != origin + '/downloads/' + name:
             raise RuntimeError('更新索引地址与版本不匹配')
         for filename in [name, name + '.sig']:
             asset = assets.get(filename)
@@ -48,33 +55,46 @@ def main():
     parser.add_argument('directory', type=Path)
     args = parser.parse_args()
     manifest = json.loads(Path(__file__).with_name('manifest.json').read_text())
-    indexes = [index for index, asset in enumerate(manifest) if asset['name'] == 'capybara-latest.json']
-    if indexes and indexes != [len(manifest) - 1]:
+    indexes = [i for i, asset in enumerate(manifest) if asset['name'] in INDEX_ORIGINS]
+    if indexes and indexes != list(range(len(manifest) - len(indexes), len(manifest))):
         raise RuntimeError('更新索引必须放在下载清单最后，全部附件完成后才能发布')
+    if len({a['name'] for a in manifest}) != len(manifest):
+        raise RuntimeError('下载清单不能包含重名文件')
     args.directory.mkdir(parents=True, exist_ok=True)
-    for asset in manifest:
-        target = args.directory / asset['name']
-        if target.exists() and target.stat().st_size == asset['size'] and checksum(target) == asset['sha256']:
-            if target.name == 'capybara-latest.json':
-                validate_update_index(target, manifest, args.directory)
-            print('已校验：' + target.name, flush=True)
-            continue
-        fd, temporary = tempfile.mkstemp(prefix='.' + target.name, dir=args.directory)
-        os.close(fd)
-        temporary = Path(temporary)
-        try:
+    staged = []
+    try:
+        for asset in manifest:
+            target = args.directory / asset['name']
+            is_index = target.name in INDEX_ORIGINS
+            if target.exists() and target.stat().st_size == asset['size'] and checksum(target) == asset['sha256']:
+                if is_index:
+                    validate_update_index(target, manifest, args.directory, target.name)
+                print('已校验：' + target.name, flush=True)
+                continue
+            fd, temporary = tempfile.mkstemp(prefix='.' + target.name, dir=args.directory)
+            os.close(fd)
+            temporary = Path(temporary)
+            staged.append((temporary, target))
             subprocess.run(['curl', '--fail', '--location', '--silent', '--show-error',
                             '--retry', '3', '--connect-timeout', '20', '--max-time', '900',
                             '--proto', '=https', '--proto-redir', '=https',
                             '--output', str(temporary), asset['url']], check=True)
             if temporary.stat().st_size != asset['size'] or checksum(temporary) != asset['sha256']:
                 raise RuntimeError('文件大小或 SHA-256 不匹配：' + target.name)
-            if target.name == 'capybara-latest.json':
-                validate_update_index(temporary, manifest, args.directory)
             temporary.chmod(0o644)
-            temporary.replace(target)
-            print('下载并校验：' + target.name, flush=True)
-        finally:
+            if is_index:
+                validate_update_index(temporary, manifest, args.directory, target.name)
+            else:
+                temporary.replace(target)
+                print('下载并校验：' + target.name, flush=True)
+        # Both indexes must validate before either pointer changes. An interrupted
+        # rename can leave different versions, but each still references complete assets.
+        for temporary, target in staged:
+            if target.name in INDEX_ORIGINS:
+                temporary.replace(target)
+                print('发布更新索引：' + target.name, flush=True)
+    finally:
+        for temporary, _ in staged:
             temporary.unlink(missing_ok=True)
     sums = ''.join(a['sha256'] + '  ' + a['name'] + '\n' for a in manifest)
     fd, temporary = tempfile.mkstemp(prefix='.SHA256SUMS', dir=args.directory)
