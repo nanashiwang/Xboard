@@ -46,4 +46,6 @@ foreach (glob(storage_path('logs/registration-*.log')) as $path) {
     fclose($handle);
 }
 ensure(count($events)===count($results),'Audit events missing or duplicated');
-echo json_encode(['public_probes'=>$results,'audit_events'=>$events,'accounts_created'=>0,'mail_dispatched'=>0,'snapshot_persistent'=>is_file(storage_path('logs/security-backups/registration-20261103.json'))],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;
+echo json_encode(['runtime_version'=>config('app.version'),'target_domain_accounts'=>User::where('email','like','%@fldubai.com')->count(),'public_probes'=>$results,'audit_events'=>$events,'accounts_created'=>0,'mail_dispatched'=>0,'snapshot_persistent'=>is_file(storage_path('logs/security-backups/registration-20261103.json'))],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;
+Illuminate\Support\Facades\Artisan::call('security:registration inspect');
+echo Illuminate\Support\Facades\Artisan::output();
