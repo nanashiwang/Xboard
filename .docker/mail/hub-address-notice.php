@@ -72,6 +72,7 @@ class HubAddressNotice
             'smtp_error_logs' => App\Models\MailLog::where('subject', self::SUBJECT)
                 ->where('template_name', 'mail.default.' . self::TEMPLATE)->whereNotNull('error')->count(),
             'smtp_error_summary' => $this->errorSummary(),
+            'smtp_error_signals' => $this->errorSignals(),
             'template_available' => Illuminate\Support\Facades\View::exists('mail.default.' . self::TEMPLATE),
             'template_override' => App\Models\MailTemplate::where('name', self::TEMPLATE)->exists(),
             'mail_transport' => config('mail.driver'),
@@ -103,6 +104,25 @@ class HubAddressNotice
             $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
         // Never include raw errors, addresses, SMTP credentials, or server configuration.
+        return (object) $counts;
+    }
+
+    private function errorSignals(): object
+    {
+        $counts = [];
+        $errors = App\Models\MailLog::where('subject', self::SUBJECT)
+            ->where('template_name', 'mail.default.' . self::TEMPLATE)->whereNotNull('error')->pluck('error');
+        // Fixed vocabulary only: no raw error fragments, addresses or credentials.
+        $allowed = ['too', 'many', 'much', 'login', 'logins', 'attempts', 'authentication', 'connections',
+            'concurrent', 'sessions', 'messages', 'message', 'mail', 'sending', 'send', 'rate', 'limit', 'quota',
+            'daily', 'hourly', 'day', 'hour', 'minute', 'second', 'seconds', 'maximum', 'exceeded', 'reached',
+            'throttling', 'throttle', 'frequency', 'restricted', 'suspended', 'temporarily', 'temporary',
+            'failure', 'account', 'per', 'please', 'try', 'again', 'later', 'after'];
+        foreach ($errors as $error) {
+            $tokens = preg_split('/[^a-z]+/', strtolower((string) $error));
+            $signal = implode(' ', array_values(array_filter($tokens, fn ($word) => in_array($word, $allowed, true))));
+            $counts[$signal ?: 'unrecognized'] = ($counts[$signal ?: 'unrecognized'] ?? 0) + 1;
+        }
         return (object) $counts;
     }
 
