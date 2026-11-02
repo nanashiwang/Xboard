@@ -11,11 +11,11 @@ ensure((bool) admin_setting('captcha_enable') && admin_setting('captcha_type') =
 ensure((bool) admin_setting('register_limit_by_ip_enable') && app(App\Services\Auth\RegistrationGuard::class)->enabled(), 'Registration policy not enabled');
 $prefix = 'guard-proof-' . bin2hex(random_bytes(8)); $emails = []; $results = [];
 foreach (['capybarago.uk', 'taige.us', 'board.taige.us'] as $index => $host) {
-    $config = Http::connectTimeout(5)->timeout(15)->get('https://' . $host . '/api/v1/guest/comm/config');
+    $config = Http::withOptions(['force_ip_resolve' => 'v4'])->connectTimeout(5)->timeout(15)->get('https://' . $host . '/api/v1/guest/comm/config');
     ensure($config->successful() && (int) $config->json('data.is_captcha') === 1 && $config->json('data.captcha_type') === 'turnstile', 'Public captcha config mismatch');
     foreach (['auth/register', 'comm/sendEmailVerify'] as $operation) {
         $email = $prefix . '-' . count($emails) . '@fldubai.com'; $emails[] = $email;
-        $response = Http::connectTimeout(5)->timeout(15)->post('https://' . $host . '/api/v1/passport/' . $operation, ['email'=>$email,'password'=>'never-created-random-test']);
+        $response = Http::withOptions(['force_ip_resolve' => 'v4'])->connectTimeout(5)->timeout(15)->post('https://' . $host . '/api/v1/passport/' . $operation, ['email'=>$email,'password'=>'never-created-random-test']);
         ensure($response->status()===403 && str_contains($response->json('message') ?? '', '此邮箱'), 'Blocked-domain rejection mismatch');
         $results[]=['host'=>$host,'operation'=>$operation,'status'=>$response->status(),'reason'=>'email_domain'];
     }
@@ -24,7 +24,7 @@ foreach (['capybarago.uk', 'taige.us', 'board.taige.us'] as $index => $host) {
 // already consumed three slots; missing-token sends consume slots four and five.
 foreach ([400,400,429] as $expected) {
     $email=$prefix.'-'.count($emails).'@example.invalid';$emails[]=$email;
-    $response=Http::connectTimeout(5)->timeout(15)->post('https://capybarago.uk/api/v1/passport/comm/sendEmailVerify',['email'=>$email]);
+    $response=Http::withOptions(['force_ip_resolve' => 'v4'])->connectTimeout(5)->timeout(15)->post('https://capybarago.uk/api/v1/passport/comm/sendEmailVerify',['email'=>$email]);
     ensure($response->status()===$expected,'Cross-host quota or missing-token rejection mismatch');
     $results[]=['host'=>'capybarago.uk','operation'=>'comm/sendEmailVerify','status'=>$response->status()];
 }
