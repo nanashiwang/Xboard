@@ -4,7 +4,9 @@
 
 ## 当前路径
 
-当前为 `taige.us → DNS-only A 155.103.118.155 → HTTPS 107.173.191.23`；`board.taige.us` 保留原 CF 代理路径。2026-10-22 已完成 DNS 切换、两台权威及两个公共解析器核对；A 的 TTL 为 300 秒，AAAA 为空。实际连接目的 IP、公开页面及压缩已验收；仍有一次追加超时，不宣称已消除全部卡顿，详情见[执行记录](../../../progress-log.md)。
+2026-11-02 14:00 左右已按用户要求试验橙云：`taige.us → Cloudflare → A 回源 155.103.118.155 → HTTPS 107.173.191.23`。控制台主域 A 内容不变、代理为「已代理」、TTL 自动；权威返回 CF 的两条 A 与两条 AAAA（TTL 300 秒）。`board.taige.us` 保留原 CF 路径。当前代理路径首页、公开配置、更新索引 200，但无代理 Windows 主域仍 TLS 重置；保留配置供用户测试，详见[试验记录](../../../progress-log.md#2026-11-02主域橙云代理试验)。
+
+2026-10-22 的历史路径是 DNS-only A 155.103.118.155，当时无 AAAA；原灰云路径的身份头、压缩和续期验收不代表新增 CF→跳板链已经通过相同验收。
 
 跳板配置源为 [website-relay.conf](../../../.docker/production/website-relay.conf)，安装到 `/etc/nginx/sites-enabled/taige.us`。上游固定 IP、SNI 与 Host，严格验证源站证书；开启 gzip，保留请求方法、正文、Range 与 Upgrade，不做公共代理缓存。访问日志不包含路径、查询参数、Cookie 或 Authorization，避免记录订阅凭据。
 
@@ -16,7 +18,13 @@
 
 跳板覆盖传入的客户端身份头；源站仅在 taige.us vhost 精确信任该跳板及 CF 官方网段，并清洗发送给应用的 X-Forwarded-For。不得只把 relay IP 加入全局信任或信任公网任意头。源站运维通过[手动工作流](../../../.github/workflows/website-relay-origin.yml)和[限定脚本](../../../.docker/production/website-relay-origin.py)执行，沿用现有 SSH Secret 和固定主机公钥，不导出密码。
 
-## 切流与回退
+## 本次橙云试验回退
+
+只将当前主域 A 记录改回「仅 DNS」，保留 `155.103.118.155` 和 TTL 自动；随后确认权威 A 回到跳板、代理生成的 AAAA 撤下，并等待客户端缓存收敛。本轮没有改服务器配置。若长期保留 CF→跳板，需要另验真实客户端 IP、限流和证书续期；当前仓库跳板配置以 `$remote_addr` 覆盖身份头，新增 CF 一跳可能使后端识别为 CF 地址。
+
+## 2026-10-22 历史切流与回退
+
+以下为 10 月从源站 CF 切至灰云跳板的历史方案，不作为本次单独代理开关试验的回退步骤。
 
 切流前固定域名与新 IP，严格 TLS 检查首页、公开配置、主 JS 压缩及完整内容、下载页、Range，并验证身份头伪造被覆盖。对比同一大陆网络原 CF 路径；不将单次成功写成全运营商提速。现有 `/ws` 在直接源站和 relay 都返回 502，未将其标为 WebSocket 业务验收成功。
 

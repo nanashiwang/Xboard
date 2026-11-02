@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- taige-orange-trial-20261102:start -->
+### 主域橙云试验已开启（2026-11-02）
+
+按用户要求，14:00 左右已将 `taige.us` 的 A 记录切为 Cloudflare「已代理」，保留回源地址 `155.103.118.155` 和 TTL 自动。控制台刷新回读、权威 A/AAAA 已确认生效。经代理的 Mac 指定 CF 地址访问首页、公开配置和更新索引均 HTTP 200；无代理 Windows 普通访问仍超时，指定 CF 地址仍 TLS 重置，不能宣称客户端恢复。保留橙云供用户实测。
+
+当前更新索引仍为 0.1.9，未发布恢复版；多入口规划仍未实施。变更范围、回退与待验事项见[执行记录](./progress-log.md#2026-11-02主域橙云代理试验)和[入口运维](./docs/zh-CN/installation/website-relay.md)。下文当日只读诊断是切换前记录。
+<!-- taige-orange-trial-20261102:end -->
+
 <!-- client-resilience-plan-20261102:start -->
 ### 客户端入口恢复规划（2026-11-02，尚未实施）
 
@@ -12,7 +20,7 @@
 
 机制与节点对照：同一无代理 Windows 上，node.lumavia.fyi 通过证书/域名验证完成 TLS 1.3，edge.lumavia.fyi 也返回 HTTPS 404；主域固定正确 IP 后仍 TLS 重置。404 仅证明节点 HTTPS 入口可达，实际代理未验。过滤可能按域名/SNI/IP分别生效，无法据现象确定主域被列入规则的触发原因，也不能承诺节点永久安全。建议“两条不同主域、不同网络路径的服务入口 + 一条独立静态恢复入口”，节点域名保持隔离；详细机制、研究依据和故障覆盖矩阵见[提案](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。
 
-橙云补充对照：无代理 Windows 指定两个 Cloudflare IP 访问 taige.us 仍 TLS 重置，同IP访问 board 返回200；Mac代理路径访问CF上的taige也返回200。权威DNS仍指原跳板，本轮未切换生产。证据不支持把“只开橙云”作为当前旧客户端恢复方案，详见[入口规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。
+切换前橙云补充对照（13:43–13:44）：无代理 Windows 指定两个 Cloudflare IP 访问 taige.us 仍 TLS 重置，同IP访问 board 返回200；Mac代理路径访问CF上的taige也返回200。权威DNS仍指原跳板，本轮未切换生产。证据不支持把“只开橙云”作为当前旧客户端恢复方案，详见[入口规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。
 
 <!-- client-resilience-plan-20261102:end -->
 
