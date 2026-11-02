@@ -15,7 +15,7 @@
 
 先修正代理和 Turnstile 三域允许列表，部署已通过检查的镜像，再运行 `php artisan security:registration apply`。命令要求共享 Redis、已有验证码密钥，保存权限0600的配置快照，只改固定策略项，保留邮箱例外与其他设置。`inspect` 只显示非敏感配置和例外数量；`rollback` 要求当前策略与快照完全匹配，配置已被其他操作修改时拒绝覆盖。Production Deploy 中对应 registration-inspect/apply/rollback 操作均校验完整镜像SHA，变更后 reload Octane。
 
-快照默认 `storage/app/security-backups/registration-20261103.json`，生产须确认 storage 持久挂载；不要上传快照。上线7天后每天09:00检查到期复核标记，在注册专用日志记录警告；到期不会自动放开受限域。管理员配置API已有字段校验，现成管理页面不新增隐藏绕过入口。
+快照默认 `storage/logs/security-backups/registration-20261103.json`，生产已核实 storage/logs 持久挂载；使用其独立0700子目录，避免容器重建丢失快照；不要上传快照。上线7天后每天09:00检查到期复核标记，在注册专用日志记录警告；到期不会自动放开受限域。管理员配置API已有字段校验，现成管理页面不新增隐藏绕过入口。
 
 审计日志 `storage/logs/registration-YYYY-MM-DD.log` 仅保留7天：服务端请求ID、结果、原因、邮箱域、带应用密钥的邮箱/IP摘要、成功账号ID，不存密码/验证码/原始IP/完整邮箱。单域1小时8个成功注册时每小时最多记录一次警告；常见邮箱不会因此被自动封禁。结合发码/注册结果、订单和流量继续人工复核，告警不自动发信给第三方。
 

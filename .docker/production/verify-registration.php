@@ -46,4 +46,4 @@ foreach (glob(storage_path('logs/registration-*.log')) as $path) {
     fclose($handle);
 }
 ensure(count($events)===count($results),'Audit events missing or duplicated');
-echo json_encode(['public_probes'=>$results,'audit_events'=>$events,'accounts_created'=>0,'mail_dispatched'=>0,'snapshot_persistent'=>is_file(storage_path('app/security-backups/registration-20261103.json'))],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;
+echo json_encode(['public_probes'=>$results,'audit_events'=>$events,'accounts_created'=>0,'mail_dispatched'=>0,'snapshot_persistent'=>is_file(storage_path('logs/security-backups/registration-20261103.json'))],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;

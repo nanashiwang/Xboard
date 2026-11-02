@@ -31,7 +31,7 @@ class RegistrationPolicyTest extends TestCase
             admin_setting(['captcha_enable'=>0,'email_verify'=>1,'turnstile_secret_key'=>'not-a-real-key','turnstile_site_key'=>'not-a-real-sitekey','unrelated'=>'preserved']);
             $this->artisan('security:registration apply')->assertSuccessful();
             $this->assertSame(1,(int)admin_setting('captcha_enable'));
-            $path=storage_path('app/security-backups/registration-20261103.json');
+            $path=storage_path('logs/security-backups/registration-20261103.json');
             $this->assertSame(0600,fileperms($path)&0777);
             $this->assertStringNotContainsString('not-a-real-key',file_get_contents($path));
             $this->artisan('security:registration apply')->assertSuccessful();

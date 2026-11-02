@@ -29,7 +29,7 @@ class RegistrationSecurity extends Command
         if (!in_array($operation, ['inspect', 'apply', 'rollback', 'review'], true)) return self::INVALID;
         $name = $this->option('backup');
         if (!preg_match('/^[a-z0-9-]{1,64}$/D', $name)) return self::INVALID;
-        $path = storage_path('app/security-backups/' . $name . '.json');
+        $path = storage_path('logs/security-backups/' . $name . '.json');
         if ($operation === 'apply' || $operation === 'rollback') {
             return Cache::lock('registration-security-config', 30)->block(5, function () use ($operation, $path) {
                 $current = $this->values();

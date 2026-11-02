@@ -50,7 +50,8 @@ def verify(domain):
             # Board uses a Cloudflare origin certificate. Trust that exact local
             # certificate for the local probe; never disable TLS verification.
             if domain=='board.taige.us' and address=='127.0.0.1': cmd+=['--cacert','/etc/nginx/ssl/board.taige.us/fullchain.pem']
-            for h in SPOOF: cmd+=['-H',h]
+            if address:
+                for h in SPOOF: cmd+=['-H',h]
             cmd+=['https://'+domain+endpoint]
             result=None
             for attempt in range(4):
@@ -59,7 +60,7 @@ def verify(domain):
                 if attempt<3: b.time.sleep(0.5)
             output=result.stdout.replace('\r\n','\n'); status=output.rsplit('\n',1)[-1]
             if result.returncode or not output.endswith('guard-identity-ok\n200'):
-                print(json.dumps({'domain':domain,'probe':name,'curl_exit':result.returncode,'http_status':status if status.isdigit() else 'unknown','cf_challenge':'cf-mitigated: challenge' in output.lower()}),flush=True)
+                print(json.dumps({'domain':domain,'probe':name,'curl_exit':result.returncode,'http_status':status if status.isdigit() else 'unknown','cf_challenge':'cf-mitigated: challenge' in output.lower(),'server_cloudflare':'server: cloudflare' in output.lower(),'server_nginx':'server: nginx' in output.lower()}),flush=True)
                 raise b.OperationError('probe_failed_'+domain+'_'+name)
             received_headers=received.get(timeout=5)
             b.require(received_headers['x-forwarded-for']==expected and received_headers['x-real-ip']==expected,'identity_mismatch_'+domain+'_'+name)
