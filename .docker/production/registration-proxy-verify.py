@@ -45,7 +45,7 @@ def verify(domain):
         modes=[('public_dns',None,b.ORIGIN),('direct_spoof','127.0.0.1','127.0.0.1')]
         if domain!='board.taige.us': modes.append(('relay_spoof',b.RELAY,b.ORIGIN))
         for name,address,expected in modes:
-            cmd=['curl','--noproxy','*','-fsS','--connect-timeout','8','--max-time','25']
+            cmd=['curl','-4','--dump-header','-','--write-out','\n%{http_code}','--noproxy','*','-fsS','--connect-timeout','8','--max-time','25']
             if address: cmd+=['--resolve',domain+':443:'+address]
             # Board uses a Cloudflare origin certificate. Trust that exact local
             # certificate for the local probe; never disable TLS verification.
@@ -57,7 +57,10 @@ def verify(domain):
                 result=subprocess.run(cmd,capture_output=True,text=True,timeout=30)
                 if result.returncode==0: break
                 if attempt<3: b.time.sleep(0.5)
-            b.require(result.returncode==0 and result.stdout=='guard-identity-ok','probe_failed_'+domain+'_'+name)
+            output=result.stdout.replace('\r\n','\n'); status=output.rsplit('\n',1)[-1]
+            if result.returncode or not output.endswith('guard-identity-ok\n200'):
+                print(json.dumps({'domain':domain,'probe':name,'curl_exit':result.returncode,'http_status':status if status.isdigit() else 'unknown','cf_challenge':'cf-mitigated: challenge' in output.lower()}),flush=True)
+                raise b.OperationError('probe_failed_'+domain+'_'+name)
             received_headers=received.get(timeout=5)
             b.require(received_headers['x-forwarded-for']==expected and received_headers['x-real-ip']==expected,'identity_mismatch_'+domain+'_'+name)
             b.require(not received_headers['forwarded'] and not received_headers['true-client-ip'],'spoofed_headers_preserved')
@@ -69,6 +72,7 @@ def verify(domain):
             b.install_config(before,state);b.checked(['nginx','-t'],'cleanup_nginx_invalid');b.checked(['systemctl','reload','nginx'],'cleanup_reload_failed')
         receiver.shutdown();receiver.server_close();thread.join(timeout=5)
         b.require(b.current_config()==before and not thread.is_alive(),'cleanup_failed')
+        print(json.dumps({'domain':domain,'diagnostic_cleaned':True}),flush=True)
 
 if __name__=='__main__':
     with b.operation_lock():

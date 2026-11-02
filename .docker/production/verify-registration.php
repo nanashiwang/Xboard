@@ -12,7 +12,7 @@ ensure((bool) admin_setting('register_limit_by_ip_enable') && app(App\Services\A
 $prefix = 'guard-proof-' . bin2hex(random_bytes(8)); $emails = []; $results = [];
 foreach (['capybarago.uk', 'taige.us', 'board.taige.us'] as $index => $host) {
     $config = Http::connectTimeout(5)->timeout(15)->get('https://' . $host . '/api/v1/guest/comm/config');
-    ensure($config->successful() && $config->json('data.is_captcha') === true && $config->json('data.captcha_type') === 'turnstile', 'Public captcha config mismatch');
+    ensure($config->successful() && (int) $config->json('data.is_captcha') === 1 && $config->json('data.captcha_type') === 'turnstile', 'Public captcha config mismatch');
     foreach (['auth/register', 'comm/sendEmailVerify'] as $operation) {
         $email = $prefix . '-' . count($emails) . '@fldubai.com'; $emails[] = $email;
         $response = Http::connectTimeout(5)->timeout(15)->post('https://' . $host . '/api/v1/passport/' . $operation, ['email'=>$email,'password'=>'never-created-random-test']);
