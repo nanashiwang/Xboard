@@ -1,5 +1,21 @@
 # Xboard 项目进展记录
 
+<!-- taige-access-20261102:start -->
+## 2026-11-02：taige.us 国内无代理访问诊断
+
+用户反馈主域名无法访问，要求使用同局域网另一台未开代理的电脑确认是否被墙。先前 Mac 环境有 TUN 与 fake-IP，代理下成功只能证明站点可访问；本次通过既有 SSH 连接 Windows 执行只读对照，未启停软件或修改网络设置。
+
+- Windows：`ProxyEnable=0`，WinHTTP 明确直连，无代理环境变量；仅 WLAN 活跃，目的地址经 WLAN 默认路由到家庭网关，hosts 无 taige 条目。保留的旧 ProxyServer 字符串不等于已启用代理；HTTPS 探针显式使用 `--noproxy '*'`。普通对照网站返回 200。
+- DNS：Windows 默认网关及指定阿里/腾讯 DNS 均返回 `93.46.8.90`；Mac 对阿里 DoH 查询取得 `46.82.174.69`，Google/Cloudflare DoH 与权威服务器一致为 `155.103.118.155`。存在明确错误解析，不能当作正常 CDN 调度。
+- 主域直连：默认解析访问连接超时。`--resolve taige.us:443:155.103.118.155` 保留正确 Host/SNI/证书校验，TCP 约 0.22 秒建立，随后 TLS 重置，curl 退出 35；强制 TLS 1.2 复测相同。独立 Python/OpenSSL 对相同 IP 的 `taige.us` SNI 收到 WinError 10054（总计约 0.27 秒），而其他/无 SNI 收到服务器 `unrecognized_name` TLS 告警（约 0.42–0.50 秒）。后者是协议对照失败，不能记为正常网站访问成功。
+- 结论：DNS 污染已证实；正确 IP 的 TCP 可达，但特定域名 TLS 仍遭重置，高度符合域名/SNI 干扰。未抓包或核对链路中间设备，不能绝对归因某个设备；没有证据表明网站整体宕机或目标 IP 全端口不可达。经代理指定正确 IP 可取得严格 TLS/HTTP 200；改 DNS 或 hosts 不能独自解决本次 Windows 现象。
+- 备用入口：`board.taige.us` 仍解析到 Cloudflare；Windows 的首页、`/clients`、`/api/v1/guest/comm/config`、`/theme/Xboard/assets/umi.js` 返回 200，JS 完整 GET 成功。固定 `104.21.13.31`、`172.67.132.124` 及 IPv6 `2606:4700:3032::ac43:847c` 的首页 GET 约 0.89–0.97 秒、严格 TLS 通过；另一解析地址 `2606:4700:3037::6815:d1f` 的固定 IPv6 请求连接超时（6 秒）；默认 curl 连接与 Python TLS 也有超时样本，与该地址不可达现象相符，但未逐次抓包证明因果，保留稳定性缺口。未登录账号、取真实订阅、付款或测试代理节点。
+
+沿用[现有网站入口决定](./.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)，先提供既有备用网址；本次只诊断，不切 DNS、不迁主域或订阅、不改应用。若用户要求恢复主入口，后续须独立核验候选域名/路线的国内 DNS、TLS 与业务入口，再决定切换；不能把换 IP、改 hosts 或同主域子域名当作保证有效的方案。
+
+交付范围为四份诊断文档，本地笔记结构、相对链接与新增锚点检查通过；中文提交至 master，沿用已有纯文档 `[skip ci]` 约定；不触发镜像/客户端构建、GitHub Release 或生产部署，不更新版本号。推送后按该提交 SHA 从 GitHub 回读 README/progress 并在聊天报告核对结果；本节不预写未完成的远端结果。其他任务的暂存及未暂存内容保留。
+<!-- taige-access-20261102:end -->
+
 <!-- singbox-template-20261030:start -->
 ## 2026-10-30：sing-box 默认订阅兼容修复
 

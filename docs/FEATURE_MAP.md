@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- taige-access-20261102:start -->
+网站访问现状（2026-11-02）：Windows 无代理直连确认 `taige.us` 错误解析，固定正确 IP 后 TLS 仍重置；TCP 可达及不同 SNI 告警对照高度符合域名干扰。`board.taige.us` 既有 CF 路径的首页、公开配置、下载页与完整 JS 请求成功，但另一 IPv6 地址及默认连接存在超时，不保证稳定或业务全流程。见[诊断与后续边界](../progress-log.md#2026-11-02taigeus-国内无代理访问诊断)和[入口决定](../.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)；下表 10 月历史成功记录不代表当前主域国内可达。
+<!-- taige-access-20261102:end -->
+
 <!-- singbox-template-20261030:start -->
 sing-box 订阅兼容（2026-10-30）：`/api/v1/client/subscribe` 沿用用户订阅鉴权及可用节点筛选，经 [ClientController](../app/Http/Controllers/V1/Client/ClientController.php)、[SingBox](../app/Protocols/SingBox.php) 从 [SubscribeTemplate](../app/Models/SubscribeTemplate.php) 数据库读取模板；[默认 JSON](../resources/rules/default.sing-box.json)仅在首次迁移导入。默认基准为现代 DNS/路由动作，按内核版本降级；[专项回归](../tests/Feature/Desktop/SingBoxTemplateTest.php)覆盖完整合成香港入口导出与五版本内核 check。[决定](../.agents/notes/implemented/bug-fix/2026-10-30-singbox-template-compat.md)明确自定义模板不自动迁移；代码已随家宽看板部署，生产数据库模板未替换，配置检查不代表真实链路或计费验收。
 <!-- singbox-template-20261030:end -->

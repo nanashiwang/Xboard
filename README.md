@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- taige-access-20261102:start -->
+### 主域名直连异常（2026-11-02）
+
+同局域网 Windows 无系统/WinHTTP/环境代理、WLAN 默认路由的实测确认：`taige.us` 被解析至错误地址，指定权威地址后 TCP 可达但 TLS 握手仍被重置，高度符合 DNS 污染并伴随域名/SNI 干扰；只改 DNS 不能恢复本次直连。经代理的正确入口仍返回 200，不应据此判断大陆直连正常。
+
+既有 [board.taige.us](https://board.taige.us/) 的首页、下载页、公开配置及主脚本取得成功响应，两个 IPv4 与一个 IPv6 地址的首页 GET 通过；另一 IPv6 地址及默认连接存在超时样本，仅作为当前可尝试的备用入口，不保证稳定或全运营商可用。未验证实际登录、订阅、支付或节点转发。本轮未改生产、客户端网络或 hosts；证据与后续行动见[进展](./progress-log.md#2026-11-02taigeus-国内无代理访问诊断)及[入口决定](./.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)。
+<!-- taige-access-20261102:end -->
+
 <!-- singbox-template-20261030:start -->
 ### sing-box 默认订阅兼容修复（2026-10-30）
 
