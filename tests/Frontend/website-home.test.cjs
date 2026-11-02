@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../../public/assets/capybara-home/home.js'), 'utf8');
 
-function boot({ headMode, hash }) {
+function boot({ headMode, hash, buttonEntry = false }) {
   const handlers = {};
   const scripts = [];
   let reloads = 0;
@@ -19,7 +19,7 @@ function boot({ headMode, hash }) {
     head: { appendChild: script => scripts.push(script) },
     body: { appendChild: script => scripts.push(script) },
     createElement: () => ({}),
-    querySelector: () => root,
+    querySelector: () => buttonEntry ? null : root,
     addEventListener() {},
   };
   const location = { hash, reload: () => reloads++ };
@@ -78,4 +78,15 @@ test('section anchors and navigation inside the panel stay with their own router
     assert.equal(state.fire('popstate').stopped, false);
     assert.equal(state.reloads, 0);
   }
+});
+
+test('button entry stays lightweight and its hash link starts the existing panel', () => {
+  const state = boot({ headMode: 'home', hash: '', buttonEntry: true });
+  assert.deepEqual(state.scripts, []);
+  state.location.hash = '#/login';
+  state.fire('hashchange');
+  assert.equal(state.reloads, 1);
+  const panel = boot({ headMode: 'home', hash: '#/login', buttonEntry: true });
+  assert.equal(panel.document.documentElement.dataset.xboardPage, 'panel');
+  assert.equal(panel.scripts[0].src, '/theme/Xboard/assets/umi.js');
 });

@@ -2,6 +2,7 @@
 
 use App\Services\ThemeService;
 use App\Services\UpdateService;
+use App\Services\WebsiteEntryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -20,14 +21,7 @@ use Illuminate\Support\Facades\File;
 
 
 Route::get('/', function (Request $request) {
-    if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)) {
-        $requestHost = $request->getHost();
-        $configHost = parse_url(admin_setting('app_url'), PHP_URL_HOST);
-        
-        if ($requestHost !== $configHost) {
-            abort(403);
-        }
-    }
+    abort_unless(app(WebsiteEntryService::class)->allowsHost($request), 403);
 
     $theme = admin_setting('frontend_theme', 'Xboard');
     $themeService = new ThemeService();
@@ -61,7 +55,8 @@ Route::get('/', function (Request $request) {
             'version' => app(UpdateService::class)->getCurrentVersion(),
             'description' => admin_setting('app_description', 'Xboard is best'),
             'logo' => admin_setting('logo'),
-            'theme_config' => $themeService->getConfig($theme)
+            'theme_config' => $themeService->getConfig($theme),
+            'entry_gate' => app(WebsiteEntryService::class)->isButtonEntry($request),
         ];
         return view('theme::' . $theme . '.dashboard', $renderParams);
     } catch (Exception $e) {
@@ -74,10 +69,7 @@ Route::get('/', function (Request $request) {
 });
 
 Route::get('/desktop/login', function (Request $request) {
-    if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)
-        && $request->getHost() !== parse_url(admin_setting('app_url'), PHP_URL_HOST)) {
-        abort(403);
-    }
+    abort_unless(app(WebsiteEntryService::class)->allowsHost($request), 403);
     return response()->view('client.browser-login')
         ->header('Cache-Control', 'no-store')
         ->header('Referrer-Policy', 'no-referrer')
@@ -86,10 +78,7 @@ Route::get('/desktop/login', function (Request $request) {
 });
 
 Route::get('/clients', function (Request $request) {
-    if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)
-        && $request->getHost() !== parse_url(admin_setting('app_url'), PHP_URL_HOST)) {
-        abort(403);
-    }
+    abort_unless(app(WebsiteEntryService::class)->allowsHost($request), 403);
     return response()->view('client.downloads', [
         'title' => admin_setting('app_name', 'Xboard'),
         'clients' => app(\App\Services\ClientDownloadService::class)->catalog(),

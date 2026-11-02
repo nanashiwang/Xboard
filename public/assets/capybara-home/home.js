@@ -53,6 +53,8 @@
   }
   document.title = '卡皮巴拉 · 与你一起畅游全球网络';
   var root = document.querySelector('.capy-home');
+  // The Go entry uses the same hash loader without the marketing homepage.
+  if (!root) return;
   var menu = root.querySelector('.capy-menu');
   var navigation = root.querySelector('.capy-nav');
   root.setAttribute('data-enhanced', '');

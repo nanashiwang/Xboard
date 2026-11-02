@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- capybara-cloud-entry-20261102:start -->
+### 双域云端上线（2026-11-02，实施验收中）
+
+用户已授权将精简导航与单按钮应用入口上线。Go 通过明确的自有域名白名单复用原用户中心，旧域保持兼容；API、订阅、授权和下载不经过按钮。导航正式构建移除模拟页面，下载使用当前 0.1.9 安装包与 GitHub Release 备用来源。见[实施方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)、[导航发布源](./.docker/hub/README.md)及[进展](./progress-log.md#2026-11-02双域云端上线)。当前代码与本地回归已完成，云端构建、证书、DNS 和生产验收仍需分别核实；客户端版本未改变。
+<!-- capybara-cloud-entry-20261102:end -->
+
 <!-- capybara-domain-preview-20261102:start -->
 ### Hub 导航与 Go 应用入口（2026-11-02，仅方案与预览）
 

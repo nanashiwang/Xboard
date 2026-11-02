@@ -51,4 +51,31 @@ class WebsiteHomeTest extends TestCase
         $this->get('/?code=example-invitation')->assertOk()
             ->assertSee('data-panel-src=', false);
     }
+
+    public function test_owned_application_domain_has_a_button_and_preserves_the_hash_loader(): void
+    {
+        admin_setting(['app_url' => 'https://taige.us', 'safe_mode_enable' => 1]);
+        $this->get('https://capybarago.uk/?code=invitation')->assertOk()
+            ->assertSee('点击进入官网')
+            ->assertSee('href="#/login"', false)
+            ->assertSee('/assets/capybara-home/entry.css', false)
+            ->assertSee('data-panel-src="/theme/Xboard/assets/umi.js"', false)
+            ->assertDontSee('与卡皮巴拉一起');
+        $this->get('https://capybarago.uk/clients')->assertOk()->assertDontSee('点击进入官网');
+        $this->get('https://capybarago.uk/desktop/login')->assertOk()->assertDontSee('点击进入官网');
+        $this->getJson('https://capybarago.uk/api/v1/guest/comm/config')->assertOk()->assertJsonStructure(['data']);
+        $this->get('https://capybarago.uk.evil.example/')->assertForbidden();
+        $this->get('https://unknown.example/clients')->assertForbidden();
+        $this->get('https://unknown.example/desktop/login')->assertForbidden();
+    }
+
+    public function test_original_browser_domains_remain_available_after_primary_url_migration(): void
+    {
+        admin_setting(['app_url' => 'https://capybarago.uk', 'safe_mode_enable' => 1]);
+        foreach (['taige.us', 'board.taige.us'] as $host) {
+            $this->get('https://'.$host.'/')->assertOk()->assertSee('与卡皮巴拉一起')->assertDontSee('点击进入官网');
+            $this->get('https://'.$host.'/clients')->assertOk();
+            $this->get('https://'.$host.'/desktop/login')->assertOk();
+        }
+    }
 }

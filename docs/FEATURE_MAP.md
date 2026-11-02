@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- capybara-cloud-entry-20261102:start -->
+双域上线实施中：[Go 域名准入](../app/Services/WebsiteEntryService.php)、[白底按钮视图](../resources/views/home/entry.blade.php)、[独立导航构建](../.docker/hub/build.py)、[域名运维](../.github/workflows/configure-go-domain.yml)。仅 Go 根网页使用按钮；旧域、hash 面板、API/授权/下载保持原业务。生产/DNS 验收见[进展](../progress-log.md#2026-11-02双域云端上线)，不代表客户端已有多入口恢复。
+<!-- capybara-cloud-entry-20261102:end -->
+
 <!-- client-resilience-plan-20261102:start -->
 客户端恢复待实施：[多入口/离线续用提案](../.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)核对现有固定账号与更新域名、连接前在线门禁、会话轮换和冷启动缓存缺口；规划覆盖升级、可信入口选择、独立分发与有界离线许可。此为 proposed，不代表当前客户端已有自动切线或离线恢复；[进展与实施顺序](../progress-log.md#2026-11-02客户端恢复与多入口规划)。
 长期稳定目标细化：两条独立服务入口、两处独立恢复分发、有效缓存冷启动、双节点入口，后续双应用/单写主备数据容灾；三网分组验收与故障演练，仍为 proposed。见[目标与交付门槛](../.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#长期稳定方案与交付门槛)。

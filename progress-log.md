@@ -1,5 +1,16 @@
 # Xboard 项目进展记录
 
+<!-- capybara-cloud-entry-20261102:start -->
+## 2026-11-02：双域云端上线
+
+用户明确要求直接上线，授权从本地预览进入生产部署。复读当前源站：生产仍在 107.173.191.23，容器监听 127.0.0.1:7001；原 taige vhost SHA256 为 4625d1ef7e981fa42365fdde775bcd37605c6256835a5f9e166b8d8118bd5029。新 Go DNS 初始为 0 条记录，尚无旧记录需要替换。
+
+- 实现：Go 仅根浏览器页面显示进入按钮，沿用 hash 面板加载和历史边界；域名准入集中到 WebsiteEntryService，safe_mode 仍拒绝未知域。旧 taige/board 路径继续兼容。导航正式产物不含模拟登录、模拟下载或预览脚本，使用真实安装包与独立 GitHub 备用链接。
+- 运维：独立 Go vhost 从已核对的源配置派生，保留下载与应用转发、去掉节点路由和旧跳板信任，源配置摘要不匹配即停止。prepare/activate/verify/rollback 复用原 SSH Secret、固定主机公钥和生产互斥组；nginx 检查失败恢复原候选前状态；已有 ACME 账号和续期 hook 复用。
+- 验证：首页/下载 PHP 21 项、198 断言及前端 6 项通过；新增源配置漂移、节点路由隔离和 nginx 失败恢复检查。首次 Go 断言误计了页面 meta 描述，已同步独立入口描述并复验通过。
+- 状态：代码准备完成，生产部署、DNS/TLS 和最终公开访问尚在执行；未升级客户端、未改节点身份、未发送客户通知。Sites 创建和源码同步成功，但发布归档上传遭遇网络失败，正在恢复或改用已有云端静态托管；未将创建项目视为网站上线。详细边界见[方案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)。
+<!-- capybara-cloud-entry-20261102:end -->
+
 <!-- capybara-domain-preview-20261102:start -->
 ## 2026-11-02：Hub 导航与 Go 应用入口预览
 

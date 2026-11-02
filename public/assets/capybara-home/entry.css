@@ -1,0 +1,9 @@
+html[data-xboard-page="home"] { color-scheme: light; }
+html[data-xboard-page="home"] body { margin: 0; background: #fff; }
+html[data-xboard-page="home"] #app,
+html[data-xboard-page="panel"] .capy-entry-gate { display: none; }
+.capy-entry-gate { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
+.capy-entry-gate a { display: inline-flex; align-items: center; justify-content: center; min-height: 64px; padding: 0 40px; border: 1px solid #333; border-radius: 8px; background: #087bff; color: #fff; font: 500 24px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; text-decoration: none; }
+.capy-entry-gate a:hover { background: #006be6; }
+.capy-entry-gate a:focus-visible { outline: 3px solid #8bbdff; outline-offset: 4px; }
+@media (max-width: 480px) { .capy-entry-gate a { min-height: 58px; padding: 0 30px; font-size: 21px; } }
