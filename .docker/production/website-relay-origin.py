@@ -264,7 +264,7 @@ foreach ($samples as $sample) {
     });
 }
 echo json_encode($results, JSON_THROW_ON_ERROR);
-""" % encoded
+""".replace("taige.us", DOMAIN) % encoded
     result = subprocess.run(["docker", "compose", "exec", "-T", "xboard", "php"],
                             cwd="/root/Xboard", input=php, text=True, capture_output=True,
                             timeout=30, check=False)
@@ -331,7 +331,7 @@ def verify(change_id):
     source = after.decode()
     # Copy the live application location's identity assignments into the probe;
     # this keeps the verification coupled to the configuration under review.
-    root_location = next(node for node in parse(source)[1]["children"]
+    root_location = next(node for node in list(matching_servers(parse(source)))[1]["children"]
                          if node["name"] == "location" and node["args"] == ["/"])
     forwarded = [node for node in root_location["children"] if node["name"] == "proxy_set_header"
                  and node["args"][0].lower() not in {"upgrade", "connection"}]
@@ -524,7 +524,7 @@ def inspect_nginx():
 
 
 def inspect_certificate():
-    certificate = Path("/etc/letsencrypt/live/taige.us/fullchain.pem")
+    certificate = Path("/etc/letsencrypt/live") / DOMAIN / "fullchain.pem"
     code, details, _ = run(["openssl", "x509", "-in", str(certificate), "-noout",
                             "-subject", "-issuer", "-dates", "-fingerprint", "-sha256"])
     report = {"certificate": str(certificate), "readable": code == 0,
@@ -532,7 +532,7 @@ def inspect_certificate():
     report["renewal_file_exists"] = RENEWAL.is_file()
     if RENEWAL.is_file():
         allowed = {"version", "archive_dir", "cert", "chain", "fullchain", "authenticator",
-                   "installer", "server", "webroot_path", "taige.us"}
+                   "installer", "server", "webroot_path", DOMAIN}
         values = {}
         for line in RENEWAL.read_text().splitlines():
             key, separator, value = line.partition("=")

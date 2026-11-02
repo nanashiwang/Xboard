@@ -1,0 +1,39 @@
+name: Go Relay Origin
+run-name: 'Go Relay Origin · ${{ inputs.operation }}'
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        required: true
+        default: inspect
+        options: [inspect, prepare, apply, verify, rollback]
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  origin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply guarded relay trust only to Go
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in inspect|prepare|apply|verify|rollback) ;; *) exit 1 ;; esac
+          test -n "$SSHPASS"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'mktemp -d /tmp/xboard-go-relay.XXXXXX')
+          trap 'sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "rm -f -- $remote_dir/go-relay-origin.py $remote_dir/website-relay-origin.py; rmdir -- $remote_dir"' EXIT
+          sshpass -e scp "${ssh_opts[@]}" .docker/production/{go-relay-origin.py,website-relay-origin.py} "root@107.173.191.23:$remote_dir/"
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "PYTHONDONTWRITEBYTECODE=1 python3 '$remote_dir/go-relay-origin.py' '$OPERATION'"
