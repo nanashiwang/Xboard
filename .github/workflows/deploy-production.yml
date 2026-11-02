@@ -16,6 +16,7 @@ on:
           - registration-proxy-verify
           - registration-proxy-rollback
           - registration-verify
+          - registration-observe
           - registration-inspect
           - registration-apply
           - registration-rollback
@@ -88,6 +89,11 @@ jobs:
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'cd /root/Xboard && docker inspect --format '\''{{range .Mounts}}{{println .Destination}}{{end}}'\'' "$(docker compose ps -q xboard)"'
             action="${OPERATION#registration-}"
+            if [ "$action" = observe ]; then
+              sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+                'cd /root/Xboard && docker compose exec -T -e REGISTRATION_OBSERVE_ONLY=1 xboard php' < .docker/production/verify-registration.php
+              exit 0
+            fi
             if [ "$action" = verify ]; then
               sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
                 'cd /root/Xboard && docker compose exec -T xboard php' < .docker/production/verify-registration.php

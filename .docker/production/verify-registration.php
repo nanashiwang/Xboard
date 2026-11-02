@@ -14,6 +14,10 @@ ensure(is_file($snapshotPath),'Policy snapshot missing after container recreatio
 $snapshot=json_decode(file_get_contents($snapshotPath),true,512,JSON_THROW_ON_ERROR);
 $domainAfterPolicy=User::where('email','like','%@fldubai.com')->where('created_at','>=',$snapshot['created_at'])->count();
 ensure($domainAfterPolicy===0,'Blocked-domain accounts appeared after policy activation');
+if (getenv('REGISTRATION_OBSERVE_ONLY') === '1') {
+    echo json_encode(['target_domain_accounts'=>User::where('email','like','%@fldubai.com')->count(),'blocked_domain_since_policy'=>$domainAfterPolicy,'policy_enabled_at_utc'=>gmdate('Y-m-d H:i:s',$snapshot['created_at']),'latest_domain_registration_utc'=>gmdate('Y-m-d H:i:s',User::where('email','like','%@fldubai.com')->max('created_at')),'snapshot_persistent'=>true],JSON_PRETTY_PRINT).PHP_EOL;
+    exit;
+}
 $prefix = 'guard-proof-' . bin2hex(random_bytes(8)); $emails = []; $results = [];
 foreach (['capybarago.uk', 'taige.us', 'board.taige.us'] as $index => $host) {
     $config = Http::withOptions(['force_ip_resolve' => 'v4'])->connectTimeout(5)->timeout(15)->get('https://' . $host . '/api/v1/guest/comm/config');
