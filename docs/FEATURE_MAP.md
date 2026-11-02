@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- registration-abuse-20261103:start -->
+注册防护：[PassportRoute](../app/Http/Routes/V1/PassportRoute.php) → [RegisterService](../app/Services/Auth/RegisterService.php)、[发码控制器](../app/Http/Controllers/V1/Passport/CommController.php)、[CaptchaService](../app/Services/CaptchaService.php)；桌面注册沿用官网。成功后IP计数为非原子get/put，发码仅每邮箱60秒冷却，API全局throttle未启用。11-03生产邮箱验证开、验证码/IP限制/邮箱白名单关、试用关；注册/发码/Kernel运行文件哈希与本地一致。63个集中同域账号及CF来源混淆见[排查](../progress-log.md#2026-11-03批量注册排查)；[分层防护](../.agents/notes/proposed/feature/2026-11-03-registration-abuse-defense.md)仍为proposed，未部署。
+<!-- registration-abuse-20261103:end -->
+
 <!-- capybara-panel-update-20261103:start -->
 登录加载：[WebsiteAssetService](../app/Services/WebsiteAssetService.php)固定三文件白名单、SHA256路径、immutable/ETag/304、错误版本404；[模板](../theme/Xboard/dashboard.blade.php)提前modulepreload并内联启动器，[加载反馈](../public/assets/capybara-home/panel-loading.js)观察真实控件、10秒提示、失败/重试，保留历史模式刷新。HTML、API、订阅不进入公共缓存。客户通知：[固定活动](../.docker/mail/hub-address-notice.php)、[工作流](../.github/workflows/hub-address-notice.yml)、[模板](../resources/views/mail/default/hubAddressUpdate20261103.blade.php)，全体有效唯一注册邮箱、持久去重、每批25封、精确生产revision校验，仅输出聚合数据。实现/本地验证完成，生产与发送结果见[进展](../progress-log.md#2026-11-03登录加载优化与地址通知)。
 <!-- capybara-panel-update-20261103:end -->
