@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- client-resilience-plan-20261102:start -->
+客户端恢复待实施：[多入口/离线续用提案](../.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)核对现有固定账号与更新域名、连接前在线门禁、会话轮换和冷启动缓存缺口；规划覆盖升级、可信入口选择、独立分发与有界离线许可。此为 proposed，不代表当前客户端已有自动切线或离线恢复；[进展与实施顺序](../progress-log.md#2026-11-02客户端恢复与多入口规划)。
+<!-- client-resilience-plan-20261102:end -->
+
 <!-- taige-access-20261102:start -->
 网站访问现状（2026-11-02）：Windows 无代理直连确认 `taige.us` 错误解析，固定正确 IP 后 TLS 仍重置；TCP 可达及不同 SNI 告警对照高度符合域名干扰。`board.taige.us` 既有 CF 路径的首页、公开配置、下载页与完整 JS 请求成功，但另一 IPv6 地址及默认连接存在超时，不保证稳定或业务全流程。见[诊断与后续边界](../progress-log.md#2026-11-02taigeus-国内无代理访问诊断)和[入口决定](../.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)；下表 10 月历史成功记录不代表当前主域国内可达。
 <!-- taige-access-20261102:end -->
