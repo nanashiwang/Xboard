@@ -83,4 +83,28 @@ class HubAddressNoticeTest extends TestCase
         $this->assertSame(1, $result['counts']->failed);
         $this->assertSame(2, MailLog::count());
     }
+
+    public function test_explicit_rate_rejection_can_be_retried_once_but_daily_quota_cannot(): void
+    {
+        $this->user('rate@example.test');
+        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('Expected response code "250" but got code "454", with message "454 Maximum sending rate exceeded"'));
+        $notice = new \HubAddressNotice($this->directory, 0);
+        $result = $notice->sendBatch();
+        $this->assertSame(1, $result['smtp_error_summary']->{'sending_rate:454'});
+        Mail::shouldReceive('send')->once()->andReturn(null);
+        $result = $notice->sendBatch();
+        $this->assertSame(1, $result['counts']->sent);
+        $notice->sendBatch();
+        $this->assertSame(2, MailLog::count());
+        $this->user('daily@example.test');
+        $daily = new \HubAddressNotice($this->directory.'-daily', 0);
+        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('Expected response code "250" but got code "454", with message "454 Daily message quota exceeded"'));
+        try {
+            $result = $daily->sendBatch();
+            $this->assertSame(1, $result['smtp_error_summary']->{'daily_quota:454'});
+            $result = $daily->sendBatch();
+            $this->assertSame(1, $result['counts']->failed);
+            $this->assertSame(3, MailLog::count());
+        } finally { File::deleteDirectory($this->directory.'-daily'); }
+    }
 }
