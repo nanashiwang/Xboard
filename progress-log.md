@@ -16,6 +16,10 @@
 
 追加客户触达核对：用户追问如何让客户知道。源码 UserController.sendMail 支持 selected/filtered/all 范围，使用 notify 模板投递 send_email_mass 队列；Horizon 配置包含该队列，SendEmailJob 使用既有 SMTP MailService。此为源码能力核对，未读取客户地址、未验证生产队列/SMTP投递、未发送任何邮件。桌面 fetch_notices 复用 account::ORIGIN 与 no_proxy HTTP，因此主域阻断时新公告也不可达，没有独立 OS 推送。建议使用注册邮箱先通知故障、修复版验收后再通知恢复，配合已有客服渠道；先以获授权的自有收件箱验证实际收件与链接，不能把入队或 SMTP 接受等同于客户阅读。后续内置本地故障提示及独立恢复入口，避免提示内容本身依赖故障域名；无有效站外联系资料者本次无法保证主动触达。此轮只补充规划证据，未执行客户通知。
 
+追加机制与节点对照：用户询问形成原因、避免方式和为何网站受阻但节点域名可用。本轮同一无代理 Windows 的 node.lumavia.fyi 默认 A 为 143.203.200.5；Schannel 首页请求因 CRYPT_E_REVOCATION_OFFLINE 失败，独立 Python/OpenSSL 固定 IP 且保留证书链/主机名校验后 TLS 1.3 + HTTP404（约0.81秒）通过，证书有效期至2027-01-19。该对照不验证在线吊销状态。edge.lumavia.fyi 默认 HTTPS 返回404；同一 Python 对 taige.us 正确 IP 的 TLS 约0.27秒被重置。未发送节点凭据、未测实际 WebSocket/VLESS 或计量，因此只报告入口可达。
+
+已查阅 GFWatch/USENIX 的 DNS 注入与模式误封研究、GFW Report 的加密代理识别研究、Cloudflare ECH/SNI 文档；机制可解释分层失败，不能反推本域被列入规则的具体触发事件。网站公开、域名历史、规则分类或更新均不能在缺乏证据时写成本次根因。提案补“两服务入口+一静态恢复入口”、独立域/网络/更新通道、双栈和缓存容错及源站故障边界；不把同主域子域、改IP、CDN或加密DNS当成保证解封。未改生产、未购域名、未发布修复客户端；仍为规划。引用与验收边界见[机制和路线矩阵](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#阻断机制与不同故障的备用路线)。本轮笔记及新增链接检查后提交，GitHub回读结果在聊天报告。
+
 <!-- client-resilience-plan-20261102:end -->
 
 <!-- taige-access-20261102:start -->
