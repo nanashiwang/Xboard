@@ -90,5 +90,14 @@ class GoDomainTests(unittest.TestCase):
                 self.assertEqual(settings.call_args_list[3].args, (new, old))
 
 
+    def test_probe_uses_the_published_origin_and_keeps_tls_verification(self):
+        with patch.object(domain, 'run', side_effect=['点击进入官网', 'clients', 'desktop', '{"data": {}}', 'checksum']) as command:
+            self.assertEqual(len(domain.verify()), 5)
+            for call in command.call_args_list:
+                self.assertIn('capybarago.uk:443:107.173.191.23', call.args)
+                self.assertNotIn('-k', call.args)
+                self.assertNotIn('--insecure', call.args)
+
+
 if __name__ == '__main__':
     unittest.main()

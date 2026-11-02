@@ -57,6 +57,8 @@ Hub 视觉参考简单导航卡片，但只保留同一服务入口，不分裂�
 
 应用主域迁移只修改 app_url/subscribe_url 两个公开地址，先校验 Go HTTPS 与接口，再以原 taige 地址为比较条件写入；原值保存在仅 root 可读的备份中。运行时 ApplyRuntimeSettings 优先读取数据库设置，因此无需改 APP_URL 或数据库/账号/套餐；支付 notify_domain 保留原值，实际支付另行验收。提供受控 rollback-settings，恢复前检查新地址未漂移。
 
+首次 activate 已签发证书并通过 nginx 检查，但 127.0.0.1 的 TLS 探针报 issuer 失败；从本机指定实际源站 107.173.191.23 验证同域 HTTPS、证书与按钮返回 200。探针改为固定已确认的生产地址，仍强制证书校验，不使用 insecure；最终运行结果另行记录。
+
 代码验证不等于线上完成；导航托管上传、应用镜像、DNS、证书、业务接口与真实浏览器需分别验收，当前提案保持 proposed。客户端恢复仍属于原独立提案，本轮不发行新客户端。
 
 ## Existing decision audit

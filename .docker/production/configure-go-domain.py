@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 
 DOMAIN = "capybarago.uk"
+ORIGIN = "107.173.191.23"
 SOURCE = Path("/etc/nginx/sites-enabled/taige.us.conf")
 SOURCE_SHA = "4625d1ef7e981fa42365fdde775bcd37605c6256835a5f9e166b8d8118bd5029"
 TARGET = Path("/etc/nginx/sites-enabled/capybarago.uk.conf")
@@ -91,7 +92,7 @@ def activate_bytes(content):
 def verify():
     result = {}
     for path in ["/", "/clients", "/desktop/login", "/api/v1/guest/comm/config", "/downloads/SHA256SUMS.txt"]:
-        body = run("curl", "--noproxy", "*", "--resolve", DOMAIN + ":443:127.0.0.1", "-fsS", "--max-time", "20", "https://" + DOMAIN + path)
+        body = run("curl", "--noproxy", "*", "--resolve", DOMAIN + ":443:" + ORIGIN, "-fsS", "--max-time", "20", "https://" + DOMAIN + path)
         if path == "/":
             assert "点击进入官网" in body
         elif path.startswith("/api/"):
@@ -181,7 +182,7 @@ def main(operation):
         assert digest(SOURCE.read_bytes()) == SOURCE_SHA
         return {"activated": True, "certificate": run("openssl", "x509", "-in", "/etc/letsencrypt/live/" + DOMAIN + "/fullchain.pem", "-noout", "-dates", "-ext", "subjectAltName"), "checks": verify()}
     if operation == "verify":
-        return {"checks": verify(), "renewal_timer": run("systemctl", "is-active", "certbot.timer"), "origins": application_settings()}
+        return {"checks": verify(), "renewal_timer": run("systemctl", "is-active", "certbot.timer"), "origins": application_settings(), "source_unchanged": digest(SOURCE.read_bytes()) == SOURCE_SHA, "certificate": run("openssl", "x509", "-in", "/etc/letsencrypt/live/" + DOMAIN + "/fullchain.pem", "-noout", "-issuer", "-dates", "-ext", "subjectAltName")}
     if operation == "rollback":
         assert TARGET.read_bytes() in (http_config().encode(), (BACKUP / "candidate.conf").read_bytes()), "Go vhost drifted"
         before = TARGET.read_bytes()
