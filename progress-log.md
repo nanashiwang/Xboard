@@ -11,6 +11,12 @@
 - 验证：本机 HTTP 200，桌面/390 像素导航截图、四页 320 像素宽度无横向溢出、FAQ 展开、登录与下载预览提示通过；还核对 readonly 输入、HTML 相对资源与锚点、JS 语法及笔记结构。浏览器禁止 file 协议导航，未尝试绕过；真实 UI 验证使用回环 HTTP，静态文件另交付用户自行打开。未验收生产登录、订阅、支付、更新或新域可达性。
 
 本轮仅文档与本地预览产物，未改生产、DNS/证书、原应用模板或客户端。沿用文档/设计提交 `[skip ci]`，无业务构建、新版本或 Release；中文提交与 master 推送后回读 GitHub 精确 SHA 的 README/progress。预览范围内的验证、提交与回读结果在聊天报告，其他暂存/未暂存修改保持原归属。
+
+### 导航精简反馈
+
+用户要求移除导航页的账号说明、帮助标题与三项问答、品牌页脚和“交互预览，尚未上线”。已删除对应区块，并移除指向已删除帮助区的访问帮助卡片；客户端下载改为单列横向卡片。应用入口、Go 单按钮页、登录与下载示意保持原流程。更新[预览说明](./docs/previews/capybara-entry/README.md)和[双域提案](./.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)，方案仍为 proposed。
+
+本轮验收：桌面及 390/320 像素导航布局、应用和下载入口、相对资源与无失效帮助锚点；笔记结构和差异检查通过。仅精简本地预览，无生产部署、客户端更新、版本或 Release；中文提交推送 master 后按 SHA 回读 README/progress，结果在聊天报告。此前原版 FAQ 的验收记录保留为历史证据。
 <!-- capybara-domain-preview-20261102:end -->
 
 <!-- client-stability-plan-20261102:start -->

@@ -3,7 +3,7 @@
 <!-- client-resilience-plan-20261102:start -->
 客户端恢复待实施：[多入口/离线续用提案](../.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)核对现有固定账号与更新域名、连接前在线门禁、会话轮换和冷启动缓存缺口；规划覆盖升级、可信入口选择、独立分发与有界离线许可。此为 proposed，不代表当前客户端已有自动切线或离线恢复；[进展与实施顺序](../progress-log.md#2026-11-02客户端恢复与多入口规划)。
 长期稳定目标细化：两条独立服务入口、两处独立恢复分发、有效缓存冷启动、双节点入口，后续双应用/单写主备数据容灾；三网分组验收与故障演练，仍为 proposed。见[目标与交付门槛](../.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md#长期稳定方案与交付门槛)。
-用户选定 Hub/Go 分工：[导航与单按钮入口预览](./previews/capybara-entry/README.md)、[双域方案](../.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)。仅本地设计预览；Hub 不承担登录/API，Go 机器接口不经过按钮；未上线或修改客户端。
+用户选定 Hub/Go 分工：[导航与单按钮入口预览](./previews/capybara-entry/README.md)、[双域方案](../.agents/notes/proposed/architecture/2026-11-02-hub-application-domain-split.md)。仅本地设计预览；导航页仅保留应用与下载入口，已移除账号提示、帮助区及页脚；Hub 不承担登录/API，Go 机器接口不经过按钮；未上线或修改客户端。
 <!-- client-resilience-plan-20261102:end -->
 
 <!-- taige-access-20261102:start -->
