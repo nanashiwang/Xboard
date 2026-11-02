@@ -1,0 +1,35 @@
+# Agent Note: 登录资源提前加载与内容寻址缓存
+
+Status: implemented
+
+## Problem
+
+用户确认慢在进入官网按钮之后，并授权实现提前加载、版本化静态缓存、可见等待与重试。当前跨模式刷新后仍需等外部home.js再下载主包，脚本约1.42MB、无明确缓存，等待期空白。
+
+## Decision
+
+保留捕获阶段hash/popstate与BFCache契约，内联小启动器去掉一个网络依赖。Go按钮页用modulepreload提前下载但不执行主包；原站仅在面板hash时提前加载。固定白名单资源通过SHA256路径提供一年public/immutable缓存、ETag/304，哈希不符404；不缓存HTML、用户API或订阅。主包不做压缩源代码手工改写，保留原面板。
+
+独立加载区在HTML中即可显示，内联观察器在真实控件挂载后移除；10秒显示等待说明，网络错误显示重试/返回入口，重试保留当前URL。预加载与实际加载同URL/CORS模式，内容变化自动换址。
+
+## Existing decision audit
+
+- [原官网](../../implemented/feature/2026-10-23-capybara-website-home.md)：部分重叠，保留双模式路由边界，替代外部启动器下载等待。
+- [双域](../../implemented/architecture/2026-11-02-hub-application-domain-split.md)：保留按钮与机器接口边界；Go允许提前下载资源，仍只点击后执行面板。
+- [直连跳板](../../implemented/architecture/2026-11-02-go-direct-relay.md)：网络路径不变；本篇不宣称解决线路超时。
+
+## Alternatives considered
+
+- 去掉整页刷新：可省一次文档请求，但会改变既有Vue历史导航边界，先保留已验证契约。
+- 对整个站点或API公共缓存：能减少回源，却会混淆用户与鉴权数据，只缓存固定白名单公开文件。
+- 仅在原URL增加版本查询：最少改动，但不能拒绝错误版本指向变化文件；采用内容哈希校验。
+
+## Verification
+
+测试提前点击、返回、BFCache、主包失败、慢加载后成功、重试及状态移除；HTTP验证哈希、缓存、304、错误哈希/路径拒绝，HTML/API不进入公共缓存。实际浏览器按钮/登录/返回及无代理下载校验，生产运行revision单独验证。
+
+## Consequences
+
+Go访问者未点击也会提前下载约434KB；首访网络超时仍可能等待，UI不能替代网络可用性。旧已打开HTML跨版本可能请求过期哈希，应可刷新恢复；不承诺长期稳定。
+
+本地实现验证：Node 10项、PHP相关40项/307断言、Blade编译和actionlint通过；浏览器正常进入/返回、12秒延迟后恢复、503错误提示通过。CI、生产部署及真实邮件发送在提交时仍待执行，分别记录到[进展](../../../../progress-log.md#2026-11-03登录加载优化与地址通知)。

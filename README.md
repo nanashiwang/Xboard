@@ -1,11 +1,19 @@
 # Xboard
 
+<!-- capybara-panel-update-20261103:start -->
+### 登录加载优化与地址通知（2026-11-03）
+
+登录主包现在在 Go 按钮页提前加载；公开 JS/CSS 使用内容哈希地址、一年 immutable 缓存及 ETag/304。内联启动器减少串行请求，等待期间立即显示加载状态、重新加载和返回入口；10秒仍未就绪给出提示，加载成功自动移除。现有前进后退和账号/接口缓存边界保留。
+
+已准备客户地址更新邮件，统一指向 [capybarahub.fyi](https://capybarahub.fyi/)，提醒收藏并说明原账号与权益保留。发送复用现有 SMTP，按有效唯一注册邮箱分批，持久去重且不盲目重试不确定结果。本地测试及真实浏览器故障场景通过；**本次 CI、生产部署和邮件发送尚待完成**，不代表客户已收到通知。见[进展](./progress-log.md#2026-11-03登录加载优化与地址通知)、[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。客户端仍为0.1.9。
+<!-- capybara-panel-update-20261103:end -->
+
 <!-- capybara-login-latency-20261103:start -->
 ### 点击后登录页显示慢（2026-11-03）
 
 用户明确慢在点击“进入官网”之后。代码确认此时整页刷新，home.js到达并执行后才注入主登录脚本；主JS解压1420663字节、gzip传输约434KB，空app容器在加载期间没有进度提示。当前响应中Hub首页public/max-age=300，Go HTML为no-cache/private，主JS没有明确Cache-Control/ETag/Last-Modified；不能从导航很快推断登录链同样快，也不能把缺少明确缓存策略写成每次必定重下载。
 
-新一轮无代理Windows首页/API约0.80s/0.77s，主JS约2.45s；跳板侧小请求约0.11–0.26s，但完整JS也有4.73s样本，尚未隔离具体传输慢段。建议优先优化版本化静态缓存、登录资源提前加载与等待提示，独立处理间歇超时；本轮只诊断，未部署这些优化。见[证据及后续行动](./progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
+新一轮无代理Windows首页/API约0.80s/0.77s，主JS约2.45s；跳板侧小请求约0.11–0.26s，但完整JS也有4.73s样本，尚未隔离具体传输慢段。建议优先优化版本化静态缓存、登录资源提前加载与等待提示，独立处理间歇超时；该段为实施前诊断，后续优化状态见上方“登录加载优化与地址通知”。见[证据及后续行动](./progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
 <!-- capybara-login-latency-20261103:end -->
 
 <!-- capybara-go-relay-20261103:start -->

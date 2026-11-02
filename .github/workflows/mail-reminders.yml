@@ -2,9 +2,9 @@ name: Mail Reminder Checks
 on:
   push:
     branches: [master]
-    paths: ['app/**', 'config/**', 'database/**', 'resources/views/mail/**', 'tests/Feature/Mail/**', 'composer.*', '.github/workflows/mail-reminders.yml']
+    paths: ['.docker/mail/**', '.github/workflows/hub-address-notice.yml', 'app/**', 'config/**', 'database/**', 'resources/views/mail/**', 'tests/Feature/Mail/**', 'composer.*', '.github/workflows/mail-reminders.yml']
   pull_request:
-    paths: ['app/**', 'config/**', 'database/**', 'resources/views/mail/**', 'tests/Feature/Mail/**', 'composer.*', '.github/workflows/mail-reminders.yml']
+    paths: ['.docker/mail/**', '.github/workflows/hub-address-notice.yml', 'app/**', 'config/**', 'database/**', 'resources/views/mail/**', 'tests/Feature/Mail/**', 'composer.*', '.github/workflows/mail-reminders.yml']
 permissions:
   contents: read
 jobs:

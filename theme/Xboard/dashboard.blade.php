@@ -8,7 +8,17 @@
   <title>{{$title}}</title>
   <script>document.documentElement.dataset.xboardPage = location.hash.indexOf('#/') === 0 ? 'panel' : 'home';</script>
   <link rel="icon" type="image/webp" href="/assets/capybara-home/icon.webp" />
-  <link rel="stylesheet" href="/assets/capybara-home/{{ ($entry_gate ?? false) ? 'entry' : 'home' }}.css?v=1" />
+  @php
+    $websiteAssets = app(\App\Services\WebsiteAssetService::class);
+    $panelSrc = $websiteAssets->url('panel.js');
+  @endphp
+  <link rel="stylesheet" href="{{ $websiteAssets->url(($entry_gate ?? false) ? 'entry.css' : 'home.css') }}" />
+  @if($entry_gate ?? false)
+    <link rel="modulepreload" href="{{ $panelSrc }}" crossorigin="anonymous" />
+  @else
+    <script>if (location.hash.indexOf('#/') === 0) { var preload = document.createElement('link'); preload.rel = 'modulepreload'; preload.crossOrigin = 'anonymous'; preload.href = {!! Illuminate\Support\Js::from($panelSrc) !!}; document.head.appendChild(preload); }</script>
+  @endif
+  @include('home.panel-loading-style')
 </head>
 <body>
   <script>
@@ -30,7 +40,9 @@
     @include('home.capybara')
   @endif
   <div id="app"><noscript>登录和用户中心需要启用 JavaScript。<a href="/">返回首页</a></noscript></div>
-  <script defer src="/assets/capybara-home/home.js?v={{$version}}" data-panel-src="/theme/{{$theme}}/assets/umi.js"></script>
+  @include('home.panel-loading')
+  <script>{!! file_get_contents(public_path('assets/capybara-home/panel-loading.js')) !!}</script>
+  <script data-panel-src="{{ $panelSrc }}">{!! file_get_contents(public_path('assets/capybara-home/home.js')) !!}</script>
   <script defer src="/assets/desktop-login-return.js?v=1"></script>
   {!! $theme_config['custom_html'] ?? '' !!}
 </body>

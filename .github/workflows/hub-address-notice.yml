@@ -1,0 +1,48 @@
+name: Hub Address Notice
+run-name: 'Hub Address Notice · ${{ inputs.operation }}'
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        required: true
+        default: preview
+        options: [preview, send, status]
+      image_revision:
+        description: Required full production revision for sending
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send the reviewed service-address notice with a persistent checkpoint
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+          EXPECTED_REVISION: ${{ inputs.image_revision }}
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in preview|send|status) ;; *) exit 1 ;; esac
+          test -n "$SSHPASS"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [ "$OPERATION" = send ]; then
+            [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+            # shellcheck disable=SC2016
+            actual=$(sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'cd /root/Xboard && docker inspect --format '\''{{index .Config.Labels "org.opencontainers.image.revision"}}'\'' "$(docker compose ps -q xboard)"')
+            test "$actual" = "$EXPECTED_REVISION"
+          fi
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            "cd /root/Xboard && docker compose exec -T -e HUB_NOTICE_OPERATION='$OPERATION' xboard php" < .docker/mail/hub-address-notice.php

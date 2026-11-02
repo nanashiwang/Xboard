@@ -19,7 +19,7 @@ class WebsiteHomeTest extends TestCase
             ->assertSee('href="/clients"', false)
             ->assertSee('电脑端安装卡皮巴拉后直接登录本站账号并连接')
             ->assertSee('Android 和 iOS 暂使用下载中心推荐的第三方客户端')
-            ->assertSee('data-panel-src="/theme/Xboard/assets/umi.js"', false)
+            ->assertSee('data-panel-src="/web-assets/', false)
             ->assertSee('window.routerBase = "/"', false)
             ->assertDontSee('type="module" crossorigin src=', false);
         $this->assertStringNotContainsString('50+', $response->getContent());
@@ -58,8 +58,8 @@ class WebsiteHomeTest extends TestCase
         $this->get('https://capybarago.uk/?code=invitation')->assertOk()
             ->assertSee('点击进入官网')
             ->assertSee('href="#/login"', false)
-            ->assertSee('/assets/capybara-home/entry.css', false)
-            ->assertSee('data-panel-src="/theme/Xboard/assets/umi.js"', false)
+            ->assertSee('/entry.css', false)
+            ->assertSee('data-panel-src="/web-assets/', false)
             ->assertDontSee('与卡皮巴拉一起');
         $this->get('https://capybarago.uk/clients')->assertOk()->assertDontSee('点击进入官网');
         $this->get('https://capybarago.uk/desktop/login')->assertOk()->assertDontSee('点击进入官网');

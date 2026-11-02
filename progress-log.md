@@ -1,5 +1,18 @@
 # Xboard 项目进展记录
 
+<!-- capybara-panel-update-20261103:start -->
+## 2026-11-03：登录加载优化与地址通知
+
+用户授权实施提前加载、版本化静态缓存、立即显示加载与重试，并向所有客户发送导航地址更新邮件。
+
+- 实现：Go按钮页modulepreload登录主包，主加载器内联，固定三项公开资源使用SHA256 URL、一年public immutable及ETag/304。HTML/API/订阅不缓存；hash/popstate/BFCache契约保留。加载状态在文档中提供，10秒提示、网络错误和原URL重试；真实表单出现后隐藏。
+- 邮件：固定中文主题/正文和Hub按钮，提醒收藏新导航，原账号/套餐继续使用，承诺持续优化而非绝对稳定。现有SMTP逐封发送，首发冻结有效唯一邮箱、每批25、0.5秒间隔；持久私有账本记录用户ID/邮箱哈希，成功跳过，中断或不确定结果不盲目重发，不导出名单。
+- 本地：Node10项、PHP相关40项/307断言、Blade编译、actionlint通过。真实Chrome正常按钮→登录→返回通过；隔离环境12秒延迟后表单出现，503显示错误/重试；错误哈希/路径404与304已测。Docker actionlint镜像拉取超时后改用Go同版校验成功。
+- 发布：此提交待GitHub检查与双架构镜像构建、精确SHA生产部署和无代理验收；真实邮件尚未发送。网站无独立GitHub Release流程，沿用镜像/Production Deploy；客户端0.1.9未变，不创建客户端Release。
+
+[加载决定](./.agents/notes/implemented/bug-fix/2026-11-03-panel-startup-latency.md)、[通知决定](./.agents/notes/implemented/process/2026-11-03-hub-address-notification.md)。首次提交后补充实际运行revision、工作流结果、发送汇总及未完成事项；保留无关暂存与未暂存改动，推送后按精确SHA回读README/progress。
+<!-- capybara-panel-update-20261103:end -->
+
 <!-- capybara-login-latency-20261103:start -->
 ## 2026-11-03：点击进入官网后登录页显示延迟
 

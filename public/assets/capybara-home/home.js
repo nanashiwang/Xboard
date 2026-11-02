@@ -32,6 +32,10 @@
     main.crossOrigin = 'anonymous';
     main.src = entry.dataset.panelSrc;
     main.onerror = function () {
+      if (document.getElementById('capy-panel-loading')) {
+        window.dispatchEvent(new Event('xboard:panel-error'));
+        return;
+      }
       var app = document.getElementById('app');
       var message = document.createElement('p');
       message.textContent = '页面加载失败，请刷新重试，或返回首页。';

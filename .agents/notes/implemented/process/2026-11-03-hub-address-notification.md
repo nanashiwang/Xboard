@@ -1,0 +1,34 @@
+# Agent Note: 客户导航地址更新通知
+
+Status: implemented
+
+## Problem
+
+用户明确授权向所有客户发送地址更新邮件，要求收藏https://capybarahub.fyi/，并持续提供稳定服务。既有群发控制器会直接入队，没有本次活动的持久去重检查点；不能因工作流断开而重复通知客户，也不能将SMTP接受写成收件箱送达。
+
+## Decision
+
+复用MailService与现有SMTP，使用本次固定主题、正文和独立邮件模板；按钮与页脚均指向Hub，原账号/套餐继续使用，文案仅承诺持续改善稳定性。只覆盖开始发送时的有效唯一注册邮箱，不按套餐到期或流量提醒偏好筛除服务地址通知；失效邮箱与重复地址计数但不发送，不导出名单。
+
+手动工作流preview/send/status，send必须匹配已验收生产revision。每批25封、间隔0.5秒，私有检查点与锁保存在持久SQLite数据目录的operations中；记录用户ID和邮箱哈希，发送前先checkpoint，SMTP成功后结合既有MailLog标记。已成功跳过，内容改变拒绝继续；中断但无成功日志的attempting变uncertain，失败停止本批，不自动重发不确定结果。输出仅聚合数量。
+
+## Existing decision audit
+
+- [客户端恢复](../../proposed/architecture/2026-11-02-client-entry-resilience.md)：本次只通知网页导航地址，不声称原生客户端自动切换或恢复。
+- [双域上线](../../implemented/architecture/2026-11-02-hub-application-domain-split.md)：保留统一账号与独立导航角色；追加用户明确授权的通知，不变更应用主地址。
+- [登录加载优化](../bug-fix/2026-11-03-panel-startup-latency.md)：部署验收后再群发；发信独立记录，不用发信成功替代性能验收。
+
+## Alternatives considered
+
+- 直接重复调用后台sendMail：复用最多，但请求中断后无法判断哪些已经入队，采用本次持久检查点并复用底层发信服务。
+- 导出邮箱到本机或新邮件平台：便于外部群发，但增加数据流转，采用原服务原SMTP且仅输出聚合状态。
+
+## Verification
+
+校验邮件导航按钮/正文、重复调用去重、内容漂移拒绝、中断不盲目重发；生产preview核对人数、模板与SMTP后分批发送，核对日志与检查点至pending为0，区分sent/failed/uncertain与收件箱送达。
+
+## Consequences
+
+SMTP可能接受后断开或后续退信；不可将所有成功日志解释为全部入箱。不确定状态需检查服务端私有日志再决定；不发送与本次通知无关的推广内容。
+
+本地实现验证：Node 10项、PHP相关40项/307断言、Blade编译和actionlint通过；浏览器正常进入/返回、12秒延迟后恢复、503错误提示通过。CI、生产部署及真实邮件发送在提交时仍待执行，分别记录到[进展](../../../../progress-log.md#2026-11-03登录加载优化与地址通知)。

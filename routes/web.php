@@ -3,6 +3,7 @@
 use App\Services\ThemeService;
 use App\Services\UpdateService;
 use App\Services\WebsiteEntryService;
+use App\Services\WebsiteAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\File;
 |
 */
 
+
+Route::get('/web-assets/{hash}/{name}', function (Request $request, string $hash, string $name) {
+    return app(WebsiteAssetService::class)->response($request, $hash, $name);
+})->where('hash', '[a-f0-9]{64}')->where('name', 'panel\.js|entry\.css|home\.css');
 
 Route::get('/', function (Request $request) {
     abort_unless(app(WebsiteEntryService::class)->allowsHost($request), 403);

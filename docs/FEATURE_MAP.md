@@ -1,7 +1,11 @@
 # Xboard 能力地图
 
+<!-- capybara-panel-update-20261103:start -->
+登录加载：[WebsiteAssetService](../app/Services/WebsiteAssetService.php)固定三文件白名单、SHA256路径、immutable/ETag/304、错误版本404；[模板](../theme/Xboard/dashboard.blade.php)提前modulepreload并内联启动器，[加载反馈](../public/assets/capybara-home/panel-loading.js)观察真实控件、10秒提示、失败/重试，保留历史模式刷新。HTML、API、订阅不进入公共缓存。客户通知：[固定活动](../.docker/mail/hub-address-notice.php)、[工作流](../.github/workflows/hub-address-notice.yml)、[模板](../resources/views/mail/default/hubAddressUpdate20261103.blade.php)，全体有效唯一注册邮箱、持久去重、每批25封、精确生产revision校验，仅输出聚合数据。实现/本地验证完成，生产与发送结果见[进展](../progress-log.md#2026-11-03登录加载优化与地址通知)。
+<!-- capybara-panel-update-20261103:end -->
+
 <!-- capybara-login-latency-20261103:start -->
-登录启动性能：[home.js](../public/assets/capybara-home/home.js)跨home/panel边界整页刷新，再动态加载umi.js；[模板](../theme/Xboard/dashboard.blade.php)只有引导脚本defer，未提前加载主脚本，[入口样式](../public/assets/capybara-home/entry.css)在panel模式隐藏按钮。主JS约1.42MB/压缩434KB且未明确设置资源缓存头，等待期间无进度UI；公开配置请求不是根应用挂载的前置await。优化尚未实施，现有hash历史行为继续保留；[诊断证据](../progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
+登录启动性能：[home.js](../public/assets/capybara-home/home.js)跨home/panel边界整页刷新，再动态加载umi.js；[模板](../theme/Xboard/dashboard.blade.php)只有引导脚本defer，未提前加载主脚本，[入口样式](../public/assets/capybara-home/entry.css)在panel模式隐藏按钮。主JS约1.42MB/压缩434KB且未明确设置资源缓存头，等待期间无进度UI；公开配置请求不是根应用挂载的前置await。本段为实施前诊断，后续优化见上方当前能力；现有hash历史行为继续保留；[诊断证据](../progress-log.md#2026-11-03点击进入官网后登录页显示延迟)。
 <!-- capybara-login-latency-20261103:end -->
 
 <!-- capybara-go-relay-20261103:start -->
