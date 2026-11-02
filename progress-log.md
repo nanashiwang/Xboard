@@ -1,5 +1,23 @@
 # Xboard 项目进展记录
 
+<!-- capybara-go-relay-20261103:start -->
+## 2026-11-03：Go 应用关闭橙云并切至跳板
+
+用户在无代理实测后决定无需橙云、直接使用跳板；本轮只接管 capybarago.uk 的网络入口。导航仍为 Pages，taige/board、节点、数据库、app_url/subscribe_url、支付回调和原生客户端不变。按钮只是浏览器流程，不被当作防封措施。[新决定](./.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)局部替代双域上线时 Go 的橙云路线，与旧跳板笔记互链。
+
+- 代码：48be90b52a5b018b4ea69a00e7d5d8d0b6350951 已推 master，新增独立 Go vhost、安装/回退工具、源站包装器与手动工作流，沿用固定主机密钥和既有 GitHub SSH Secret。25项运维测试、actionlint与42篇笔记结构检查通过；ops提交 [skip ci]，没有重建应用镜像。
+- 源站：[prepare 41477599967](https://github.com/nanashiwang/Xboard/actions/runs/41477599967)、[apply 41479708849](https://github.com/nanashiwang/Xboard/actions/runs/41479708849)、[verify 41479914730](https://github.com/nanashiwang/Xboard/actions/runs/41479914730) 全部成功，prepare/verify详细日志已回读。Go 配置 SHA 从3572ede7…变为de452e97…，仅增加对155.103.118.155的信任；直接源站与跳板伪造头对照均符合Laravel真实IP/HTTPS/Host，origin_acme_fallback和diagnostic_cleaned为true。
+- 跳板：新增 /etc/nginx/sites-enabled/capybarago.uk，配置SHA256 5d4c40ec957e815e26feedbf23c25aceba15adacb74a6fd42b8f39d12536beb7；既有13份vhost配置哈希不变。nginx检查/重载完成；首次重载后的探针报curl35 unrecognized name，稍后不改配置严格复验五项全部通过。没有独立证实暂态根因，未绕过证书校验。
+- 证书：复用既有ACME账号，DNS-01签发跳板独立Go证书，到期2027-01-31；临时TXT从权威核对后完成签发，随后删除。切流后 certbot reconfigure 成功模拟并保存webroot配置，路径/HTTP-01回读一致，timer active，nginx deploy hooks存在；源站保留独立续期及转发路径，不复制私钥。
+- DNS：控制台保存 A155.103.118.155 / 仅DNS / TTL自动并回读；brianna、kenneth权威和1.1.1.1均返回A/TTL300，无AAAA。普通Windows请求确认remote_ip为跳板；没有改本机DNS/hosts/代理。
+- 固定IP预检：严格TLS首页200约2.24s/0.92s、API200约0.74s/0.86s、安装包Range206约0.70s；完整主JS初次25秒无响应，复验成功3.62s/2.54s，解压1420663字节。后一轮安装包15秒超时，保留失败而非只列成功。JS的独立Range探针返回200且触发8192字节上限，不能宣称JS支持Range；安装器Range验收另有206证据。
+- 切流后普通解析：首轮首页200/1.02s、安装器206/0.73s，API15秒、JS25秒超时。随后JS普通域名严格HTTPS完整成功约1.94s。Windows自带curl不支持HTTP/2，故不能把这一波动归因于HTTP/2；没有改网络协议或关闭证书校验。
+- 最终普通域名同连接顺序请求：首页200/0.857s、API200/0.278s、JS200/1.975s，三个remote_ip均155.103.118.155；API为Go app_url，JS解压1420663字节，SHA256 69ff1e68dd44b84f803e631367b6fc9dfd52e79d049067fa52cfa859031f20dc 与发布源一致。后两请求复用连接；这是成功样本，不抹除前序新连接超时。
+- UI与边界：实际浏览器打开Go按钮并进入正式登录页，Hub导航仍显示正式应用/下载入口；截图保存本地。浏览器所在Mac不能代替Windows无代理证据；未做真实账户登录、权益/支付/节点验收，也未完整下载/安装客户端。旧客户端0.1.9仍固定旧域，恢复提案保持proposed。
+
+结论：已按用户要求完成DNS-only跳板切流、证书和回源运维；当前可直连，但间歇超时仍存在，不能声称已解决长期稳定性或三网可达。后续需第二国内接入网络对照、独立备用入口及客户端恢复实施；不将反复重试直至成功当作稳定性验收。[回退说明](./docs/zh-CN/installation/website-relay.md#go-应用直连跳板2026-11-03)可恢复 Go A107.173.191.23+橙云。生产应用revision仍0a068f7、无新Release；本轮中文提交push master并按最终SHA回读README/progress，其他暂存/未暂存工作保留。
+<!-- capybara-go-relay-20261103:end -->
+
 <!-- capybara-direct-check-20261102:start -->
 ## 2026-11-02：新双域 Windows 无代理验收
 

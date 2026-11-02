@@ -1,5 +1,15 @@
 # Xboard
 
+<!-- capybara-go-relay-20261103:start -->
+### 应用入口已改为直连跳板（2026-11-03）
+
+[capybarago.uk](https://capybarago.uk/) 现为仅 DNS A → `155.103.118.155` → 严格 HTTPS 源站 `107.173.191.23`，不再走 CF 橙云；权威 A/AAAA 与无代理 Windows 实际连接地址已核对。Hub 仍为独立 Pages，原账号、套餐和按钮流程保留。跳板独立证书、webroot 自动续期模拟、真实 IP 防伪造及源站 ACME 转发通过，原共享站点配置哈希不变。
+
+最终 Windows 普通域名、同连接顺序测试：首页/公开 API/完整登录脚本均 200，约 0.86s/0.28s/1.97s；脚本 1420663 字节、SHA256 匹配发布源，安装包 Range 另为206。此前独立连接仍出现15–25秒超时，**切换已完成，但尚不能认定长期稳定或三网可用**；浏览器按钮到正式登录页通过，未提交真实账号。单按钮不具有防封作用，旧客户端仍0.1.9且不会自动换域。
+
+[实施与回退](./docs/zh-CN/installation/website-relay.md#go-应用直连跳板2026-11-03)、[决定](./.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)、[验收记录](./progress-log.md#2026-11-03go-应用关闭橙云并切至跳板)。本轮为入口运维，生产应用 revision 仍0a068f7；没有新客户端版本或 GitHub Release。下方11月2日CF实测保留为切换前历史。
+<!-- capybara-go-relay-20261103:end -->
+
 <!-- capybara-direct-check-20261102:start -->
 ### 新双域无代理实测（2026-11-02 23:39–23:45）
 
@@ -11,7 +21,7 @@
 
 [capybarahub.fyi](https://capybarahub.fyi/) 为独立 Cloudflare Pages 导航与下载页；[capybarago.uk](https://capybarago.uk/) 为原 Xboard 应用，根页仅显示蓝色「点击进入官网」按钮，点击进入真实登录/用户中心。账号、套餐及节点沿用原数据；API、订阅、桌面授权和下载绕过按钮，旧域配置保留。
 
-生产镜像 `20261102-0a068f7` 已核对运行 revision，Go DNS、证书、Cloudflare 完全（严格）、主链接 app_url/subscribe_url 切换和发布后五项源站检查通过。真实浏览器已通过导航 → 按钮 → 登录页，五种现有安装包 Range 与校验清单已核对。见[实施决定](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)、[导航发布源](./.docker/hub/README.md)及[验收记录](./progress-log.md#2026-11-02双域云端上线)。
+生产镜像 `20261102-0a068f7` 已核对运行 revision，初次上线时 Go DNS、证书、Cloudflare 完全（严格）、主链接 app_url/subscribe_url 切换和发布后五项源站检查通过。真实浏览器已通过导航 → 按钮 → 登录页，五种现有安装包 Range 与校验清单已核对。见[实施决定](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)、[导航发布源](./.docker/hub/README.md)及[验收记录](./progress-log.md#2026-11-02双域云端上线)。
 
 客户端仍为 0.1.9，尚未实现新入口自动切换；本次不发行客户端或 GitHub Release。Mac 公网请求有间歇超时，未做大陆三网长期直连、真实账号权益/支付或覆盖升级验收；网页上线不代表旧客户端恢复，也不承诺永久不受阻。
 <!-- capybara-cloud-entry-20261102:end -->

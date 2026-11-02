@@ -1,8 +1,18 @@
-# taige.us 网站 Flawless 入口
+# Go 与 taige 网站 Flawless 入口
 
 本文件只管理网站入口。VPN 节点的 lumavia.fyi、套餐、订阅 URL、支付回调域名和应用镜像不随本次入口调整变化。决定见[方案笔记](../../../.agents/notes/implemented/architecture/2026-10-22-website-flawless-relay.md)。
 
-## 当前路径
+## Go 应用直连跳板（2026-11-03）
+
+当前应用入口为 `capybarago.uk → DNS-only A155.103.118.155 → 严格HTTPS107.173.191.23`，权威TTL300且无AAAA。Hub继续Cloudflare Pages；本节仅管理Go，下面taige橙云试验仍是旧域状态。[决定](../../../.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)和[实测](../../../progress-log.md#2026-11-03go-应用关闭橙云并切至跳板)记录成功及超时，不承诺永久不受阻。
+
+独立配置 [go-relay.conf](../../../.docker/production/go-relay.conf) 安装在跳板 `/etc/nginx/sites-enabled/capybarago.uk`；受控工具 [go-relay-deploy.py](../../../.docker/production/go-relay-deploy.py) 位于 `/root/xboard-go-relay-tools-20261102`，备份 `/root/xboard-website-relay-go-20261102`。prepare校验旧模板和全部邻站哈希，activate只新增本站，通过nginx检查后重载；verify保留严格TLS。首次立即探针失败不等于回滚已发生，须检查当前配置和复验，不重复覆盖邻站。
+
+源站仅Go vhost信任该跳板，操作使用 [go-relay-origin.yml](../../../.github/workflows/go-relay-origin.yml) 的prepare/apply/verify/rollback；备份 `/root/xboard-backups/website-relay-origin/20261102-capybara-go-relay`。身份头与Laravel语义、临时诊断清理、源站HTTP ACME fallback均通过验证。跳板独立证书到期2027-01-31，已经成功reconfigure为webroot `/var/www/xboard-relay-acme` / HTTP-01，timer active，沿用nginx部署hooks。
+
+回退时只将Go A恢复 `107.173.191.23 / 已代理 / TTL自动`，再验证公共DNS和应用；CF Full(Strict)及源站CF信任保留。确需撤销配置时，运行上述受控rollback，须通过候选/备份SHA检查，不覆盖后来修改，不触碰taige、其他共享站点或节点。DNS缓存可能持续300秒；不要通过改用户hosts掩盖解析状态。
+
+## taige 当前路径
 
 2026-11-02 14:00 左右已按用户要求试验橙云：`taige.us → Cloudflare → A 回源 155.103.118.155 → HTTPS 107.173.191.23`。控制台主域 A 内容不变、代理为「已代理」、TTL 自动；权威返回 CF 的两条 A 与两条 AAAA（TTL 300 秒）。`board.taige.us` 保留原 CF 路径。当前代理路径首页、公开配置、更新索引 200，但无代理 Windows 主域仍 TLS 重置；保留配置供用户测试，详见[试验记录](../../../progress-log.md#2026-11-02主域橙云代理试验)。
 

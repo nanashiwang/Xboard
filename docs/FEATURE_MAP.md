@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- capybara-go-relay-20261103:start -->
+Go 网络入口：仅 DNS A155.103.118.155 → 严格 HTTPS107.173.191.23；[跳板配置](../.docker/production/go-relay.conf)、[受控安装/回退](../.docker/production/go-relay-deploy.py)、[源站独立信任工作流](../.github/workflows/go-relay-origin.yml)。共享站点不变，身份头覆盖、源站信任、webroot续期模拟和ACME fallback已验；最终Windows普通解析首页/API/完整JS通过且哈希匹配，但前序独立连接仍超时，稳定性未完成验收。Hub Pages及旧客户端0.1.9边界保留。见[实施决定](../.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)及[证据](../progress-log.md#2026-11-03go-应用关闭橙云并切至跳板)。
+<!-- capybara-go-relay-20261103:end -->
+
 <!-- capybara-direct-check-20261102:start -->
 新域单点直连验收：Windows 无代理环境下 Hub/Go 首页、Go 公开 API、安装包 Range 有成功样本；顺序访问仍间歇超时、登录主脚本 20 秒失败，完整无代理用户流程尚未通过，不能标记为稳定恢复。见[实测证据](../progress-log.md#2026-11-02新双域-windows-无代理验收)；无配置/客户端变更。
 <!-- capybara-direct-check-20261102:end -->

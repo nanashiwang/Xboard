@@ -23,7 +23,7 @@ Go 由明确自有域名白名单进入同一 Xboard 容器；safe_mode 仍拒�
 
 Hub 使用 Cloudflare Pages 项目 `capybarahub`，生产部署 `9156107f-1a62-4077-bebf-8e89f87b51f7`，自定义域 CNAME 指向 capybarahub.pages.dev；控制台确认活动、SSL 已启用。正式六文件产物由 [.docker/hub/build.py](../../../../.docker/hub/build.py) 构建，源码版本 0a068f7。首次 Sites 上传失败，没有产生公开版本，改用既有 Cloudflare 账户；私有 Sites 草稿不属于生产依赖。未来复用 Pages 项目和[发布说明](../../../../.docker/hub/README.md)，不要创建重复项目。
 
-Go A 记录为 107.173.191.23、橙云代理、TTL 自动；Cloudflare 已设为完全（严格）。源站新 vhost 独立于 taige/board，从已验证 SHA256 的 taige 配置派生，移除节点 include 和旧 Flawless 跳板信任，保留官方 CF 地址、请求身份清洗与独立下载路由。源配置漂移即停止，nginx 检查/重载失败恢复前状态。复用现有 ACME 账号、续期 hook 与 certbot.timer；不在日志记录 URL 查询或凭据。
+Go上线时的橙云网络路径已由[Go直连跳板决定](2026-11-02-go-direct-relay.md)局部取代：现为仅DNS A155.103.118.155，再严格HTTPS回源。以下保留初始部署的边界和回退基础。初始Go A为107.173.191.23、橙云代理、TTL自动；Cloudflare 已设为完全（严格）。源站新 vhost 独立于 taige/board，从已验证 SHA256 的 taige 配置派生，移除节点 include 和旧 Flawless 跳板信任，保留官方 CF 地址、请求身份清洗与独立下载路由。源配置漂移即停止，nginx 检查/重载失败恢复前状态。复用现有 ACME 账号、续期 hook 与 certbot.timer；不在日志记录 URL 查询或凭据。
 
 主域操作只改 app_url/subscribe_url 两个公开地址，原值必须是 https://taige.us；先验证 Go HTTPS 与接口，再备份到仅 root 可读的 settings.before.json，比较后写入并重载 Octane。运行时 ApplyRuntimeSettings 使用数据库值，所以不改 APP_URL、账号或套餐。支付 notify_domain 保持原配置，支付真实性不由页面 200 推断。`rollback-settings` 只在当前值仍为 Go 时恢复原地址；`rollback` 只移除本次管理的 vhost，回退前应先恢复主设置并调整导航链接。
 
@@ -38,7 +38,7 @@ Go A 记录为 107.173.191.23、橙云代理、TTL 自动；Cloudflare 已设为
 - 新域五种安装包 Range 返回 206，大小与发布清单一致；Hub 的五项 SHA256 和源站的 40 项校验清单与仓库清单一致。本次没有重新下载所有完整包或做覆盖安装，因此不声称新客户端已恢复。
 - Mac 公网请求出现间歇超时，重试路径与浏览器有成功样本；没有做干净的大陆三网无代理验收，不能从本机 curl --noproxy 推断全网可达。旧 taige 国内受阻的原结论仍保留。
 
-### 无代理 Windows 单点验收（23:39–23:45）
+### 切流前无代理 Windows 单点验收（23:39–23:45）
 
 用户追加要求实际无代理测试。已核对 Windows 系统/WinHTTP/环境代理、PAC、WLAN 路由、hosts 和常见代理进程；HTTP 探针显式 no_proxy 并保留 Schannel 严格证书验证。Hub 首页/下载及 Go 首页有 200 样本，Go 公开 JSON 配置成功，Windows 安装器 4096 字节 Range 返回 206；但默认顺序请求仍有超时，IPv4 和 IPv6 均有异常样本，主登录脚本在 IPv4 上通过 TCP/TLS 后等待20秒无响应。故公开页可以直连不等于登录/订阅/安装等完整流程可用。
 
