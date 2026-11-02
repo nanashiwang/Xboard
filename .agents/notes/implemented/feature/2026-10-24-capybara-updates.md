@@ -20,6 +20,12 @@ Status: implemented
 
 不直接把旧索引 URL 改成 Go：这样虽然只需一个文件，却会被旧客户端拒绝。旧域已不可达的客户仍需从独立 Hub 下载页覆盖升级一次，不能依靠服务端重定向修改旧二进制。新版本仍使用单个应用域；后续多路恢复范围见[恢复规划](../../proposed/architecture/2026-11-02-client-entry-resilience.md)。
 
+### 发布步骤失败后的恢复
+
+[恢复发布工作流](../../../../.github/workflows/capybara-publish-recovery.yml)只接收本仓库 master 的正式发布构建，逐一确认四平台成功、原提交与版本标签一致，重新校验全部包体摘要和更新签名后上传已有草稿。它拒绝覆盖已公开 Release，不重新打包或换签名；19 个附件的远端摘要匹配后才公开。适用于构建成功、发布步骤失败的 0.1.12 双索引格式；不会自动扩大 GitHub Token 权限。
+
+直接重新跑所有平台虽简单，却改变已验收二进制且耗时；复用原构建产物能保持 Windows 已安装验收与最终 Release 的字节一致。若恢复发布仍遭权限拒绝，保留草稿并使用既有授权发布凭据，不将失败的 Actions 声称成功。
+
 ## History audit
 
 - [首版架构](../../implemented/architecture/2026-10-23-capybara-desktop.md)：部分重叠；本决定取代首版暂不提供签名更新的边界，其余账号、系统代理与 TUN 边界不变，两篇互链。

@@ -9,6 +9,8 @@
 - 新版索引capybara-current.json使用Go包URL；旧capybara-latest.json仍使用taige.us，两个索引同一批签名包，发布时均纳入摘要。分发必须附件和全部索引校验完才发布任何索引；失败保留既有指针。新索引严格验证Go域与精确包名，保留用户确认安装和DEB手动边界。
 - 本地：前端75、授权/签名脚本17、Rust60通过/1项钥匙串手工测试未运行、下载同步7项通过、Vite构建通过；覆盖旧新索引包/签名一致、错误域/版本/凭据/查询拒绝、第二索引损坏不发布任何指针。工作流结构验证通过。四目标构建、Release附件、线上同步、Mac/Windows安装和无代理实测尚未完成。
 - 范围：同步新入口，不承诺旧域已断的旧版本能自动获取补丁；需要Hub覆盖安装一次。多入口选路、独立更新镜像、冷启动离线恢复仍是[后续规划](./.agents/notes/proposed/architecture/2026-11-02-client-entry-resilience.md)。沿用[更新决定](./.agents/notes/implemented/feature/2026-10-24-capybara-updates.md)和[同源授权](./.agents/notes/implemented/feature/2026-10-25-capybara-browser-login.md)，不新增重复架构决定。
+
+发布进度：原构建41501325119四平台全部通过，发布阶段两次HTTP403；未公开不完整版本。Windows已覆盖安装0.1.12，设备标识/分流/更新记录保留、代理关闭。加入仅复用已验证构建和已有草稿的恢复工作流；附件及线上分发仍待最终验收。
 <!-- capybara-migration-20261103:end -->
 
 <!-- registration-abuse-20261103:start -->

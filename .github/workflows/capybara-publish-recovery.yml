@@ -1,0 +1,91 @@
+name: Capybara Publish Recovery
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: '已完成全部四平台构建的 Capybara Desktop run ID'
+        required: true
+        type: string
+      source_revision:
+        description: '原构建的完整提交 SHA；必须与已有版本标签一致'
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: capybara-release-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN: ${{ inputs.source_run }}
+      SOURCE_REVISION: ${{ inputs.source_revision }}
+    steps:
+      - name: Verify the original release build
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" > /tmp/source-run.json
+          jq -e --arg sha "$SOURCE_REVISION" --arg repo "$GH_REPO" '
+            .head_sha == $sha and .head_repository.full_name == $repo and
+            .head_branch == "master" and .event == "workflow_dispatch" and
+            .path == ".github/workflows/capybara-desktop.yml" and .status == "completed"
+          ' /tmp/source-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" > /tmp/source-jobs.json
+          jq -e '
+            [.jobs[] | select(.name | startswith("Build "))] as $jobs |
+            ($jobs | map(.name) | sort) == ["Build aarch64-apple-darwin", "Build x86_64-apple-darwin", "Build x86_64-pc-windows-msvc", "Build x86_64-unknown-linux-gnu"] and
+            all($jobs[]; .conclusion == "success")
+          ' /tmp/source-jobs.json
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_revision }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run }}
+          pattern: capybara-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify signed files and resume the existing draft
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_REVISION"
+          VERSION=$(node -p "require('./desktop/capybara/package.json').version")
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          TAG="capybara-v$VERSION"
+          gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object.sha' > /tmp/tag-sha
+          test "$(cat /tmp/tag-sha)" = "$SOURCE_REVISION"
+          # Do not overwrite an already published release or silently create another tag.
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md public/assets/desktop-login.js public/assets/desktop-login-return.js public/assets/desktop-login.css resources/views/client/browser-login.blade.php > "release-assets/Capybara_${VERSION}_source.zip"
+          node desktop/capybara/scripts/update-manifest.mjs release-assets
+          (cd release-assets && sha256sum --check SHA256SUMS-*.txt && sha256sum Capybara_* capybara-latest.json capybara-current.json > SHA256SUMS.txt)
+          gh release upload "$TAG" release-assets/* --clobber
+          gh api "repos/$GH_REPO/releases/tags/$TAG" > /tmp/release.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          release = json.loads(Path('/tmp/release.json').read_text())
+          files = {p.name: p for p in Path('release-assets').iterdir() if p.is_file()}
+          assert release['draft'] and len(files) == 19
+          assert {a['name'] for a in release['assets']} == set(files)
+          for asset in release['assets']:
+              p = files[asset['name']]
+              assert asset['state'] == 'uploaded' and asset['size'] == p.stat().st_size
+              assert asset['digest'] == 'sha256:' + hashlib.sha256(p.read_bytes()).hexdigest()
+          print('All 19 release assets verified')
+          PY
+          gh release edit "$TAG" --draft=false --latest
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = false
