@@ -1,5 +1,17 @@
 # Xboard 项目进展记录
 
+<!-- ticket-mail-audit-20261103:start -->
+## 2026-11-03：工单邮箱通知能力核对
+
+用户询问管理员回复客户、客户发起工单时是否有邮箱通知。本次沿能力地图检查用户/管理员控制器、TicketService、邮件任务与 Telegram 插件，仅记录现有行为，没有修改通知逻辑或发送测试消息。
+
+- [TicketService](./app/Services/TicketService.php) 的 replyByAdmin 保存回复后调用 sendEmailNotify，向工单所属客户注册邮箱发送 notify 模板，正文含工单主题和本条回复。按客户 ID 缓存 1800 秒，窗口内后续回复不再次入队；缓存先于发送写入，发送失败也不会立即解除这段抑制。
+- [用户工单控制器](./app/Http/Controllers/V1/User/TicketController.php) 新建与回复仅触发对应插件钩子，没有内置管理员邮件或新建工单确认邮件。[Telegram 插件](./plugins/Telegram/Plugin.php) 监听两种事件，需插件启用、工单通知开启、机器人及管理员接收配置有效；本次未检查线上启用状态。
+- [SendEmailJob](./app/Jobs/SendEmailJob.php) 默认投递 send_email 队列，最多三次尝试，依赖既有 [MailService](./app/Services/MailService.php) 和 SMTP。源码具备发信逻辑不代表某封邮件已经送达；本次未检查生产工单日志、队列或收件箱。
+
+本轮只更新 README、能力地图和本记录，没有架构或行为取舍，免建决策笔记。后续若要求客户新建/回复时邮件提醒管理员，需补充收件配置与触发逻辑；本次没有实施该功能。提交前执行 workflow verify、文档链接和任务差异检查；本次文档提交的中文 commit、master 推送及 GitHub 按 SHA 回读结果在交付回复记录。未运行业务测试/构建、未部署，未变更版本号或发布 Release；保留已有未提交改动。
+<!-- ticket-mail-audit-20261103:end -->
+
 <!-- subscription-network-20261103:start -->
 ## 2026-11-03：订阅导入与流量同步网络诊断
 
