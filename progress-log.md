@@ -9,7 +9,11 @@
 
 本地禁网 PHP 8.2.33、SQLite 内存库及 ArrayTransport/队列替身验证：新增工单专项 9 项，完整邮件回归 27 项 / 170 断言通过；覆盖实际用户创建/回复 API、管理员收件范围、邮箱去重、默认/定制模板转义、事务提交/回滚、重复请求拒绝与连续新工单、队列故障隔离、无有效收件人、原管理员回复邮件限频。修改 PHP 文件语法通过；提交前执行 workflow verify、链接和隔离差异检查。
 
-当前为本地实现完成，GitHub CI/双架构镜像、生产部署及真实收件分别核验后更新。仅网站后端改动，无数据库迁移、桌面版本或独立 GitHub Release；沿用镜像 SHA 构建标识。README/progress 在推送后按精确 SHA 从 GitHub 回读；其他香港入口、Windows 代理和共享文档改动保留。通知提交后入队之间没有持久 outbox，故障可能需要人工处理，SMTP 接受不等于收件箱送达。
+源码 `c627c671462129c191e1c7f827bb9910c2806218` 已中文提交推送 master，README/progress 按精确 SHA 从 GitHub 回读一致。[邮件 CI](https://github.com/nanashiwang/Xboard/actions/runs/41589181643)再次通过 27 项 / 170 断言，[笔记](https://github.com/nanashiwang/Xboard/actions/runs/41589181625)、[节点检查](https://github.com/nanashiwang/Xboard/actions/runs/41589181650)和[双架构构建](https://github.com/nanashiwang/Xboard/actions/runs/41589181633)均成功；GHCR `c627c67` manifest 回读确认 linux/amd64 与 linux/arm64。
+
+[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/41589706488)于北京时间 14:26 完成：SQLite 备份 before-deploy-02gzoqvs.sqlite 已验证，Nothing to migrate，容器 Healthy，运行 revision 完整匹配 c627c67，镜像 sha256:176046a5bb1bb2b2cd0c180633f183e253f04460e74f7a79ebe0a1e18850754d。随后 capybarago.uk 官网返回 200，页面标记 20261103-c627c67。查询 GitHub 时两次 TLS 超时重试恢复，不属于构建或部署失败。本次没有创建生产测试工单或发送测试邮件，管理员实际收件箱送达仍待真实工单验证。
+
+仅网站后端改动，无数据库迁移、桌面版本或独立 GitHub Release；镜像/页面构建标识为 20261103-c627c67，不将其与 config/app.php 的固定版本混同。本交付记录单独以中文文档提交推送 master，并回读 README/progress；其他香港入口、Windows 代理和共享文档改动保留。通知提交后入队之间没有持久 outbox，故障可能需要人工处理，SMTP 接受不等于收件箱送达。
 <!-- ticket-created-admin-email-20261103:end -->
 
 <!-- ticket-mail-audit-20261103:start -->
