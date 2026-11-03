@@ -17,7 +17,11 @@ def build(destination):
     index = (preview / "index.html").read_text()
     index = index.replace("卡皮巴拉导航 · 页面预览", "卡皮巴拉导航")
     index = index.replace("卡皮巴拉双域入口方案：导航页交互预览。", "卡皮巴拉应用入口与客户端下载。")
-    index = index.replace('href="go.html"', 'href="' + APP + '/"')
+    index = index.replace('href="go.html"', 'data-app-entry href="' + APP + '/"')
+    index = index.replace('href="downloads.html"', 'data-hub-link href="downloads.html"')
+    index = index.replace('<div class="entry-meta">', '<p><a data-app-entry href="https://taige.us/">旧站备用入口（需网络可达） ↗</a></p><div class="entry-meta">')
+    index = index.replace('</body>', '<script src="invitation.js" defer></script></body>')
+    shutil.copyfile(ROOT / ".docker/hub/invitation.js", destination / "invitation.js")
     (destination / "index.html").write_text(index)
     shutil.copyfile(preview / "style.css", destination / "style.css")
     (destination / "assets").mkdir(exist_ok=True)
@@ -52,13 +56,13 @@ def build(destination):
 <meta name="referrer" content="no-referrer"><title>卡皮巴拉 · 客户端下载</title>
 <link rel="icon" href="assets/icon.webp"><link rel="stylesheet" href="style.css">
 <style>.download-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.download-actions a{padding:10px 12px;border:1px solid #dce5d3;border-radius:7px;text-decoration:none;font-size:12px;color:#507046;background:#eff4e9;white-space:nowrap}.download-list h2{font-size:16px}.download-list article{flex-wrap:wrap}.download-help{font-size:12px;line-height:1.8;color:#788371}</style>
-</head><body class="hub-page"><main class="hub-shell downloads-shell"><a class="back-link" href="/">← 返回导航</a>
+</head><body class="hub-page"><main class="hub-shell downloads-shell"><a class="back-link" data-hub-link href="/">← 返回导航</a>
 <header class="hub-heading"><img src="assets/icon.webp" width="64" height="64" alt="卡皮巴拉"><p class="eyebrow">CAPYBARA DOWNLOADS</p><h1>选择你的设备</h1></header>
 <section class="download-list" aria-label="客户端下载">''' + "\n".join(rows) + '''</section>
 <p class="download-help">下载没有开始时，可尝试备用下载。<a href="SHA256SUMS.txt">查看文件校验值</a></p>
-</main></body></html>'''
+</main><script src="invitation.js" defer></script></body></html>'''
     (destination / "downloads.html").write_text(downloads)
-    (destination / "_headers").write_text("/*\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\n  Cache-Control: public, max-age=300\n")
+    (destination / "_headers").write_text("/*\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\n  Cache-Control: public, max-age=300\n")
     return version
 
 

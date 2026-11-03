@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- capybara-invitation-20261103:start -->
+### 邀请分享与旧站兼容（2026-11-03）
+
+官网及0.1.13客户端分享链接改为Hub导航，点击进入应用时携带邀请码，下载页返回导航也保留。旧taige网站/API/下载继续保留；经代理验证0.1.12兼容索引200、Windows包Range206。旧更新器no_proxy，系统HTTP代理不保证自动更新，目标须实际走可用网络或从导航覆盖安装。用户贴出的/s路径是订阅，未改成网页跳转。当前本地验证通过，构建/发布及生产同步待验。见[邀请决定](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)。
+<!-- capybara-invitation-20261103:end -->
+
 <!-- capybara-migration-20261103:start -->
 ### 客户端新入口迁移 0.1.12（2026-11-03）
 

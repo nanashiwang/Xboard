@@ -203,7 +203,7 @@ export default function Invites({
             ) : (
                 <>
                     <div className="invite-toolbar">
-                        <span>分享链接中的邀请码会在官网注册时自动填写。</span>
+                        <span>分享链接先打开官方导航，进入应用后自动填写邀请码。</span>
                         <button
                             className="secondary-button"
                             disabled={busy || loading || historyLoading}

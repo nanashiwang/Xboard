@@ -88,7 +88,7 @@ it("本人分享链接与二维码一致，金额和分级比例来自接口，�
     render(<Invites view={user} onLogin={login} />);
     const input = await screen.findByRole("textbox", { name: "邀请链接" });
     expect((input as HTMLInputElement).value).toBe(
-        "https://capybarago.uk/#/register?code=OWN12345",
+        "https://capybarahub.fyi/?invite=OWN12345",
     );
     expect(screen.getByText("¥12.34")).toBeTruthy();
     expect(screen.getByText(/1级 7% · 2级 2% · 3级 1%/)).toBeTruthy();

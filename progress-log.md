@@ -1,5 +1,15 @@
 # Xboard 项目进展记录
 
+<!-- capybara-invitation-20261103:start -->
+## 2026-11-03：邀请改为导航入口与旧站兼容
+
+用户希望分享地址方便收藏，同时旧taige可在有代理时继续访问更新。确认用户贴出的/s是节点订阅，保持其响应协议；按文字请求将邀请好友的复制链接与二维码改为Hub，不挪动订阅token。桌面0.1.13与官网主题统一分享导航链接，Hub显式点击后传邀请码至Go/旧taige注册页，下载返回保留邀请码；无效参数、32位订阅式token、外部目标忽略。旧直达注册链接继续有效。
+
+- 旧taige经本机既有HTTP代理：兼容索引200/1.85秒、0.1.12四目标且包域仍taige；Windows包Range206/4096字节、严格TLS通过。不是旧客户端内升级实测；旧更新HTTP no_proxy，TUN也须确保该域没有DIRECT绕过代理。
+- 新增三项导航/邀请码/主题契约测试，与既有网页前端共24项通过；桌面75前端、17脚本及Vite构建通过；Hub静态构建通过。本轮不改账号、订阅token或系统代理。
+- 原生版本按现有四目标工作流发布；当前尚未完成GitHub Release、Hub与应用生产部署，不把本地结果当上线。使用[既有邀请笔记](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)，保留香港入口及Windows代理的其他未提交改动。
+<!-- capybara-invitation-20261103:end -->
+
 <!-- capybara-migration-20261103:start -->
 ## 2026-11-03：客户端新入口同步迁移
 

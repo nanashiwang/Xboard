@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- capybara-invitation-20261103:start -->
+邀请导航：[桌面链接](../desktop/capybara/src/invite-model.ts)与官网主题统一Hub `?invite=CODE`；[静态脚本](../.docker/hub/invitation.js)仅允许8位字母数字邀请码及固定Go/taige目标，下载返回保留，不透传订阅凭据。旧taige兼容更新源和包经代理可读；旧客户端no_proxy限制仍存在。0.1.13本地检查通过，云端发布/生产待验。见[决定](../.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)。
+<!-- capybara-invitation-20261103:end -->
+
 <!-- capybara-migration-20261103:start -->
 ### 客户端入口同步迁移（0.1.12）
 
