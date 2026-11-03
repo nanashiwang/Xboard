@@ -3,7 +3,7 @@
 <!-- taige-simple-home-20261103:start -->
 ### taige旧站首页简化（2026-11-03）
 
-按用户要求，taige.us根页仅保留账号登录和注册两个按钮，复用原hash面板、预加载与缓存；Go仍为单按钮，board原首页和机器接口继续兼容。PHP24项235断言、网页13项及笔记检查通过；生产部署待验。本轮仅网站更新，无桌面版本发布。见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
+按用户要求，taige.us根页仅保留账号登录和注册两个按钮，复用原hash面板、预加载与缓存；Go仍为单按钮，board原首页和机器接口继续兼容。PHP24项235断言、网页13项及笔记检查通过；生产84e52a0已部署Healthy；浏览器仅见登录/注册两入口，两个表单和返回流程通过。本轮仅网站更新，无桌面版本发布。见[首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
 <!-- taige-simple-home-20261103:end -->
 
 <!-- capybara-invitation-20261103:start -->

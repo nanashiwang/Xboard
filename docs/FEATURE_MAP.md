@@ -1,7 +1,7 @@
 # Xboard 能力地图
 
 <!-- taige-simple-home-20261103:start -->
-taige简洁首页：[入口服务](../app/Services/WebsiteEntryService.php)按`account_entry_hosts`仅匹配taige.us；[模板](../resources/views/home/entry.blade.php)显示登录/注册两入口，复用内容哈希CSS及主包预加载。Go、board、API/授权/下载边界保留。PHP24/235、前端13通过，生产待验；见[决定](../.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
+taige简洁首页：[入口服务](../app/Services/WebsiteEntryService.php)按`account_entry_hosts`仅匹配taige.us；[模板](../resources/views/home/entry.blade.php)显示登录/注册两入口，复用内容哈希CSS及主包预加载。Go、board、API/授权/下载边界保留。PHP24/235、前端13通过，生产84e52a0 Healthy，浏览器首页/登录/注册往返已验；见[决定](../.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
 <!-- taige-simple-home-20261103:end -->
 
 <!-- capybara-invitation-20261103:start -->

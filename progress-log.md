@@ -6,6 +6,10 @@
 用户要求旧taige首页也简化，只保留账号登录注册。使用明确的account_entry_hosts匹配taige.us，复用既有轻量入口Blade与哈希面板，白底中央两按钮；原风景首页不在此域渲染。Go单按钮、board首页、API/订阅/下载/授权/回调不重定向。未改账号、注册策略、DNS或代理设置。
 
 本地PHP首页/静态资源/下载24项235断言，网页启动与邀请13项，45篇笔记结构/链接校验通过。沿用[原首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)与[双域分工](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)。生产镜像构建和部署另验；仅网站改动，不发布无关客户端版本。保留已有香港入口、Windows代理及共享文档的其他脏改动。
+
+源码84e52a0bbc1d21d509854c01595c90c82a3cd3ca已推送master，README/progress从GitHub按SHA回读一致；网站41573228167、笔记41573228264、双架构镜像41573228215以及Node Probe/Mail检查均成功。生产部署41573641521成功，容器Healthy，运行revision完整匹配84e52a0，镜像sha256:6306162c577f6e6f236f7ff94ef8ab221403d9504ed988077fee714d243c8de2。
+
+实际Chrome刷新taige根页仅见“账号登录”“注册账号”；登录按钮进入原登录表单，浏览器返回恢复简洁首页，注册按钮进入原注册表单。已保存线上截图；未提交密码、注册或支付，不把表单入口验收写成身份/资金业务验收。网站没有独立GitHub Release安装包流程，沿用镜像部署，本轮不改变0.1.13客户端。
 <!-- taige-simple-home-20261103:end -->
 
 <!-- capybara-invitation-20261103:start -->
