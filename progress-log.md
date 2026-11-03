@@ -10,6 +10,7 @@
 - 提交/应用部署：`434f85544f740ea60a262a2d0a2b2004c985f9c7`已推送master，README/progress按精确SHA远端回读一致；镜像41637290844、网站检查41637290686成功，生产41638550441回读相同SHA且Healthy。备用域prepare41637364540成功；activate41637596222首次reload后立即TLS检查失败，后续未放宽TLS，verify41639127281严格验证根页、下载页、浏览器授权页、配置及健康接口全部成功，证书续期timer active。Cloudflare严格模式和Turnstile新增Hub域已回读。四平台发行41637354723仍在进行。
 - 手动重新订阅：发现原网站全局subscribe_url仍会返回Go，补充仅固定备用Host使用配置内HTTPS地址；三种导入和用户订阅API回归通过，任意Host无法改写目的域，主设置不变。客户端下载指南同步说明此路径，第三方软件不新增自动切换。
 - [发行41637354723](https://github.com/nanashiwang/Xboard/actions/runs/41637354723)四目标构建、原公钥包验签和publish均成功；[0.1.14](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.14)非草稿、目标434f855、21附件回读齐全。四份JSON下载摘要与Release一致；下载清单已按Release摘要生成，恢复JSON构建校验通过。后续官网静态同步、Hub上传和完整下载验签分别记录，不以发行成功代替全部生产验收。
+- 分发提交`1b963ad`已推送master且README/progress远端回读一致，网站CI41642039515通过，镜像41642039403成功，静态同步41642188846成功。Hub第一次上传e15c49b5成功，线上两个恢复JSON与Release逐字节一致且no-store；安装包Range返回502，发现Worker把Cloudflare第三参数ExecutionContext当作测试fetcher，新增真实入口调用回归并修复包装入口，5项下载Worker测试通过。此处记录失败及修复，不将首次页面部署当作下载验收。
 - 保留既有香港入口、Windows代理兼容及README/能力地图/进展的无关未提交改动；不会混入本次提交。
 <!-- hub-recovery-20261103:end -->
 

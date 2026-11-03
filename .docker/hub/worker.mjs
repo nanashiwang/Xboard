@@ -54,4 +54,6 @@ export async function handle(request, env, fetcher = fetch) {
     } catch { /* No upstream signed URLs or exception text in public errors. */ }
     return new Response('备用下载暂时不可用，请稍后重试。', {status: 502, headers: {'Cache-Control': 'no-store'}});
 }
-export default { fetch: handle };
+// Cloudflare supplies ExecutionContext as the third argument. Keep that out of
+// the injectable fetcher slot used by the isolated transport tests.
+export default { fetch(request, env) { return handle(request, env); } };

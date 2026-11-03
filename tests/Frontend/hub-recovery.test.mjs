@@ -3,7 +3,15 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const name='Capybara_0.1.14_x86_64-pc-windows-msvc.exe';
 const source=await readFile(new URL('../../.docker/hub/worker.mjs',import.meta.url),'utf8');
-const {handle}=await import('data:text/javascript;base64,'+Buffer.from(source.replace('__CAPYBARA_RELEASE_ASSETS__',JSON.stringify({[name]:`https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.14/${name}`}))).toString('base64'));
+const {handle,default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source.replace('__CAPYBARA_RELEASE_ASSETS__',JSON.stringify({[name]:`https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.14/${name}`}))).toString('base64'));
+test('Cloudflare entrypoint does not mistake ExecutionContext for the upstream fetch function',async()=>{
+ const original=globalThis.fetch;let called=0;
+ globalThis.fetch=async()=>{called++;return new Response('signed-package');};
+ try {
+  const response=await worker.fetch(new Request(`https://capybarahub.fyi/downloads/${name}`),{}, {waitUntil(){}});
+  assert.equal(response.status,200);assert.equal(await response.text(),'signed-package');assert.equal(called,1);
+ } finally {globalThis.fetch=original;}
+});
 test('recovery metadata is independent static content and never cached',async()=>{
  const env={ASSETS:{fetch:async()=>new Response('{"version":"0.1.14"}')}};
  for(const file of ['capybara-hub.json','capybara-entrypoints.json']){
