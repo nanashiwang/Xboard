@@ -630,22 +630,34 @@ async fn check_connection(state: State<'_, AppState>) -> Result<View, Fault> {
     Ok(rt.view.clone())
 }
 #[tauri::command]
-fn open_link(app: tauri::AppHandle, target: String) -> Result<(), Fault> {
+async fn open_link(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    target: String,
+) -> Result<(), Fault> {
     use tauri_plugin_opener::OpenerExt;
     let url = match target.as_str() {
-        "account" => "https://capybarago.uk/#/dashboard",
-        "plans" => "https://capybarago.uk/#/plan",
-        "support" => "https://capybarago.uk/#/ticket",
-        "register" => "https://capybarago.uk/#/register",
-        "invite" => "https://capybarago.uk/#/invite",
-        "navigation" => "https://capybarahub.fyi/",
-        "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara",
+        "navigation" => "https://capybarahub.fyi/".into(),
+        "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara".into(),
+        "account" | "plans" | "support" | "register" | "invite" => {
+            let mut rt = state.0.lock().await;
+            rt.account.select_origin(false).await?;
+            let path = match target.as_str() {
+                "account" => "dashboard",
+                "plans" => "plan",
+                "support" => "ticket",
+                "register" => "register",
+                _ => "invite",
+            };
+            format!("{}/#/{path}", rt.account.origin())
+        }
         _ => return Err(Fault::local("不支持的链接")),
     };
     app.opener()
         .open_url(url, None::<&str>)
-        .map_err(|_| Fault::local("无法打开浏览器，请访问 capybarago.uk"))
+        .map_err(|_| Fault::local("无法打开浏览器，请访问 capybarahub.fyi"))
 }
+mod entries;
 mod store;
 
 fn main() {

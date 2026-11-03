@@ -7,7 +7,7 @@
   var query = '?invite=' + encodeURIComponent(code);
   document.querySelectorAll('[data-app-entry]').forEach(function (link) {
     var target = new URL(link.href);
-    if (target.origin !== 'https://capybarago.uk' && target.origin !== 'https://taige.us') return;
+    if (target.origin !== 'https://capybarago.uk' && target.origin !== 'https://taige.us' && target.origin !== 'https://app.capybarahub.fyi') return;
     link.href = target.origin + '/#/register?code=' + encodeURIComponent(code);
   });
   document.querySelectorAll('[data-hub-link]').forEach(function (link) {

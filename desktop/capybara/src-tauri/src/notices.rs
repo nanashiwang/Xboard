@@ -83,9 +83,31 @@ async fn fetch(client: &Client, origin: &str, page: u32) -> Result<Page, Fault> 
     decode(&body, page)
 }
 #[tauri::command]
-pub async fn fetch_notices(page: u32) -> Result<Page, Fault> {
-    // Public notices do not need credentials or the account/node runtime locks.
-    fetch(&account::http()?, account::ORIGIN, page).await
+pub async fn fetch_notices(
+    page: u32,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<Page, Fault> {
+    if !(1..=50_000).contains(&page) {
+        return Err(Fault::local("通知页码无效"));
+    }
+    let origin = {
+        let mut rt = state.0.lock().await;
+        rt.account.select_origin(false).await?;
+        rt.account.origin().to_owned()
+    };
+    // No credentials are attached to notices, and no runtime lock spans their download.
+    let client = account::http()?;
+    match fetch(&client, &origin, page).await {
+        Ok(value) => Ok(value),
+        Err(_) => {
+            let backup = {
+                let mut rt = state.0.lock().await;
+                rt.account.select_origin(true).await?;
+                rt.account.origin().to_owned()
+            };
+            fetch(&client, &backup, page).await
+        }
+    }
 }
 fn notice_url(value: &str) -> Result<Url, Fault> {
     let url = Url::parse(value).map_err(|_| Fault::local("通知链接无效"))?;

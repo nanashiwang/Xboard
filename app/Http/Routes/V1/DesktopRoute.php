@@ -27,6 +27,10 @@ class DesktopRoute
             $router->post('/logout', [AuthController::class, 'logout'])->middleware('throttle:30,1');
         });
 
+        $router->get('/client/health', static fn () => response()->json([
+            'service' => 'capybara-account', 'protocol' => 1,
+        ])->header('Cache-Control', 'no-store'))->middleware('throttle:120,1');
+
         $router->get('/client/version', [ClientController::class, 'version'])->middleware('throttle:60,1');
         $router->get('/client/plans', [StoreController::class, 'catalog'])->middleware('throttle:60,1');
         $router->get('/client/config/download/{grant}', [ClientController::class, 'download'])

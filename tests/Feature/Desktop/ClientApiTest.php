@@ -22,6 +22,17 @@ class ClientApiTest extends TestCase
         admin_setting(['password_limit_enable' => 0]);
     }
 
+    public function test_public_health_is_identical_on_primary_and_backup_without_credentials(): void
+    {
+        foreach (['capybarago.uk', 'app.capybarahub.fyi'] as $host) {
+            $this->getJson('https://' . $host . '/api/v1/client/health')
+                ->assertOk()->assertExactJson(['service' => 'capybara-account', 'protocol' => 1])
+                ->assertHeader('Cache-Control', 'no-store, private');
+        }
+        $this->getJson('https://app.capybarahub.fyi/api/v1/user/subscription')->assertUnauthorized();
+        $this->getJson('https://app.capybarahub.fyi/api/v1/client/config')->assertUnauthorized();
+    }
+
     public function test_profile_and_subscription_require_bound_device(): void
     {
         $this->createUser();

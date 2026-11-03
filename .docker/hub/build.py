@@ -2,6 +2,7 @@
 """Build the independent Hub from the approved layout and release manifest."""
 import argparse
 import html
+import hashlib
 import json
 import re
 import shutil
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 APP = "https://capybarago.uk"
 
 
-def build(destination):
+def build(destination, release_directory=None):
     destination.mkdir(parents=True, exist_ok=True)
     preview = ROOT / "docs/previews/capybara-entry"
     index = (preview / "index.html").read_text()
@@ -19,7 +20,7 @@ def build(destination):
     index = index.replace("卡皮巴拉双域入口方案：导航页交互预览。", "卡皮巴拉应用入口与客户端下载。")
     index = index.replace('href="go.html"', 'data-app-entry href="' + APP + '/"')
     index = index.replace('href="downloads.html"', 'data-hub-link href="downloads.html"')
-    index = index.replace('<div class="entry-meta">', '<p><a data-app-entry href="https://taige.us/">旧站备用入口（需网络可达） ↗</a></p><div class="entry-meta">')
+    index = index.replace('<div class="entry-meta">', '<p><a data-app-entry href="https://app.capybarahub.fyi/">备用官网入口 ↗</a></p><div class="entry-meta">')
     index = index.replace('</body>', '<script src="invitation.js" defer></script></body>')
     shutil.copyfile(ROOT / ".docker/hub/invitation.js", destination / "invitation.js")
     (destination / "index.html").write_text(index)
@@ -48,7 +49,7 @@ def build(destination):
         if asset["url"] != expected or not re.fullmatch(r"[a-f0-9]{64}", asset["sha256"]):
             raise ValueError("Unexpected release asset")
         rows.append(f'''<article><div><h2>{html.escape(label)}</h2><p>版本 {version} · {asset['size'] / 1048576:.1f} MB</p></div>
-<div class="download-actions"><a href="{APP}/downloads/{name}">下载</a><a href="{expected}">备用下载</a></div></article>''')
+<div class="download-actions"><a href="{APP}/downloads/{name}">下载</a><a href="/downloads/{name}">备用下载</a><a href="{expected}">GitHub</a></div></article>''')
         checksums.append(asset["sha256"] + "  " + name)
     (destination / "SHA256SUMS.txt").write_text("\n".join(checksums) + "\n")
     downloads = '''<!doctype html>
@@ -63,11 +64,34 @@ def build(destination):
 </main><script src="invitation.js" defer></script></body></html>'''
     (destination / "downloads.html").write_text(downloads)
     (destination / "_headers").write_text("/*\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\n  Cache-Control: public, max-age=300\n")
+    if release_directory is not None:
+        (destination / "downloads").mkdir(exist_ok=True)
+        for name in ["capybara-hub.json", "capybara-entrypoints.json"]:
+            asset = next(item for item in manifest if item["name"] == name)
+            content = (release_directory / name).read_bytes()
+            if len(content) != asset["size"] or hashlib.sha256(content).hexdigest() != asset["sha256"]:
+                raise ValueError("Unverified recovery metadata: " + name)
+            (destination / "downloads" / name).write_bytes(content)
+        packages = {}
+        for asset in manifest:
+            if re.fullmatch(r"Capybara_[0-9]+\.[0-9]+\.[0-9]+_(?:aarch64-apple-darwin|x86_64-apple-darwin|x86_64-pc-windows-msvc|x86_64-unknown-linux-gnu)\.(?:app\.tar\.gz|dmg|exe|AppImage|deb)", asset["name"]):
+                release = asset["name"].split("_")[1]
+                if asset["url"] != f"https://github.com/nanashiwang/Xboard/releases/download/capybara-v{release}/{asset['name']}":
+                    raise ValueError("Untrusted recovery asset")
+                packages[asset["name"]] = asset["url"]
+        worker = (ROOT / ".docker/hub/worker.mjs").read_text().replace("__CAPYBARA_RELEASE_ASSETS__", json.dumps(packages))
+        (destination / "_worker.js").write_text(worker)
+        (destination / "_routes.json").write_text(json.dumps({"version": 1, "include": ["/downloads/*"], "exclude": ["/downloads/capybara-hub.json", "/downloads/capybara-entrypoints.json"]}))
+    elif tuple(map(int, version.split('.'))) >= (0, 1, 14):
+        raise ValueError("Recovery releases require verified release metadata")
+    with (destination / "_headers").open('a') as output:
+        output.write("/downloads/*.json\n  Cache-Control: no-store\n")
     return version
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("destination", type=Path)
+    parser.add_argument("--release-directory", type=Path)
     args = parser.parse_args()
-    print("Built Hub with release " + build(args.destination))
+    print("Built Hub with release " + build(args.destination, args.release_directory))

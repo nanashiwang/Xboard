@@ -1,0 +1,10 @@
+{
+  "kind": "capybara-service-origins-v1",
+  "sequence": 1,
+  "issued_at": 1793664000,
+  "expires_at": 1809216000,
+  "origins": [
+    "https://capybarago.uk",
+    "https://app.capybarahub.fyi"
+  ]
+}

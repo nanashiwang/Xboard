@@ -71,7 +71,7 @@ jobs:
           test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
           git archive --format=zip --prefix=capybara-source/ HEAD desktop/capybara app/Services/Client/ClientConfigService.php docs/zh-CN/development/client-api-integration.md public/assets/desktop-login.js public/assets/desktop-login-return.js public/assets/desktop-login.css resources/views/client/browser-login.blade.php > "release-assets/Capybara_${VERSION}_source.zip"
           node desktop/capybara/scripts/update-manifest.mjs release-assets
-          (cd release-assets && sha256sum --check SHA256SUMS-*.txt && sha256sum Capybara_* capybara-latest.json capybara-current.json > SHA256SUMS.txt)
+          (cd release-assets && sha256sum --check SHA256SUMS-*.txt && sha256sum Capybara_* capybara-latest.json capybara-current.json capybara-hub.json capybara-entrypoints.json > SHA256SUMS.txt)
           gh release upload "$TAG" release-assets/* --clobber
           gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\" and .draft == true)" > /tmp/release.json
           python3 - <<'PY'
@@ -79,13 +79,13 @@ jobs:
           import hashlib, json
           release = json.loads(Path('/tmp/release.json').read_text())
           files = {p.name: p for p in Path('release-assets').iterdir() if p.is_file()}
-          assert release['draft'] and len(files) == 19
+          assert release['draft'] and len(files) == 21
           assert {a['name'] for a in release['assets']} == set(files)
           for asset in release['assets']:
               p = files[asset['name']]
               assert asset['state'] == 'uploaded' and asset['size'] == p.stat().st_size
               assert asset['digest'] == 'sha256:' + hashlib.sha256(p.read_bytes()).hexdigest()
-          print('All 19 release assets verified')
+          print('All 21 release assets verified')
           PY
           gh release edit "$TAG" --draft=false --latest
           test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = false

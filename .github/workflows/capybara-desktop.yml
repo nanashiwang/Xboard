@@ -76,6 +76,11 @@ jobs:
             npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
             node scripts/collect-artifacts.mjs ${{ matrix.target }}
           fi
+      - name: Sign service entrypoints with the existing publisher key
+        if: runner.os == 'Linux' && github.event_name != 'pull_request'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.CAPYBARA_UPDATER_PRIVATE_KEY }}
+        run: node scripts/sign-entrypoints.mjs artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: capybara-${{ matrix.target }}
@@ -105,7 +110,7 @@ jobs:
           node desktop/capybara/scripts/update-manifest.mjs release-assets
           cd release-assets
           sha256sum --check SHA256SUMS-*.txt
-          sha256sum Capybara_* capybara-latest.json capybara-current.json > SHA256SUMS.txt
+          sha256sum Capybara_* capybara-latest.json capybara-current.json capybara-hub.json capybara-entrypoints.json > SHA256SUMS.txt
           cd ..
           RELEASE_FLAGS=(--latest)
           if [[ "$VERSION" == *-* ]]; then RELEASE_FLAGS=(--prerelease --latest=false); fi

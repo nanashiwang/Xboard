@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- hub-recovery-20261103:start -->
+### 客户端 Go／Hub 自动兜底（0.1.14）
+
+代码实现 Go 与 `app.capybarahub.fyi` 可信选路、订阅GET失败切换、网络错误保留登录、Go/Hub更新索引及同版本安装包备用下载。Hub保留导航，独立分发签名入口清单和GitHub固定附件；新域名经原发行公钥验证后可下发。第三方客户端自动切换、离线授权和后台灾备不纳入本轮。详见[决定](./.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[发布部署进展](./progress-log.md#2026-11-03客户端-gohub-自动兜底)。
+
+本地前端75项及17项脚本、Rust66项通过（1项钥匙串手工测试忽略）；PHP桌面85项/942断言中1项外部内核检查跳过，其他通过；Hub7项、分发7项、域名5项通过。备用DNS已配置，四平台构建、Release和生产部署尚未完成，当前上线仍为0.1.13。
+<!-- hub-recovery-20261103:end -->
+
 <!-- ticket-mail-audit-20261103:start -->
 ### 工单邮箱通知（2026-11-03）
 

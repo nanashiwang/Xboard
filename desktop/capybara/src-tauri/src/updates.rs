@@ -12,7 +12,10 @@ use tauri::{Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const INTERVAL: u64 = 6 * 60 * 60;
-const FEED: &str = "https://capybarago.uk/downloads/capybara-current.json";
+const FEEDS: [&str; 2] = [
+    "https://capybarago.uk/downloads/capybara-current.json",
+    "https://capybarahub.fyi/downloads/capybara-hub.json",
+];
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 struct Schedule {
@@ -114,7 +117,7 @@ fn trusted_asset(update: &Update) -> bool {
 
 fn trusted_download(url: &reqwest::Url, version: &str) -> bool {
     url.scheme() == "https"
-        && url.host_str() == Some("capybarago.uk")
+        && matches!(url.host_str(), Some("capybarago.uk" | "capybarahub.fyi"))
         && url.port().is_none()
         && url.username().is_empty()
         && url.password().is_none()
@@ -153,22 +156,44 @@ async fn check(app: &tauri::AppHandle, monitor: &Monitor, manual: bool) {
     if !monitor.begin_check(time, manual) {
         return;
     }
-    let result = async {
-        let updater = app
-            .updater_builder()
-            .no_proxy()
-            .timeout(Duration::from_secs(25))
-            .configure_client(|client| {
-                client
-                    .https_only(true)
-                    .connect_timeout(Duration::from_secs(10))
-            })
-            // A new query also bypasses the static download directory's long cache lifetime.
-            .endpoints(vec![format!("{FEED}?check={time}").parse()?])?
-            .build()?;
-        updater.check().await
+    // Check each source ourselves: malformed JSON, HTTP 204 and package failures
+    // must not silently prevent trying the independent recovery source.
+    let mut result: Result<Option<Update>, String> = Err("没有可用的更新源".into());
+    for feed in FEEDS {
+        let checked = async {
+            let updater = app
+                .updater_builder()
+                .no_proxy()
+                .timeout(Duration::from_secs(5))
+                .configure_client(|client| {
+                    client
+                        .https_only(true)
+                        .redirect(updater_http::redirect::Policy::none())
+                        .connect_timeout(Duration::from_secs(3))
+                })
+                .endpoints(vec![format!("{feed}?check={time}").parse()?])?
+                .build()?;
+            updater.check().await
+        }
+        .await;
+        match checked {
+            Ok(Some(update)) if trusted_asset(&update) => {
+                let newer = result
+                    .as_ref()
+                    .ok()
+                    .and_then(|v| v.as_ref())
+                    .is_none_or(|old| {
+                        semver::Version::parse(&update.version).ok()
+                            > semver::Version::parse(&old.version).ok()
+                    });
+                if newer {
+                    result = Ok(Some(update));
+                }
+            }
+            Ok(None) if result.is_err() => result = Ok(None),
+            _ => {}
+        }
     }
-    .await;
     match result {
         Ok(update) if update.as_ref().is_none_or(trusted_asset) => {
             let mut data = monitor.data.lock().unwrap();
@@ -244,10 +269,10 @@ pub async fn install_update(
         use tauri_plugin_opener::OpenerExt;
         let result = app
             .opener()
-            .open_url("https://capybarago.uk/clients#linux", None::<&str>);
+            .open_url("https://capybarahub.fyi/downloads", None::<&str>);
         monitor.installing.store(false, Ordering::SeqCst);
         if result.is_err() {
-            monitor.fail("无法打开下载页，请访问 capybarago.uk/clients 下载安装 DEB 更新");
+            monitor.fail("无法打开下载页，请访问 capybarahub.fyi/downloads 下载安装 DEB 更新");
         } else {
             let mut data = monitor.data.lock().unwrap();
             data.view.phase = "available".into();
@@ -257,22 +282,41 @@ pub async fn install_update(
     }
     // This command is only sent after an explicit confirmation in the update dialog.
     update.timeout = Some(Duration::from_secs(900));
-    let downloaded = update
-        .download(
-            |chunk, total| {
-                let mut data = monitor.data.lock().unwrap();
-                data.view.downloaded += chunk as u64;
-                data.view.total = total;
-            },
-            || {},
-        )
-        .await;
-    let bytes = match downloaded {
-        Ok(bytes) => bytes, // Tauri verifies the pinned publisher signature before returning.
-        Err(_) => {
-            monitor.fail("更新包下载或签名校验失败，未安装更新。请重试，或从官网下载。");
-            return Ok(monitor.view());
+    let path = update.download_url.path().to_owned();
+    let primary = update.download_url.clone();
+    let alternate_host = if primary.host_str() == Some("capybarahub.fyi") {
+        "https://capybarago.uk"
+    } else {
+        crate::entries::HUB
+    };
+    let alternate = format!("{alternate_host}{path}")
+        .parse()
+        .map_err(|_| Fault::local("更新地址无效"))?;
+    let mut downloaded = None;
+    for url in [primary, alternate] {
+        if !trusted_download(&url, &update.version) {
+            continue;
         }
+        update.download_url = url;
+        monitor.data.lock().unwrap().view.downloaded = 0;
+        if let Ok(bytes) = update
+            .download(
+                |chunk, total| {
+                    let mut data = monitor.data.lock().unwrap();
+                    data.view.downloaded += chunk as u64;
+                    data.view.total = total;
+                },
+                || {},
+            )
+            .await
+        {
+            downloaded = Some(bytes);
+            break;
+        }
+    }
+    let Some(bytes) = downloaded else {
+        monitor.fail("主用和备用更新包下载或验签失败，未安装更新。可从导航页手动下载。");
+        return Ok(monitor.view());
     };
     monitor.data.lock().unwrap().view.phase = "installing".into();
     // Keep connections gated until installation has completed; never exit with our proxy set.
@@ -306,7 +350,12 @@ mod tests {
             &format!("https://capybarago.uk{path}").parse().unwrap(),
             "0.1.12"
         ));
+        assert!(trusted_download(
+            &format!("https://capybarahub.fyi{path}").parse().unwrap(),
+            "0.1.12"
+        ));
         for url in [
+            format!("https://capybarahub.fyi.evil.invalid{path}"),
             format!("https://taige.us{path}"),
             format!("https://capybarago.uk.evil.invalid{path}"),
             format!("http://capybarago.uk{path}"),

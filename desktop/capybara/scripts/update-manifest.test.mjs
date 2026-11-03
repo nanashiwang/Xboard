@@ -77,6 +77,7 @@ test("legacy and migrated clients receive identical signed packages through thei
     assert.deepEqual(Object.keys(indexes), [
         "capybara-latest.json",
         "capybara-current.json",
+        "capybara-hub.json",
     ]);
     for (const platform of Object.keys(targets)) {
         const legacy = indexes["capybara-latest.json"].platforms[platform];

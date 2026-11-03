@@ -1,0 +1,36 @@
+name: Configure Hub Domain
+run-name: 'Configure Hub Domain · ${{ inputs.operation }}'
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        required: true
+        type: choice
+        default: inspect
+        options: [inspect, prepare, activate, verify, rollback]
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure only the new application vhost
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in inspect|prepare|activate|verify|rollback) ;; *) exit 1 ;; esac
+          test -n "$SSHPASS"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15 \
+            root@107.173.191.23 "python3 - '$OPERATION'" < .docker/production/configure-hub-domain.py

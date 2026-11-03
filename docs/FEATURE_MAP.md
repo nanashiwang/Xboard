@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- hub-recovery-20261103:start -->
+客户端Go/Hub恢复：[入口目录](../desktop/capybara/src-tauri/src/entries.rs)验证签名清单和无凭据探针，[账号](../desktop/capybara/src-tauri/src/account.rs)受控GET切换、写操作不重放，[更新器](../desktop/capybara/src-tauri/src/updates.rs)双索引及包失败备用；[Hub](../.docker/hub/build.py)静态恢复元数据与固定GitHub包代理，[备用域名运维](../.docker/production/configure-hub-domain.py)严格TLS直回同账号源站。0.1.14本地检查通过，发布/部署待完成；第三方自动切换、离线许可及双后端不在本轮。见[决定](../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[进展](../progress-log.md#2026-11-03客户端-gohub-自动兜底)。
+<!-- hub-recovery-20261103:end -->
+
 <!-- subscription-network-20261103:start -->
 第三方订阅网络诊断：[短订阅路由](../routes/web.php)、[控制器](../app/Http/Controllers/V1/Client/ClientController.php)、[ClashMeta 响应](../app/Protocols/ClashMeta.php)沿用 client 鉴权及 subscription-userinfo 头；手机 TLS 超时发生于 HTTP 响应前。2026-11-03 无代理 Windows 新域公开接口 6/6 成功、旧域错误解析/固定正确 IP 后 TLS 重置；真实客户端域名及手机网络尚未知，未验证真实订阅或宣称修复。见[证据与边界](../progress-log.md#2026-11-03订阅导入与流量同步网络诊断)。
 <!-- subscription-network-20261103:end -->

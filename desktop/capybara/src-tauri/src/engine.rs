@@ -307,6 +307,7 @@ fn sanitize_routing(
     } else {
         rules.splice(0..0, PRIVATE_RULES.iter().map(|rule| (*rule).into()));
         rules.insert(0, "DOMAIN,taige.us,DIRECT".into());
+        rules.insert(0, "DOMAIN,app.capybarahub.fyi,DIRECT".into());
         rules.insert(0, "DOMAIN,capybarahub.fyi,DIRECT".into());
         rules.insert(0, "DOMAIN,capybarago.uk,DIRECT".into());
         for rule in settings.rules.iter().rev() {
@@ -1279,7 +1280,8 @@ mod tests {
         assert!(data["dns"]["listen"].is_null());
         assert_eq!(data["rules"][0], "DOMAIN,capybarago.uk,DIRECT");
         assert_eq!(data["rules"][1], "DOMAIN,capybarahub.fyi,DIRECT");
-        assert_eq!(data["rules"][2], "DOMAIN,taige.us,DIRECT");
+        assert_eq!(data["rules"][2], "DOMAIN,app.capybarahub.fyi,DIRECT");
+        assert_eq!(data["rules"][3], "DOMAIN,taige.us,DIRECT");
     }
     #[test]
     fn direct_dns_defaults_to_system_without_replacing_subscription_policies() {

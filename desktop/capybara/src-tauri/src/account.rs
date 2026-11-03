@@ -8,7 +8,7 @@ use std::{
 };
 use uuid::Uuid;
 
-pub const ORIGIN: &str = "https://capybarago.uk";
+pub const ORIGIN: &str = crate::entries::PRIMARY;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const CORE_VERSION: &str = "1.19.33";
 pub fn platform() -> &'static str {
@@ -70,12 +70,12 @@ fn network_fault(error: reqwest::Error) -> Fault {
     } else if error.is_timeout() {
         (
             "NETWORK_TIMEOUT",
-            "连接 capybarago.uk 超时，请检查网络后重试（NETWORK_TIMEOUT）",
+            "连接服务超时，请检查网络后重试（NETWORK_TIMEOUT）",
         )
     } else if error.is_connect() {
         (
             "NETWORK_CONNECT",
-            "无法连接 capybarago.uk，请检查网络或防火墙设置（NETWORK_CONNECT）",
+            "无法连接账户服务，请检查网络或防火墙设置（NETWORK_CONNECT）",
         )
     } else {
         (
@@ -114,6 +114,7 @@ struct Tokens {
 pub struct Account {
     client: Client,
     origin: String,
+    directory: crate::entries::Directory,
     credential: Option<keyring::Entry>,
     device_id: String,
     access: String,
@@ -131,6 +132,7 @@ impl Account {
         Ok(Self {
             client: http()?,
             origin: ORIGIN.into(),
+            directory: crate::entries::Directory::new(dir),
             credential: keyring::Entry::new(
                 "us.taige.capybara",
                 &crate::credentials::account_name()?,
@@ -177,6 +179,44 @@ impl Account {
         self.credential
             .as_ref()
             .ok_or_else(|| keyring::Error::Invalid("credential".into(), "unavailable".into()))
+    }
+    pub fn origin(&self) -> &str {
+        &self.origin
+    }
+    pub async fn select_origin(&mut self, failed: bool) -> Result<(), Fault> {
+        self.origin = self.directory.select(&self.origin, failed).await?;
+        Ok(())
+    }
+    async fn get_response(
+        &mut self,
+        path: &str,
+        authorized: bool,
+    ) -> Result<reqwest::Response, Fault> {
+        self.select_origin(false).await?;
+        for attempt in 0..2 {
+            let mut request = self.request(Method::GET, path);
+            if authorized {
+                request = request.bearer_auth(&self.access);
+            }
+            let result = request.send().await;
+            let retry = match &result {
+                Err(_) => true,
+                Ok(response) => {
+                    response.status().is_server_error()
+                        || response
+                            .headers()
+                            .get("content-type")
+                            .and_then(|v| v.to_str().ok())
+                            .is_some_and(|v| v.contains("text/html"))
+                }
+            };
+            if retry && attempt == 0 {
+                self.select_origin(true).await?;
+                continue;
+            }
+            return result.map_err(network_fault);
+        }
+        unreachable!()
     }
     fn request(&self, method: Method, path: &str) -> reqwest::RequestBuilder {
         self.client
@@ -274,6 +314,7 @@ impl Account {
         }
         Ok(BrowserSession {
             registration: false,
+            directory: self.directory.clone(),
             client: self.client.clone(),
             origin: self.origin.clone(),
             device_id: self.device_id.clone(),
@@ -289,15 +330,18 @@ impl Account {
                 message: "请先登录账号".into(),
             });
         }
+        self.select_origin(false).await?;
         let response = self
             .request(Method::POST, "auth/refresh")
             .json(&json!({"refresh_token":self.refresh,"device_id":self.device_id}))
             .send()
             .await
             .map_err(network_fault)?;
-        let status = response.status();
         let result = Self::decode(response).await;
-        if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
+        if result
+            .as_ref()
+            .is_err_and(crate::subscription::invalidates_session)
+        {
             self.clear(Access::Background)?;
         }
         self.save_tokens(result?, Access::Background).await
@@ -306,39 +350,32 @@ impl Account {
         if self.access.is_empty() || Instant::now() >= self.expires {
             self.renew().await?;
         }
-        let mut response = self
-            .request(Method::GET, path)
-            .bearer_auth(&self.access)
-            .send()
-            .await
-            .map_err(network_fault)?;
+        let mut response = self.get_response(path, true).await?;
         if response.status() == StatusCode::UNAUTHORIZED {
+            // CDN/WAF HTML is never evidence that a refresh token is revoked.
+            let fault = Self::decode(response).await;
+            if !fault
+                .as_ref()
+                .is_err_and(crate::subscription::invalidates_session)
+            {
+                return Err(fault.err().unwrap_or_else(|| Fault::local("账户响应异常")));
+            }
             self.renew().await?;
-            response = self
-                .request(Method::GET, path)
-                .bearer_auth(&self.access)
-                .send()
-                .await
-                .map_err(network_fault)?;
+            response = self.get_response(path, true).await?;
         }
         Ok(response)
     }
     pub async fn get(&mut self, path: &str) -> Result<Value, Fault> {
         Self::decode(self.authorized(path).await?).await
     }
-    pub async fn public_get(&self, path: &str) -> Result<Value, Fault> {
-        Self::decode(
-            self.request(Method::GET, path)
-                .send()
-                .await
-                .map_err(network_fault)?,
-        )
-        .await
+    pub async fn public_get(&mut self, path: &str) -> Result<Value, Fault> {
+        Self::decode(self.get_response(path, false).await?).await
     }
     pub async fn post(&mut self, path: &str, body: &Value) -> Result<Value, Fault> {
         if self.access.is_empty() || Instant::now() >= self.expires {
             self.renew().await?;
         }
+        self.select_origin(false).await?;
         // Mutations are never retried automatically, including ambiguous network failures.
         Self::decode(
             self.request(Method::POST, path)
@@ -393,6 +430,7 @@ impl Account {
     }
     pub async fn logout(&mut self) -> Result<(), Fault> {
         if !self.refresh.is_empty() {
+            self.select_origin(false).await?;
             self.request(Method::POST, "auth/logout")
                 .bearer_auth(&self.access)
                 .json(&json!({"refresh_token":self.refresh}))
@@ -409,6 +447,7 @@ impl Account {
 #[derive(Clone)]
 pub struct BrowserSession {
     pub registration: bool,
+    directory: crate::entries::Directory,
     client: Client,
     origin: String,
     device_id: String,
@@ -425,6 +464,7 @@ impl BrowserSession {
             .json(&json!({"request_id": self.id, "secret": self.secret}))
     }
     pub async fn start(&mut self) -> Result<(), Fault> {
+        self.origin = self.directory.select(&self.origin, false).await?;
         let response = self
             .request("start")
             .json(&json!({"secret": self.secret, "device": {
@@ -553,6 +593,90 @@ mod tests {
             paths
         });
         (origin, handle)
+    }
+    #[tokio::test]
+    async fn unreachable_primary_selects_backup_without_clearing_credentials() {
+        let health = json!({"service":"capybara-account", "protocol":1});
+        let (primary, first) = server(vec![(503, json!({"error":"offline"}))]);
+        let (backup, second) = server(vec![
+            (200, health),
+            (200, json!({"data":{"status":"active"}})),
+        ]);
+        let dir = std::env::temp_dir().join(Uuid::new_v4().to_string());
+        std::fs::create_dir(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.origin = primary.clone();
+        account.directory.test_origins = Some(vec![primary, backup.clone()]);
+        account.access = "test-access".into();
+        account.refresh = "test-refresh".into();
+        account.expires = Instant::now() + Duration::from_secs(300);
+        assert_eq!(
+            account.get("user/subscription").await.unwrap()["status"],
+            "active"
+        );
+        assert_eq!(account.origin, backup);
+        assert_eq!(account.refresh, "test-refresh");
+        assert_eq!(
+            first.join().unwrap(),
+            vec!["GET /api/v1/client/health HTTP/1.1"]
+        );
+        assert_eq!(
+            second.join().unwrap(),
+            vec![
+                "GET /api/v1/client/health HTTP/1.1",
+                "GET /api/v1/user/subscription HTTP/1.1"
+            ]
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[tokio::test]
+    async fn get_failure_after_probe_moves_to_backup_but_mutations_are_not_replayed() {
+        let health = json!({"service":"capybara-account", "protocol":1});
+        let (primary, first) = server(vec![
+            (200, health.clone()),
+            (503, json!({"error":"offline"})),
+        ]);
+        let (backup, second) = server(vec![
+            (200, health),
+            (200, json!({"data":true})),
+            (503, json!({"code":"SERVER_ERROR"})),
+        ]);
+        let dir = std::env::temp_dir().join(Uuid::new_v4().to_string());
+        std::fs::create_dir(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.origin = primary.clone();
+        account.directory.test_origins = Some(vec![primary, backup]);
+        account.access = "test-access".into();
+        account.refresh = "test-refresh".into();
+        account.expires = Instant::now() + Duration::from_secs(300);
+        assert_eq!(account.get("user/subscription").await.unwrap(), true);
+        assert!(account
+            .post("client/store/order", &json!({}))
+            .await
+            .is_err());
+        assert_eq!(first.join().unwrap().len(), 2);
+        assert_eq!(
+            second.join().unwrap(),
+            vec![
+                "GET /api/v1/client/health HTTP/1.1",
+                "GET /api/v1/user/subscription HTTP/1.1",
+                "POST /api/v1/client/store/order HTTP/1.1"
+            ]
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[tokio::test]
+    async fn unrecognized_forbidden_refresh_response_does_not_erase_login() {
+        let (origin, request) = server(vec![(403, json!({"error":"edge denied"}))]);
+        let dir = std::env::temp_dir().join(Uuid::new_v4().to_string());
+        std::fs::create_dir(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        account.origin = origin;
+        account.refresh = "test-refresh".into();
+        assert!(account.renew().await.is_err());
+        assert_eq!(account.refresh, "test-refresh");
+        assert_eq!(request.join().unwrap().len(), 1);
+        std::fs::remove_dir_all(dir).unwrap();
     }
     #[tokio::test]
     async fn subscription_device_rejection_after_token_renewal_invalidates_session() {
@@ -949,6 +1073,7 @@ mod tests {
         ]);
         let mut session = BrowserSession {
             registration: false,
+            directory: crate::entries::Directory::new(&std::env::temp_dir()),
             client: http().unwrap(),
             origin,
             device_id: Uuid::new_v4().to_string(),

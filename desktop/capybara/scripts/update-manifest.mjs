@@ -63,6 +63,7 @@ export function updateIndexes(result) {
         [
             ["capybara-latest.json", "https://taige.us"],
             ["capybara-current.json", "https://capybarago.uk"],
+            ["capybara-hub.json", "https://capybarahub.fyi"],
         ].map(([name, origin]) => [
             name,
             {

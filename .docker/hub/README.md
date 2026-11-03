@@ -15,3 +15,9 @@ python3 .docker/hub/build.py /absolute/output/dist
 应用域使用 [独立入口配置](../production/configure-go-domain.py) 和 [手动工作流](../../.github/workflows/configure-go-domain.yml)，生产应用镜像仍走既有 Production Deploy。`promote` 仅在 HTTPS 与接口验证后切换 app_url/subscribe_url，`rollback-settings` 恢复原公开地址；旧域 vhost、支付回调和节点配置保留。导航更新、应用部署和国内直连可达性分别验收；GitHub 下载备用路径也可能受用户网络影响，不构成客户端自动恢复。
 
 邀请链接使用 `https://capybarahub.fyi/?invite=邀请码`，只接收8位字母数字邀请码。导航保持停留，点击应用入口时转到对应应用域的注册页；下载页与返回导航保留邀请码，不向安装包/GitHub链接附加参数。无效参数忽略，目标只允许Go和旧taige，未将订阅token放进导航。旧站入口及兼容索引继续保留；旧客户端设置no_proxy，系统HTTP代理不保证覆盖其更新请求，须确认目标实际经代理可达或从导航覆盖安装。
+
+## 0.1.14 恢复分发
+
+`build.py OUTPUT --release-directory VERIFIED_RELEASE_FILES`核对发布清单摘要后复制`capybara-hub.json`和`capybara-entrypoints.json`，并生成`_worker.js`与`_routes.json`。Cloudflare Pages控制台Direct Upload支持此单文件Worker；恢复JSON走静态存储、no-store，安装包由Worker限制到既有清单中的GitHub固定版本来源，禁止Go依赖、任意代理及用户凭据转发。上传ZIP必须包含所有静态文件、Worker、路由和恢复JSON。
+
+备用官网为`https://app.capybarahub.fyi/`，源站部署由Configure Hub Domain流程管理。更新入口清单时先部署并验收新服务域，修改`desktop/capybara/service-entrypoints.json`的origins、递增sequence、调整签发/到期时间，再通过已有签名流水线发布和同步；客户端拒绝未签名、过期及回退内容。发行私钥不进入Hub或应用服务器。见[恢复决定](../../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)。

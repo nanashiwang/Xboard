@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../../.docker/hub/invitation.js'), 'utf8');
 function boot(search) {
-  const apps = [{ href: 'https://capybarago.uk/' }, { href: 'https://taige.us/' }, { href: 'https://example.com/' }];
+  const apps = [{ href: 'https://capybarago.uk/' }, { href: 'https://taige.us/' }, { href: 'https://example.com/' }, { href: 'https://app.capybarahub.fyi/' }];
   const hub = [{ href: 'https://capybarahub.fyi/downloads.html' }, { href: 'https://capybarahub.fyi/' }, { href: 'https://github.com/package' }];
   vm.runInNewContext(source, {
     URL, URLSearchParams, location: { search, origin: 'https://capybarahub.fyi' },
@@ -18,6 +18,7 @@ test('invitation stays on the Hub and both approved entry links preserve registr
   assert.equal(apps[0].href, 'https://capybarago.uk/#/register?code=Ab123456');
   assert.equal(apps[1].href, 'https://taige.us/#/register?code=Ab123456');
   assert.equal(apps[2].href, 'https://example.com/');
+  assert.equal(apps[3].href, 'https://app.capybarahub.fyi/#/register?code=Ab123456');
   assert.equal(hub[0].href, '/downloads.html?invite=Ab123456');
   assert.equal(hub[1].href, '/?invite=Ab123456');
   assert.equal(hub[2].href, 'https://github.com/package');
