@@ -5,4 +5,6 @@ return [
     'entry_hosts' => ['capybarago.uk', 'app.capybarahub.fyi'],
     'account_entry_hosts' => ['taige.us'],
     'compatible_hosts' => ['taige.us', 'board.taige.us'],
+    // Only this owned backup website replaces the normal subscription domain.
+    'subscription_recovery_origins' => ['app.capybarahub.fyi' => 'https://app.capybarahub.fyi'],
 ];

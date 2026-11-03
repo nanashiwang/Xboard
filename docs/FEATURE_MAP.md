@@ -1,7 +1,7 @@
 # Xboard 能力地图
 
 <!-- hub-recovery-20261103:start -->
-客户端Go/Hub恢复：[入口目录](../desktop/capybara/src-tauri/src/entries.rs)验证签名清单和无凭据探针，[账号](../desktop/capybara/src-tauri/src/account.rs)受控GET切换、写操作不重放，[更新器](../desktop/capybara/src-tauri/src/updates.rs)双索引及包失败备用；[Hub](../.docker/hub/build.py)静态恢复元数据与固定GitHub包代理，[备用域名运维](../.docker/production/configure-hub-domain.py)严格TLS直回同账号源站。0.1.14本地检查通过，发布/部署待完成；第三方自动切换、离线许可及双后端不在本轮。见[决定](../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[进展](../progress-log.md#2026-11-03客户端-gohub-自动兜底)。
+客户端Go/Hub恢复：[入口目录](../desktop/capybara/src-tauri/src/entries.rs)验证签名清单和无凭据探针，[账号](../desktop/capybara/src-tauri/src/account.rs)受控GET切换、写操作不重放，[更新器](../desktop/capybara/src-tauri/src/updates.rs)双索引及包失败备用；[Hub](../.docker/hub/build.py)静态恢复元数据与固定GitHub包代理，[备用域名运维](../.docker/production/configure-hub-domain.py)严格TLS直回同账号源站。[订阅地址](../app/Utils/Helper.php)仅在固定备用Host生成备用URL，支持用户手动重新导入。0.1.14代码及本地检查完成，后端与备用严格TLS已部署，完整发行和Hub分发仍待完成；第三方自动切换、离线许可及双后端不在本轮。见[决定](../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[进展](../progress-log.md#2026-11-03客户端-gohub-自动兜底)。
 <!-- hub-recovery-20261103:end -->
 
 <!-- subscription-network-20261103:start -->

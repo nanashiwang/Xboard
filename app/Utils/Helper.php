@@ -128,6 +128,14 @@ class Helper
             $finalUrl = rtrim($subscribeUrl, '/') . $path;
             return HookManager::filter('subscribe.url', $finalUrl);
         }
+
+        // Re-importing from the backup website must not return the failed Go
+        // domain. The destination comes only from owned configuration, never
+        // from an arbitrary Host or forwarded header supplied by the caller.
+        $recoveryOrigin = config('website.subscription_recovery_origins', [])[request()->getHost()] ?? null;
+        if ($recoveryOrigin) {
+            return HookManager::filter('subscribe.url', rtrim($recoveryOrigin, '/') . $path);
+        }
         
         $urlString = (string)admin_setting('subscribe_url', '');
         $subscribeUrlList = $urlString ? explode(',', $urlString) : [];

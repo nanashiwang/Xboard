@@ -34,15 +34,15 @@ class ClientDownloadTest extends TestCase
             $client = $catalog[$platform];
             $this->assertSame('capybara', $client['id']);
             $this->assertSame('account', $client['flow']);
-            $this->assertSame('0.1.13', $client['version']);
+            $this->assertSame('0.1.14', $client['version']);
             $this->assertCount($count, $client['packages']);
             $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
             $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
             $this->assertStringContainsString('正式版', $section->textContent);
             $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
             foreach ($client['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.13_', $package['url']);
-                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.13/', $package['official_url']);
+                $this->assertStringStartsWith('/downloads/Capybara_0.1.14_', $package['url']);
+                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.14/', $package['official_url']);
             }
         }
         $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
@@ -79,7 +79,7 @@ class ClientDownloadTest extends TestCase
         $packages = collect(app(ClientDownloadService::class)->catalog())->pluck('packages')->flatten(1);
         $local = $packages->filter(fn ($package) => isset($package['sha256']));
         $this->assertCount(11, $local);
-        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], 'Capybara_0.1.13_')));
+        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], 'Capybara_0.1.14_')));
         $this->assertFalse($local->contains(fn ($package) => str_contains($package['url'], 'Capybara_0.1.8_')));
         foreach ($local as $package) {
             $asset = $manifest->get(rawurldecode(basename($package['url'])));
@@ -92,7 +92,7 @@ class ClientDownloadTest extends TestCase
     public function test_catalog_tracks_the_selected_index_version_without_selecting_historical_installers(): void
     {
         $assets = json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true);
-        $assets = json_decode(str_replace('0.1.13', '0.1.42', json_encode($assets)), true);
+        $assets = json_decode(str_replace('0.1.14', '0.1.42', json_encode($assets)), true);
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }
@@ -111,7 +111,7 @@ class ClientDownloadTest extends TestCase
     public function test_incomplete_selected_release_is_rejected_instead_of_mixing_old_packages(): void
     {
         $assets = array_values(array_filter(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true),
-            fn ($asset) => $asset['name'] !== 'Capybara_0.1.13_x86_64-pc-windows-msvc.exe'));
+            fn ($asset) => $asset['name'] !== 'Capybara_0.1.14_x86_64-pc-windows-msvc.exe'));
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }
@@ -150,6 +150,27 @@ class ClientDownloadTest extends TestCase
     public static function clients(): array
     {
         return [['clash-verge', 'clash-verge'], ['clash-meta', 'clashmeta'], ['sing-box', 'sing-box']];
+    }
+
+    public function test_backup_website_reimport_uses_owned_backup_without_changing_primary_setting(): void
+    {
+        Sanctum::actingAs($this->user());
+        admin_setting(['subscribe_url' => 'https://capybarago.uk']);
+        foreach (['clash-meta', 'sing-box', 'clash-verge'] as $client) {
+            $data = $this->getJson('https://app.capybarahub.fyi/api/v1/user/client/import?client='.$client)
+                ->assertOk()->json('data');
+            $this->assertSame('app.capybarahub.fyi', parse_url($data['subscribe_url'], PHP_URL_HOST));
+            parse_str(parse_url($data['import_url'], PHP_URL_QUERY), $query);
+            $this->assertSame($data['subscribe_url'], $query['url']);
+        }
+        $url = $this->getJson('https://app.capybarahub.fyi/api/v1/user/getSubscribe')
+            ->assertOk()->json('data.subscribe_url');
+        $this->assertSame('app.capybarahub.fyi', parse_url($url, PHP_URL_HOST));
+        $this->assertSame('https://capybarago.uk', admin_setting('subscribe_url'));
+        // Other request hosts cannot redirect a subscription credential.
+        $url = $this->getJson('https://untrusted.example/api/v1/user/client/import?client=clash-meta')
+            ->assertOk()->json('data.subscribe_url');
+        $this->assertSame('capybarago.uk', parse_url($url, PHP_URL_HOST));
     }
 
     #[DataProvider('unavailableUsers')]

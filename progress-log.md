@@ -5,9 +5,11 @@
 
 用户确认第三方客户端自行回网站重新订阅，随后明确授权修改代码、提交推送、发布新版及部署。按[决定](./.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)实现0.1.14：Go主服务 + Hub应用子域、只读探测/GET切换、写操作不重放、浏览器单次授权固定入口、网络错误不误清登录；签名入口清单支持未来换域；更新检查与包下载均有独立Hub路径，沿用原签名公钥及应用身份。
 
-- 本地：前端75、脚本17、Rust66通过/1项钥匙串手工忽略；PHP桌面85项942断言/1项缺少外部sing-box跳过；Hub7、分发7、域名5及工作流结构检查通过。原生首次检查发现新增直连规则导致旧索引断言需同步，修正后完整通过；PHP通过既有Docker镜像执行，宿主未安装PHP。
+- 本地：前端75、脚本17、Rust66通过/1项钥匙串手工忽略；PHP桌面86项956断言/1项缺少外部sing-box跳过；Hub7、分发7、域名5及工作流结构检查通过。原生首次检查发现新增直连规则导致旧索引断言需同步，修正后完整通过；PHP通过既有Docker镜像执行，宿主未安装PHP。
 - DNS：Cloudflare已回读`app.capybarahub.fyi`的代理A记录指向既有源站，Hub根CNAME保持。源站只读inspect工作流41635447007成功，派生源vhost SHA与受控脚本一致。
-- 发布/部署：当前尚未提交、推送、四平台构建、Release或应用部署。待完成后追加真实SHA、运行编号、签名和业务验收；不将DNS完成等同于服务可用。
+- 提交/应用部署：`434f85544f740ea60a262a2d0a2b2004c985f9c7`已推送master，README/progress按精确SHA远端回读一致；镜像41637290844、网站检查41637290686成功，生产41638550441回读相同SHA且Healthy。备用域prepare41637364540成功；activate41637596222首次reload后立即TLS检查失败，后续未放宽TLS，verify41639127281严格验证根页、下载页、浏览器授权页、配置及健康接口全部成功，证书续期timer active。Cloudflare严格模式和Turnstile新增Hub域已回读。四平台发行41637354723仍在进行。
+- 手动重新订阅：发现原网站全局subscribe_url仍会返回Go，补充仅固定备用Host使用配置内HTTPS地址；三种导入和用户订阅API回归通过，任意Host无法改写目的域，主设置不变。客户端下载指南同步说明此路径，第三方软件不新增自动切换。
+- [发行41637354723](https://github.com/nanashiwang/Xboard/actions/runs/41637354723)四目标构建、原公钥包验签和publish均成功；[0.1.14](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.14)非草稿、目标434f855、21附件回读齐全。四份JSON下载摘要与Release一致；下载清单已按Release摘要生成，恢复JSON构建校验通过。后续官网静态同步、Hub上传和完整下载验签分别记录，不以发行成功代替全部生产验收。
 - 保留既有香港入口、Windows代理兼容及README/能力地图/进展的无关未提交改动；不会混入本次提交。
 <!-- hub-recovery-20261103:end -->
 
