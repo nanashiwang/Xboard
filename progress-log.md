@@ -8,6 +8,8 @@
 - 旧taige经本机既有HTTP代理：兼容索引200/1.85秒、0.1.12四目标且包域仍taige；Windows包Range206/4096字节、严格TLS通过。不是旧客户端内升级实测；旧更新HTTP no_proxy，TUN也须确保该域没有DIRECT绕过代理。
 - 新增三项导航/邀请码/主题契约测试，与既有网页前端共24项通过；桌面75前端、17脚本及Vite构建通过；Hub静态构建通过。本轮不改账号、订阅token或系统代理。
 - 原生版本按现有四目标工作流发布；当前尚未完成GitHub Release、Hub与应用生产部署，不把本地结果当上线。使用[既有邀请笔记](./.agents/notes/implemented/feature/2026-10-26-capybara-invitations.md)，保留香港入口及Windows代理的其他未提交改动。
+
+0.1.13源码11b7846已推送master；原生工作流41567834180四目标及发布全部成功，19附件正式Release公开，11包文件摘要和四目标签名在发布流程校验。Rust60通过/1手工测试忽略。浏览器本地Hub下载往返保留邀请码，进入真实Go注册页后邀请码Ab123456已填入（未提交注册）。官网主题无源码的精确替换加入CI契约检查，下载/教程清单已准备同步。README与progress已按源码SHA从GitHub回读。
 <!-- capybara-invitation-20261103:end -->
 
 <!-- capybara-migration-20261103:start -->
