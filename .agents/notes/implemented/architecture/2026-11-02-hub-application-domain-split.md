@@ -11,17 +11,17 @@ Status: implemented
 | 域名或路径 | 当前职责与边界 |
 | --- | --- |
 | capybarahub.fyi `/` | 独立静态导航，保留应用/下载入口；删除用户指定的账号说明、帮助区与页脚；无需登录、不加载 Go API、不自动跳走 |
-| Hub `/downloads` | Windows、双架构 macOS、Linux AppImage/deb 五种 0.1.9 安装包链接及校验文件；主下载为 Go，备用为独立 GitHub Release；不含模拟交互 |
+| Hub `/downloads` | Windows、双架构 macOS、Linux AppImage/deb 五种随分发清单更新的安装包（当前0.1.13）链接及校验文件；主下载为 Go，备用为独立 GitHub Release；不含模拟交互 |
 | capybarago.uk `/` | 白底单按钮，点击后进入 `/#/login`；仅根浏览器页面启用，不强制已经收藏的 hash 深链接经过按钮 |
 | Go `/api/*`、订阅、`/desktop/login`、`/clients`、`/downloads/*`、支付回调 | 复用现有服务，不加点击 Cookie、额外鉴权或全局 302；保持机器接口与原 hash 加载生命周期 |
 | taige.us / board.taige.us | 保留原网站、API、订阅、下载和历史回调配置；不能把旧域 API 统一重定向到新域 |
 | node/edge.lumavia.fyi | 保留节点路径、身份、独享出口；网站迁移不改节点 |
 
-Go 由明确自有域名白名单进入同一 Xboard 容器；safe_mode 仍拒绝未知域。首次新域浏览器登录可能需要输入原账号，Cookie 不跨域复制，不在跳转参数中传令牌。现有原生客户端仍固定 taige.us，控制接口不会因网站迁移自动改写；恢复版、独立更新索引和签名入口清单仍归属[客户端恢复提案](../../proposed/architecture/2026-11-02-client-entry-resilience.md)。
+Go 由明确自有域名白名单进入同一 Xboard 容器；safe_mode 仍拒绝未知域。首次新域浏览器登录可能需要输入原账号，Cookie 不跨域复制，不在跳转参数中传令牌。网站首次上线时原生客户端仍固定taige.us；0.1.12已独立发布Go入口迁移，0.1.13增加导航邀请。网站变更不会自动改写旧安装程序；多入口恢复与签名入口清单仍归属[客户端恢复提案](../../proposed/architecture/2026-11-02-client-entry-resilience.md)。
 
 ### 托管、发布与回退
 
-Hub 使用 Cloudflare Pages 项目 `capybarahub`，生产部署 `9156107f-1a62-4077-bebf-8e89f87b51f7`，自定义域 CNAME 指向 capybarahub.pages.dev；控制台确认活动、SSL 已启用。正式六文件产物由 [.docker/hub/build.py](../../../../.docker/hub/build.py) 构建，源码版本 0a068f7。首次 Sites 上传失败，没有产生公开版本，改用既有 Cloudflare 账户；私有 Sites 草稿不属于生产依赖。未来复用 Pages 项目和[发布说明](../../../../.docker/hub/README.md)，不要创建重复项目。
+Hub 使用 Cloudflare Pages 项目 `capybarahub`，当前生产部署见[托管记录](../../../../.docker/hub/hosting.json)，自定义域 CNAME 指向 capybarahub.pages.dev；控制台确认活动、SSL 已启用。正式七文件产物由 [.docker/hub/build.py](../../../../.docker/hub/build.py) 构建，首次源码版本0a068f7；当前邀请脚本与分发目录来源7bca7ce。首次 Sites 上传失败，没有产生公开版本，改用既有 Cloudflare 账户；私有 Sites 草稿不属于生产依赖。未来复用 Pages 项目和[发布说明](../../../../.docker/hub/README.md)，不要创建重复项目。
 
 Go上线时的橙云网络路径已由[Go直连跳板决定](2026-11-02-go-direct-relay.md)局部取代：现为仅DNS A155.103.118.155，再严格HTTPS回源。以下保留初始部署的边界和回退基础。初始Go A为107.173.191.23、橙云代理、TTL自动；Cloudflare 已设为完全（严格）。源站新 vhost 独立于 taige/board，从已验证 SHA256 的 taige 配置派生，移除节点 include 和旧 Flawless 跳板信任，保留官方 CF 地址、请求身份清洗与独立下载路由。源配置漂移即停止，nginx 检查/重载失败恢复前状态。复用现有 ACME 账号、续期 hook 与 certbot.timer；不在日志记录 URL 查询或凭据。
 
