@@ -11,6 +11,8 @@
 - 手动重新订阅：发现原网站全局subscribe_url仍会返回Go，补充仅固定备用Host使用配置内HTTPS地址；三种导入和用户订阅API回归通过，任意Host无法改写目的域，主设置不变。客户端下载指南同步说明此路径，第三方软件不新增自动切换。
 - [发行41637354723](https://github.com/nanashiwang/Xboard/actions/runs/41637354723)四目标构建、原公钥包验签和publish均成功；[0.1.14](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.14)非草稿、目标434f855、21附件回读齐全。四份JSON下载摘要与Release一致；下载清单已按Release摘要生成，恢复JSON构建校验通过。后续官网静态同步、Hub上传和完整下载验签分别记录，不以发行成功代替全部生产验收。
 - 分发提交`1b963ad`已推送master且README/progress远端回读一致，网站CI41642039515通过，镜像41642039403成功，静态同步41642188846成功。Hub第一次上传e15c49b5成功，线上两个恢复JSON与Release逐字节一致且no-store；安装包Range返回502，发现Worker把Cloudflare第三参数ExecutionContext当作测试fetcher，新增真实入口调用回归并修复包装入口，5项下载Worker测试通过。此处记录失败及修复，不将首次页面部署当作下载验收。
+- 修复`0954c30`已推送且README/progress回读一致，网站CI41642956541、笔记41642956594成功。Hub最终部署`aa23be23-fd13-47fc-a0ca-d949174d64da`成功，Windows Range为206且Content-Range正确；完整28,620,115字节Windows包摘要与原公钥签名通过。Go/备用应用域/Hub的线上更新JSON与Release一致；浏览器确认Hub的0.1.14五种安装包和备用官网入口，备用登录页可打开。
+- 生产41642790468成功，运行SHA`1b963ad4cb18bec6b5c179ef1cde4c1467ab82a4`、镜像`sha256:8981878ed0bfd73ca310d855e73b27874990e7c224e3089184221ac18bf7617e`、Healthy；指南同步41642311151备份后更新第5篇，其他文章保持。21附件元数据与总校验表一致，本机ARM更新包及签名入口验签通过；本机大包下载较慢，增加只读全量分发CI继续验证全部Hub包。真实用户授权/订阅与各平台安装、国内三网直连尚未验收。
 - 保留既有香港入口、Windows代理兼容及README/能力地图/进展的无关未提交改动；不会混入本次提交。
 <!-- hub-recovery-20261103:end -->
 

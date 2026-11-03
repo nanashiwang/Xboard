@@ -1,0 +1,67 @@
+name: Verify Capybara Distribution
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify all published assets and independent Hub downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, pathlib, subprocess
+          version = json.loads(pathlib.Path('desktop/capybara/package.json').read_text())['version']
+          repository = 'nanashiwang/Xboard'
+          release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repository}/releases/tags/capybara-v{version}']))
+          assert not release['draft'] and len(release['assets']) == 21
+          roots = {name: pathlib.Path(name) for name in ['release-check', 'hub-check']}
+          for root in roots.values(): root.mkdir()
+          def download(asset, hub=False):
+              name = asset['name']
+              assert pathlib.Path(name).name == name and asset['state'] == 'uploaded'
+              expected = f'https://github.com/{repository}/releases/download/capybara-v{version}/{name}'
+              assert asset['browser_download_url'] == expected
+              url = 'https://capybarahub.fyi/downloads/' + name if hub else expected
+              target = roots['hub-check' if hub else 'release-check'] / name
+              args = ['curl', '--fail', '--silent', '--show-error', '--retry', '2', '--connect-timeout', '15', '--max-time', '240', '--proto', '=https', '--proto-redir', '=https']
+              if not hub: args.append('--location')
+              subprocess.run(args + [url, '-o', str(target)], check=True)
+              assert target.stat().st_size == asset['size'], name
+              assert 'sha256:' + hashlib.sha256(target.read_bytes()).hexdigest() == asset['digest'], name
+              print(('Hub' if hub else 'Release') + ' verified: ' + name, flush=True)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              list(pool.map(download, release['assets']))
+              hub_assets = [a for a in release['assets'] if (a['name'].startswith(f'Capybara_{version}_') and not a['name'].endswith(('.sig', '_source.zip'))) or a['name'] in ['capybara-hub.json', 'capybara-entrypoints.json']]
+              assert len(hub_assets) == 9
+              list(pool.map(lambda asset: download(asset, True), hub_assets))
+          print('All 21 Release assets, 7 complete Hub packages and 2 recovery JSON files verified.')
+          PY
+          node --input-type=module <<'JS'
+          import fs from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          import {verifySignature, targets} from './desktop/capybara/scripts/update-manifest.mjs';
+          const key=JSON.parse(await fs.readFile('desktop/capybara/src-tauri/tauri.conf.json')).plugins.updater.pubkey;
+          const version=JSON.parse(await fs.readFile('desktop/capybara/package.json')).version;
+          for(const root of ['release-check','hub-check']) {
+            const feed=JSON.parse(await fs.readFile(`${root}/capybara-hub.json`));
+            assert.equal(feed.version,version);
+            assert.deepEqual(Object.keys(feed.platforms).sort(),Object.keys(targets).sort());
+            for(const [platform,[target,extension]] of Object.entries(targets)) {
+              const name=`Capybara_${version}_${target}${extension}`;
+              assert.equal(feed.platforms[platform].url,`https://capybarahub.fyi/downloads/${name}`);
+              verifySignature(await fs.readFile(`${root}/${name}`),feed.platforms[platform].signature,key);
+            }
+            const envelope=JSON.parse(await fs.readFile(`${root}/capybara-entrypoints.json`));
+            verifySignature(Buffer.from(envelope.payload,'base64'),envelope.signature,key);
+            assert.deepEqual(JSON.parse(Buffer.from(envelope.payload,'base64')),JSON.parse(await fs.readFile('desktop/capybara/service-entrypoints.json')));
+          }
+          console.log('Both distribution paths pass all four updater signatures and signed entrypoint verification.');
+          JS

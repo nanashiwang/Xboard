@@ -5,7 +5,7 @@
 
 代码实现 Go 与 `app.capybarahub.fyi` 可信选路、订阅GET失败切换、网络错误保留登录、Go/Hub更新索引及同版本安装包备用下载。Hub保留导航，独立分发签名入口清单和GitHub固定附件；新域名经原发行公钥验证后可下发。第三方客户端自动切换、离线授权和后台灾备不纳入本轮。详见[决定](./.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[发布部署进展](./progress-log.md#2026-11-03客户端-gohub-自动兜底)。
 
-本地前端75项及17项脚本、Rust66项通过（1项钥匙串手工测试忽略）；PHP桌面86项/956断言中1项外部内核检查跳过，其他通过；Hub7项、分发7项、域名5项通过。实现已提交推送`434f855`，生产后端部署41638550441成功并回读运行SHA；备用域DNS、严格TLS和健康探针已验。[0.1.14 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.14)四平台构建和发布成功，21附件齐全；官网分发清单、备用网站重新导入和Hub分发正在部署。
+本地前端75项及17项脚本、Rust66项通过（1项钥匙串手工测试忽略）；PHP桌面86项/956断言中1项外部内核检查跳过，其他通过；Hub8项、分发7项、域名5项通过。实现已提交推送`434f855`，生产后端部署41638550441成功并回读运行SHA；备用域DNS、严格TLS和健康探针已验。[0.1.14 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.14)四平台构建和发布成功，21附件齐全；官网分发清单、备用网站重新导入和Hub分发已部署。Windows Hub完整包已验摘要及签名；其余全量分发追加只读CI验收。用户需先升级至0.1.14；真实用户授权/订阅和各平台安装尚未验收。
 <!-- hub-recovery-20261103:end -->
 
 <!-- ticket-mail-audit-20261103:start -->
