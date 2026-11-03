@@ -6,4 +6,7 @@ html[data-xboard-page="panel"] .capy-entry-gate { display: none; }
 .capy-entry-gate a { display: inline-flex; align-items: center; justify-content: center; min-height: 64px; padding: 0 40px; border: 1px solid #333; border-radius: 8px; background: #087bff; color: #fff; font: 500 24px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; text-decoration: none; }
 .capy-entry-gate a:hover { background: #006be6; }
 .capy-entry-gate a:focus-visible { outline: 3px solid #8bbdff; outline-offset: 4px; }
+.capy-account-entry { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.capy-account-entry .capy-entry-register { background: #fff; border-color: #087bff; color: #087bff; }
+.capy-account-entry .capy-entry-register:hover { background: #eef6ff; }
 @media (max-width: 480px) { .capy-entry-gate a { min-height: 58px; padding: 0 30px; font-size: 21px; } }

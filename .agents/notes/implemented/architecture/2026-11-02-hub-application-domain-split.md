@@ -14,7 +14,7 @@ Status: implemented
 | Hub `/downloads` | Windows、双架构 macOS、Linux AppImage/deb 五种随分发清单更新的安装包（当前0.1.13）链接及校验文件；主下载为 Go，备用为独立 GitHub Release；不含模拟交互 |
 | capybarago.uk `/` | 白底单按钮，点击后进入 `/#/login`；仅根浏览器页面启用，不强制已经收藏的 hash 深链接经过按钮 |
 | Go `/api/*`、订阅、`/desktop/login`、`/clients`、`/downloads/*`、支付回调 | 复用现有服务，不加点击 Cookie、额外鉴权或全局 302；保持机器接口与原 hash 加载生命周期 |
-| taige.us / board.taige.us | 保留原网站、API、订阅、下载和历史回调配置；不能把旧域 API 统一重定向到新域 |
+| taige.us / board.taige.us | taige根页仅账号登录/注册；board保留原首页。API、订阅、下载和历史回调继续兼容，不能把旧域API统一重定向到新域 |
 | node/edge.lumavia.fyi | 保留节点路径、身份、独享出口；网站迁移不改节点 |
 
 Go 由明确自有域名白名单进入同一 Xboard 容器；safe_mode 仍拒绝未知域。首次新域浏览器登录可能需要输入原账号，Cookie 不跨域复制，不在跳转参数中传令牌。网站首次上线时原生客户端仍固定taige.us；0.1.12已独立发布Go入口迁移，0.1.13增加导航邀请。网站变更不会自动改写旧安装程序；多入口恢复与签名入口清单仍归属[客户端恢复提案](../../proposed/architecture/2026-11-02-client-entry-resilience.md)。

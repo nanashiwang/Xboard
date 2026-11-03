@@ -62,6 +62,7 @@ Route::get('/', function (Request $request) {
             'logo' => admin_setting('logo'),
             'theme_config' => $themeService->getConfig($theme),
             'entry_gate' => app(WebsiteEntryService::class)->isButtonEntry($request),
+            'account_entry' => app(WebsiteEntryService::class)->isAccountEntry($request),
         ];
         return view('theme::' . $theme . '.dashboard', $renderParams);
     } catch (Exception $e) {

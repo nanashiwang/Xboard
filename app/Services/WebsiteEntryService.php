@@ -8,7 +8,13 @@ class WebsiteEntryService
 {
     public function isButtonEntry(Request $request): bool
     {
-        return in_array($request->getHost(), config('website.entry_hosts', []), true);
+        return in_array($request->getHost(), config('website.entry_hosts', []), true)
+            || $this->isAccountEntry($request);
+    }
+
+    public function isAccountEntry(Request $request): bool
+    {
+        return in_array($request->getHost(), config('website.account_entry_hosts', []), true);
     }
 
     public function allowsHost(Request $request): bool

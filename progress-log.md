@@ -1,5 +1,13 @@
 # Xboard 项目进展记录
 
+<!-- taige-simple-home-20261103:start -->
+## 2026-11-03：taige首页只保留账号登录注册
+
+用户要求旧taige首页也简化，只保留账号登录注册。使用明确的account_entry_hosts匹配taige.us，复用既有轻量入口Blade与哈希面板，白底中央两按钮；原风景首页不在此域渲染。Go单按钮、board首页、API/订阅/下载/授权/回调不重定向。未改账号、注册策略、DNS或代理设置。
+
+本地PHP首页/静态资源/下载24项235断言，网页启动与邀请13项，45篇笔记结构/链接校验通过。沿用[原首页决定](./.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)与[双域分工](./.agents/notes/implemented/architecture/2026-11-02-hub-application-domain-split.md)。生产镜像构建和部署另验；仅网站改动，不发布无关客户端版本。保留已有香港入口、Windows代理及共享文档的其他脏改动。
+<!-- taige-simple-home-20261103:end -->
+
 <!-- capybara-invitation-20261103:start -->
 ## 2026-11-03：邀请改为导航入口与旧站兼容
 

@@ -73,9 +73,18 @@ class WebsiteHomeTest extends TestCase
     {
         admin_setting(['app_url' => 'https://capybarago.uk', 'safe_mode_enable' => 1]);
         foreach (['taige.us', 'board.taige.us'] as $host) {
-            $this->get('https://'.$host.'/')->assertOk()->assertSee('与卡皮巴拉一起')->assertDontSee('点击进入官网');
+            $home = $this->get('https://'.$host.'/')->assertOk()->assertDontSee('点击进入官网');
+            if ($host === 'taige.us') {
+                $home->assertSee('账号登录')->assertSee('注册账号')
+                    ->assertSee('href="#/login"', false)->assertSee('href="#/register"', false)
+                    ->assertSee('rel="modulepreload"', false)->assertSee('/entry.css', false)
+                    ->assertDontSee('class="capy-home"', false)->assertDontSee('capy-hero', false);
+            } else {
+                $home->assertSee('与卡皮巴拉一起');
+            }
             $this->get('https://'.$host.'/clients')->assertOk();
             $this->get('https://'.$host.'/desktop/login')->assertOk();
+            $this->getJson('https://'.$host.'/api/v1/guest/comm/config')->assertOk();
         }
     }
 }
