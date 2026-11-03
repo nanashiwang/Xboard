@@ -9,6 +9,8 @@ use App\Models\TicketMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 use App\Services\Plugin\HookManager;
 
 class TicketService
@@ -57,7 +59,6 @@ class TicketService
         try {
             DB::beginTransaction();
             if (Ticket::where('status', 0)->where('user_id', $userId)->lockForUpdate()->first()) {
-                DB::rollBack();
                 throw new ApiException('存在未关闭的工单');
             }
             $ticket = Ticket::create([
@@ -76,14 +77,58 @@ class TicketService
                 'message' => $message
             ]);
             if (!$ticketMessage) {
-                DB::rollBack();
                 throw new ApiException('工单消息创建失败');
             }
+            DB::afterCommit(fn () => $this->sendCreatedEmailNotify($ticket, $ticketMessage));
             DB::commit();
             return $ticket;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    private function sendCreatedEmailNotify(Ticket $ticket, TicketMessage $ticketMessage): void
+    {
+        try {
+            $emails = User::where('is_admin', true)->where('banned', false)
+                ->pluck('email', 'id')
+                ->map(fn ($email) => strtolower(trim((string) $email)))
+                ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+                ->unique();
+            if ($emails->isEmpty()) {
+                Log::warning('新工单通知没有可用的管理员邮箱', ['ticket_id' => $ticket->id]);
+                return;
+            }
+            $customerEmail = User::whereKey($ticket->user_id)->value('email');
+            $name = admin_setting('app_name', 'XBoard');
+            foreach ($emails as $adminId => $email) {
+                try {
+                    Bus::dispatch(new SendEmailJob([
+                        'email' => $email,
+                        'subject' => $name . ' 收到新工单 #' . $ticket->id,
+                        'template_name' => 'notify',
+                        'template_value' => [
+                            'name' => $name,
+                            'url' => admin_setting('app_url'),
+                            'content_mode' => 'text',
+                            'content' => "工单编号：#{$ticket->id}\r\n客户邮箱：{$customerEmail}\r\n主题：{$ticket->subject}\r\n工单内容：{$ticketMessage->message}",
+                        ],
+                    ]));
+                } catch (\Throwable $e) {
+                    // A notification failure must not turn a committed ticket into an API failure.
+                    Log::warning('新工单管理员邮件入队失败', [
+                        'ticket_id' => $ticket->id,
+                        'admin_id' => $adminId,
+                        'exception_type' => get_class($e),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('新工单管理员邮件准备失败', [
+                'ticket_id' => $ticket->id,
+                'exception_type' => get_class($e),
+            ]);
         }
     }
 

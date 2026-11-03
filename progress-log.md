@@ -1,5 +1,17 @@
 # Xboard 项目进展记录
 
+<!-- ticket-created-admin-email-20261103:start -->
+## 2026-11-03：新工单通知管理员邮箱
+
+用户要求客户发起工单时管理员邮箱也收到通知。按[通知决定](./.agents/notes/implemented/feature/2026-11-03-ticket-created-admin-email.md)复用 TicketService、SendEmailJob、send_email、MailService 和 notify 模板，在事务提交后通知所有未封禁且邮箱有效的 is_admin 账号；不包含仅 is_staff 的账号。邮箱规范化去重、分别投递，正文包含编号、客户邮箱、主题和首次消息，按纯文本转义。普通新工单与提现工单共用创建服务；没有补发历史工单或给客户发送创建确认。
+
+每张新工单独立通知，不套用管理员回复客户的 30 分钟限制；客户后续回复与 Telegram 规则保持原行为。入队异常仅记录工单/管理员 ID 与异常类型，不使已提交工单返回失败，并继续处理其他管理员。旧创建流程的重复工单和消息失败分支曾先回滚再由 catch 回滚，现移除重复回滚，避免撤销外层事务。
+
+本地禁网 PHP 8.2.33、SQLite 内存库及 ArrayTransport/队列替身验证：新增工单专项 9 项，完整邮件回归 27 项 / 170 断言通过；覆盖实际用户创建/回复 API、管理员收件范围、邮箱去重、默认/定制模板转义、事务提交/回滚、重复请求拒绝与连续新工单、队列故障隔离、无有效收件人、原管理员回复邮件限频。修改 PHP 文件语法通过；提交前执行 workflow verify、链接和隔离差异检查。
+
+当前为本地实现完成，GitHub CI/双架构镜像、生产部署及真实收件分别核验后更新。仅网站后端改动，无数据库迁移、桌面版本或独立 GitHub Release；沿用镜像 SHA 构建标识。README/progress 在推送后按精确 SHA 从 GitHub 回读；其他香港入口、Windows 代理和共享文档改动保留。通知提交后入队之间没有持久 outbox，故障可能需要人工处理，SMTP 接受不等于收件箱送达。
+<!-- ticket-created-admin-email-20261103:end -->
+
 <!-- ticket-mail-audit-20261103:start -->
 ## 2026-11-03：工单邮箱通知能力核对
 
