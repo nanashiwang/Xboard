@@ -1,5 +1,13 @@
 # Xboard
 
+<!-- subscription-network-20261103:start -->
+### 第三方订阅导入与流量同步报错（2026-11-03）
+
+用户报告电脑可导入但同步流量提示未知网络错误，手机导入提示 TLS handshake timeout。当前客户端名称、实际订阅域名和手机网络尚待确认，不能直接归因为套餐、订阅格式或同一个故障。订阅流量经同一响应的 subscription-userinfo 头返回；手机错误发生于 HTTPS 握手阶段。
+
+13:58 起无代理 Windows 对 capybarago.uk 公开接口 6/6 成功，跳板及源站严格 TLS 均正常、入口证书有效；taige.us 默认 A 错误解析且请求重置，固定正确 CF 地址仍在 TLS 阶段重置。board 有成功和连接重置样本，不作为稳定备用保证。若实际仍保存旧域，应从新官网重新复制订阅导入；若已用新域，需继续对照手机 Wi-Fi/移动网络及客户端路径。本轮没有取得真实用户订阅或手机侧验收，没有修改生产。详见[诊断证据](./progress-log.md#2026-11-03订阅导入与流量同步网络诊断)与[入口决定](./.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)。
+<!-- subscription-network-20261103:end -->
+
 <!-- taige-simple-home-20261103:start -->
 ### taige旧站首页简化（2026-11-03）
 

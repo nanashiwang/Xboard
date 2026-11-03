@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- subscription-network-20261103:start -->
+第三方订阅网络诊断：[短订阅路由](../routes/web.php)、[控制器](../app/Http/Controllers/V1/Client/ClientController.php)、[ClashMeta 响应](../app/Protocols/ClashMeta.php)沿用 client 鉴权及 subscription-userinfo 头；手机 TLS 超时发生于 HTTP 响应前。2026-11-03 无代理 Windows 新域公开接口 6/6 成功、旧域错误解析/固定正确 IP 后 TLS 重置；真实客户端域名及手机网络尚未知，未验证真实订阅或宣称修复。见[证据与边界](../progress-log.md#2026-11-03订阅导入与流量同步网络诊断)。
+<!-- subscription-network-20261103:end -->
+
 <!-- taige-simple-home-20261103:start -->
 taige简洁首页：[入口服务](../app/Services/WebsiteEntryService.php)按`account_entry_hosts`仅匹配taige.us；[模板](../resources/views/home/entry.blade.php)显示登录/注册两入口，复用内容哈希CSS及主包预加载。Go、board、API/授权/下载边界保留。PHP24/235、前端13通过，生产84e52a0 Healthy，浏览器首页/登录/注册往返已验；见[决定](../.agents/notes/implemented/feature/2026-10-23-capybara-website-home.md)。
 <!-- taige-simple-home-20261103:end -->

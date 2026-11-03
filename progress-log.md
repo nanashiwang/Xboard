@@ -1,5 +1,21 @@
 # Xboard 项目进展记录
 
+<!-- subscription-network-20261103:start -->
+## 2026-11-03：订阅导入与流量同步网络诊断
+
+用户反馈：电脑导入成功但同步流量提示“未知网络错误”；手机导入直接提示“net/http: TLS handshake timeout”。已询问两端客户端、订阅域名（不收集完整 token URL）及手机 Wi-Fi/移动网络；截至本次记录尚未答复。排查沿用[Go 入口决定](./.agents/notes/implemented/architecture/2026-11-02-go-direct-relay.md)，仅补事实，没有重新设计入口。
+
+- 源码：routes/web.php 的 /s/{token} 与旧 /api/v1/client/subscribe 均经 client 鉴权进入 ClientController；Clash/ClashMeta/SingBox 等协议将 upload/download/total/expire 作为 subscription-userinfo 响应头返回。没有证据表明用户所用客户端采用何种流量刷新实现。Go 官方 net/http 的同名错误来自握手计时器，在取得订阅 HTTP 响应前发生，见[官方源码](https://go.dev/src/net/http/transport.go)。
+- 北京时间 13:58 起，同局域网 Windows 确认 ProxyEnable=0、无 PAC/代理环境变量/所查代理内核进程，IPv4 默认出口为 WLAN。所有请求显式 --noproxy，保留证书校验；未更改用户网络。Go A 为 155.103.118.155；新域公开配置接口首轮 200/1.391 秒，随后五次独立请求全 200/0.675–1.004 秒，累计 6/6。百度同期 200/0.250 秒。
+- 旧域 taige.us：Windows 默认 A 返回 8.7.198.46，而 Google HTTPS DNS 查询为 CF 104.21.13.31/172.67.132.124；默认请求 curl35 重置。固定正确 CF 104.21.13.31 保留 Host/SNI 后，TCP 0.210 秒建立、TLS 未完成即重置（总计 0.229 秒），因此不能只靠改 DNS 宣称恢复。新域 HTTPS DNS 与 Windows 一致且无 AAAA。
+- board.taige.us：首次公开配置经 IPv6 返回 200/1.382 秒；固定与旧域相同 CF IPv4 后 TLS 0.440 秒完成，但 HTTP 请求阶段重置（curl56/0.630 秒）。保留失败样本，不能将其说成稳定可用的替代入口。
+- 跳板：Nginx active；当前 capybarago.uk 证书有效期 2026-11-02 至 2027-01-31，Let's Encrypt YE1。SSH 内部严格 TLS 检查：回环入口公开配置 200/0.114 秒，直接源站 200/0.207 秒，证书验证均为 0。只证明服务端和本轮路径可用，不代表手机所处运营商链路已恢复。
+
+结论与后续：已确认旧域在该无代理 Windows 网络仍失败，新域与服务端本轮成功；手机 TLS 超时属于连接阶段，但未知实际域名，不能把旧域问题直接认定为用户本次根因。电脑导入成功也不能证明后续独立刷新连接成功。若仍保存旧域，从新官网复制原账号订阅重新导入；若已用新域，下一步是 Wi-Fi/移动网络对照和客户端实际请求日志。未读取客户凭据、未验证真实订阅内容或流量头、未更改 DNS/证书/模板/节点/客户端，尚未声称已修复。
+
+本次仅同步 README、能力地图、现有入口笔记及本记录；执行笔记结构、链接、差异和隔离暂存检查后中文提交推送 master，并按精确提交从 GitHub 回读 README/progress。无业务代码构建、生产部署或新版 Release；保留其他香港入口、Windows 代理与共享文档改动。实际提交/推送/回读结果在交付回复报告。
+<!-- subscription-network-20261103:end -->
+
 <!-- taige-simple-home-20261103:start -->
 ## 2026-11-03：taige首页只保留账号登录注册
 
