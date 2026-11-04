@@ -1,5 +1,18 @@
 # Xboard 项目进展记录
 
+<!-- retired-ip-audit-20261104:start -->
+## 2026-11-04：154.44.1.123 节点用途核查
+
+用户询问该服务器是否仍用于本项目。核对能力地图及[美国出口退役决定](./.agents/notes/implemented/architecture/2026-10-28-owned-us-retirement.md)：历史提交 `e40909d` 将该 IP 以源节点 #326 接入固定池，`f6bc019` 于 10 月 28 日从当前出口清单移除；本轮未修改原方案或业务配置。
+
+- [Production Deploy 只读检查 41848580226](https://github.com/nanashiwang/Xboard/actions/runs/41848580226)成功，操作为 `inspect-dedicated`，工作流提交 `390809bcc37c7d2eb82d988b01170b379bfeaafa`；生产数据读取时间为北京时间 22:32:43。
+- 在全部 135 条节点记录中，该 IP 对应机器 #15 的后端 #339；源节点 #326 和独享别名 #351 均指向该后端，三条记录 `enabled=false`、`show=false`、`group_ids=[]`。
+- 固定出口 #17 对应该 IP，`enabled=false`、`standby=false`，没有分配绑定；两个启用探针的节点列表及预期出口均不再引用它。残留 `healthy=true` 的检查时间为 10 月 28 日 15:32:02，不能作为当前在线或使用证据。
+- 结论：当前 Xboard 套餐分发、固定出口分配和启用的完整路径探针不依赖此机器。原退役记录说明旧隧道/路径保留作回退，本轮没有登录该机器核查其他服务，也没有操作服务商续费或销毁。
+
+本轮仅记录诊断结果，复用原决定及能力边界。提交前执行文档回读、链接检查、差异检查及工作区/独立提交快照的 `python3 .agents/workflow.py verify`；既有未提交内容保留。中文文档提交使用 `[skip ci]` 推送 `master`，随后按提交 SHA 从 GitHub 回读 README/progress-log；具体提交和回读终态由本次交付报告。不改应用或客户端版本，不触发业务构建、部署或 GitHub Release。
+<!-- retired-ip-audit-20261104:end -->
+
 <!-- hub-recovery-20261103:start -->
 ## 2026-11-03：客户端 Go／Hub 自动兜底
 
