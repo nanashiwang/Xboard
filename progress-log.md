@@ -1,5 +1,18 @@
 # Xboard 项目进展记录
 
+<!-- qiyun-socks-audit-20261105:start -->
+## 2026-11-05：七云旧出口 SOCKS5 能力核查
+
+用户提供服务器登录信息，询问 `192.204.56.29` 是否已有类似其他机器的带账号密码 SOCKS5 URL。核对能力地图与[美国出口退役决定](./.agents/notes/implemented/architecture/2026-10-28-owned-us-retirement.md)：该 IP 是原七云 CF 美国备用；Xboard 节点配置本身不能证明存在独立 SOCKS5 入口。本次仅查现状，未实施新的代理服务，也未保存或复述认证信息。
+
+- 通过本机 known_hosts 中已有主机公钥校验，以用户提供的 SSH 身份完成只读登录；服务器返回 UTC 2026-11-04 16:13:51，即北京时间 11 月 5 日 00:13:51。
+- `ss -lntup` 显示公网 TCP 22/80/443、本地 DNS 53 与 WireGuard UDP 51820，没有 1080 监听。相关服务筛查仅见 Nginx 和 xboard-node 正在运行；未发现常见 SOCKS/Dante/3proxy/sing-box/gost 配置目录，Docker 命令不存在。
+- nftables 规则中未发现 1080 或 DNAT/redirect 转发；服务器自身连接 127.0.0.1:1080 返回 ECONNREFUSED。本机外部 TCP 建连出现成功，但发送仅含协议/认证方式的 SOCKS5 问候后超时，未获协议响应；不能把 TCP 建连当作代理可用证明，也未使用示例代理账号测试。
+- 结论：未发现当前可直接使用的 SOCKS5 地址；22 是 SSH 端口，SSH 凭据不能直接作为代理凭据。服务器可另行配置 SOCKS5 专用服务，但仅替换其他 URL 的 IP 不可用。此结论不等同于对该机器所有非标准配置的完整取证。
+
+检查完成后关闭 SSH 会话；未安装软件、启停服务、修改防火墙或生产节点。仅同步本记录与 README，复用原架构边界；提交前执行文档回读、新增链接、差异与工作区/独立提交快照的 `python3 .agents/workflow.py verify`。保留已有未提交改动，以中文 `[skip ci]` 提交推送 `master` 并按 SHA 回读 GitHub 两文件；提交和回读终态由交付回复报告。无业务代码或版本变更，不触发构建、部署或 Release。
+<!-- qiyun-socks-audit-20261105:end -->
+
 <!-- us-inventory-audit-20261104:start -->
 ## 2026-11-04：当前美国家宽保留清单
 
