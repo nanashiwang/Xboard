@@ -1,5 +1,21 @@
 # Xboard 项目进展记录
 
+<!-- dedicated-plan-audit-20261105:start -->
+## 2026-11-05：独享套餐购买列表隐藏诊断
+
+用户询问购买套餐中为何没有独享套餐。核对能力地图的家宽容量、固定池与订单分配入口；复用[原固定池决定](./.agents/notes/implemented/feature/2026-10-19-owned-fixed-exit-pool.md)及[容量看板决定](./.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)，本轮没有修改设计或配置。
+
+- [生产只读容量检查 41872500519](https://github.com/nanashiwang/Xboard/actions/runs/41872500519)成功，工作流提交 `5bee8d16352a01cf1a8e1996ea303e26af9deb48`，数据时间为北京时间 00:56:34；管理员鉴权检查与已部署容量资产一致性检查通过。
+- 套餐 #5“美国独享家宽IP”仍 selling=true；总容量及套餐上限均 5，订阅、占用、预留均 0；healthy_free_slots=0、available_slots=0。唯一启用的主用出口 #14 为 216.36.108.173，healthy=false、checked_at=null，空位 5 但可分配名额 0。
+- 当前公开 GET `/api/v1/guest/plan/fetch` 返回 HTTP 200，仅含 #1 轻量版、#2 标准版、#3 进阶版、#4 旗舰版，未返回 #5；访客及登录用户列表都调用 [PlanService::getAvailablePlans](./app/Services/PlanService.php)，要求 show/sell 开启并且 hasCapacity=true。独享容量检查委托 [DedicatedExitService](./app/Services/DedicatedExitService.php)，只接受启用、非备用、健康且检测结果在 300 秒内的有空位出口；本轮健康名额为 0 足以触发隐藏。
+- 补取此前排队的[只读检查 41861958679](https://github.com/nanashiwang/Xboard/actions/runs/41861958679)，其后续实际已成功：套餐 show=true、sell=1、renew=true，固定出口状态与本轮一致。自建探针 #1 最后联系为 11 月 4 日 19:22:10，固定源 #322 最新完整路径样本为 11 月 2 日 00:04:43；当时 healthy 的样本已远超 300 秒有效期，不能继续当成健康证明。这补充了前次仅观察到排队、取消请求未成功的终态。
+- [DedicatedExitHealthService](./app/Services/DedicatedExitHealthService.php)在完整链路证据过期、缺失或配置不匹配时置 healthy=false 并清空 checked_at；后端心跳正常不能替代完整代理检测。过期样本足以解释当前保护条件不满足；本轮未登录 NAS 排查为何停止有效上报，也未做真实代理请求，因此不能把该状态直接认定为服务器宕机。
+
+结论：购买列表按健康容量规则自动隐藏独享套餐。后续应恢复完整链路探针上报并实测独享出口，满足现有连续成功与有效期要求后再验购买列表、下单及分配；不伪造健康、不绕过容量保护。本轮无配置、代码或用户权益变更。
+
+仅记录诊断结论；文档回读、新增链接、差异及工作区/独立提交快照的 `python3 .agents/workflow.py verify` 通过后，中文 `[skip ci]` 提交推送 `master` 并按 SHA 回读 GitHub README/progress-log。保留既有未提交改动；未运行业务测试或构建，不修改版本、不部署、不创建 Release，提交及回读终态由交付回复报告。
+<!-- dedicated-plan-audit-20261105:end -->
+
 <!-- qiyun-socks-audit-20261105:start -->
 ## 2026-11-05：七云旧出口 SOCKS5 能力核查
 
