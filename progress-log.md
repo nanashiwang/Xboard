@@ -1,5 +1,19 @@
 # Xboard 项目进展记录
 
+<!-- hk-ip-audit-20261104:start -->
+## 2026-11-04：103.24.217.171 香港出口使用核查
+
+用户继续询问该 IP 是否使用中。核对能力地图、[第一阶段迁移运维](./docs/zh-CN/installation/vpn-stage1.md)及[美国退役决定](./.agents/notes/implemented/architecture/2026-10-28-owned-us-retirement.md)：原香港机器迁出主入口职责后仍保留香港出口；10 月 28 日美国出口收敛未撤下香港公共备用。
+
+- [只读检查 41860779617](https://github.com/nanashiwang/Xboard/actions/runs/41860779617)成功，操作为 `inspect-dedicated`，工作流提交 `7edccb68b16c7d8463adbcf51082d4910a899325`；生产数据读取时间为北京时间 23:44:14。
+- 机器 #3、后端 #338 的 host 为该 IP，`enabled=true`、`show=false`、权限组 1–6；公开节点 #325“香港01｜1×”关联 #338，`show=true`、权限组 1–6，最近后端心跳为 23:43:47。
+- 公开节点的 `enabled=false` 是此项目的父子节点设计：机器只加载 enabled 后端，订阅依据 show 与权限组筛选公开记录，不能据此认定 #325 停用。源码入口见 [ServerService](./app/Services/ServerService.php)。
+- 探针 #1 仍监测 #325，但最新完整链路样本为 11 月 2 日 00:04:46，状态 degraded、无成功出口 IP；该旧样本不能证明当前故障或当前可用。本次未执行真实用户代理测试，也未统计当前在线连接。
+- 结论：该机器仍被 Xboard 配置为普通套餐香港出口及独享套餐香港备用，不能按闲置服务器停机/退租；当前主入口为另一台机器。若要清退，需先迁移香港出口并验证订阅、权限和实际连接。
+
+仅更新核查文档，复用现有架构决定；未修改生产配置、监控、节点或服务。提交前执行文档回读、新增链接与差异检查、工作区和独立提交快照的 `python3 .agents/workflow.py verify`；原有未提交改动保持。文档以中文 `[skip ci]` 提交推送 `master`，随后从 GitHub 按精确 SHA 回读 README/progress-log，终态由交付回复报告；不改版本，不触发业务构建、部署或 Release。
+<!-- hk-ip-audit-20261104:end -->
+
 <!-- retired-ip-audit-20261104:start -->
 ## 2026-11-04：154.44.1.123 节点用途核查
 
