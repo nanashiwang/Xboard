@@ -16,6 +16,8 @@ Status: implemented
 
 NAS 使用独立目录与容器，不要求特权、TUN 或主机路由修改。探针只有单个节点出站，没有 direct 回退；监控文件权限受限，结果不包含订阅令牌、UUID、WebSocket 路径或原始错误正文。
 
+外部 NAS 的 panel_url 使用现行面板 capybarago.uk；网站迁域不会自动更新这份运行配置。修改前从 NAS 严格验证新域认证与原节点范围，备份后仅替换地址，并重建单个探针容器使文件绑定读取新 inode；保留令牌和 state 的测速预算。旧域超时导致独享健康过期的恢复依据见[面板连接修复](../bug-fix/2026-11-05-dedicated-probe-panel-origin.md)。
+
 入口与出口隧道分层观测由[入口观测决策](./2026-10-19-ingress-observability.md)扩展；入口 HTTPS 直连属于独立任务，不改变节点完整代理检测的无直连回退约束。
 
 ## Existing decision audit

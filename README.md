@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- dedicated-probe-recovery-20261105:start -->
+### 独享套餐出口已恢复（2026-11-05）
+
+已按用户要求恢复 `216.36.108.173` 的 Xboard 独享出口。根因是 NAS 探针仍连接旧面板 taige.us，持续超时使健康样本过期；仅将其面板地址切至已验证的 capybarago.uk，并备份后重建单个探针容器。原令牌、镜像、节点范围、计费、容量和健康规则保持。独享源三轮真实 HTTPS 与出口 IP 验证成功，首轮上传/下载各 256 KiB 完整通过；01:22 生产出口 #14 已健康，五个可售名额、占用零，公开购买列表重新显示“美国独享家宽IP”。当前探针版本仍为 1.1.0，无应用版本发布。见[恢复决定](./.agents/notes/implemented/bug-fix/2026-11-05-dedicated-probe-panel-origin.md)与[验收及回退](./progress-log.md#2026-11-05恢复独享出口与-nas-探针面板连接)。后面的隐藏诊断为恢复前快照。
+<!-- dedicated-probe-recovery-20261105:end -->
+
 <!-- dedicated-plan-audit-20261105:start -->
 ### 独享套餐在购买页隐藏的原因（2026-11-05）
 

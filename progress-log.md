@@ -1,5 +1,20 @@
 # Xboard 项目进展记录
 
+<!-- dedicated-probe-recovery-20261105:start -->
+## 2026-11-05：恢复独享出口与 NAS 探针面板连接
+
+用户提供 216.36.108.173 的服务器访问方式，并明确选择“恢复 Xboard 独享套餐出口”。本轮按[恢复决定](./.agents/notes/implemented/bug-fix/2026-11-05-dedicated-probe-panel-origin.md)复用现有固定池；不新开 SOCKS5 服务、不重建套餐或节点，不调整每出口五账号、2× 计量及原健康门槛。
+
+- 出口现场：xboard-node active/running、31443 监听、WireGuard 最新握手和 10.79.0.1 路由正常，未修改或重启出口服务。NAS 探针容器仍运行 1.1.0，但日志持续 URLError/RemoteDisconnected；agent.json 仍指向 taige.us。
+- 从 NAS 容器使用原令牌做严格 HTTPS 对照：旧域两次尝试 44.77 秒后超时；Go 1.14 秒、备用应用域 1.92 秒认证成功，均返回原七个节点与入口 #1，无账号/节点错误。运行 probe.py 与仓库摘要一致，排除凭空换版本；选择现行主面板 Go。
+- 01:19:20 仅重建 xboard-node-probe 容器。先在 `/home/nanashiwang/xboard-node-probe/backups/20261105-panel-origin-1793812749` 保存 0600 的 agent.before.json、传输间隔快照与操作摘要，再原子修改 panel_url。回读确认 token 和其他字段不变，宿主/容器配置摘要一致，state 预算键和时间保留、原镜像 ID 与 Compose 摘要不变、其他容器 ID 不变。备份含凭据，只保存在 NAS；回退步骤见决定与[探针运维](./docs/zh-CN/installation/node-probes.md)。
+- #322 在北京时间 01:19:28、01:20:58、01:22:08 三轮自然检测中，Cloudflare 200、Google 204、实际出口 216.36.108.173 均通过；首轮上传和下载各 262144 字节完整成功。切换后的面板/上报错误均 0，没有修改 healthy 或 checked_at。
+- [生产容量验收 41876873624](https://github.com/nanashiwang/Xboard/actions/runs/41876873624)成功，工作流提交 `5c343b72df26fa87300329fb8c56d7ec9e264ff2`，01:22:03 实测出口 #14 healthy=true、checked_at=第二轮真实样本；总容量 5、健康可售 5、订阅/占用/预留均 0。公开套餐接口返回 #1–#5，独享商品已恢复显示。
+- 七条原任务持续运行，该轮普通美国、香港、日本、罗马尼亚也有成功；荷兰 #356 仍检测失败，未标成健康，不属于本次独享恢复。没有创建订单、客户分配或支付，未做新购后的真人客户端验收，也不把短时成功称为长期稳定。
+
+运行配置已实施；未修改应用或探针代码，版本保持原值，未触发新镜像构建、应用部署或 GitHub Release。README、能力地图、原探针决定、运维及本次 implemented 笔记同步；提交前执行文档回读、链接、差异与工作区/独立提交快照的 `python3 .agents/workflow.py verify`。中文文档提交 `[skip ci]` 推送 `master`，按精确 SHA 回读 README/progress-log，原有未提交内容保留；最终提交和回读状态由交付回复报告。
+<!-- dedicated-probe-recovery-20261105:end -->
+
 <!-- dedicated-plan-audit-20261105:start -->
 ## 2026-11-05：独享套餐购买列表隐藏诊断
 

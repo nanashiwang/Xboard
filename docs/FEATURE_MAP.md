@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- dedicated-probe-recovery-20261105:start -->
+独享出口恢复：NAS 1.1.0 [探针](../tools/node-probe/probe.py)的 panel_url 已从不可达旧域改为 capybarago.uk，令牌/镜像/state/七节点范围保持；单文件绑定原子替换后仅重建探针容器。[原健康服务](../app/Services/DedicatedExitHealthService.php)依据新鲜真实样本恢复 #14，五名额及购买列表已验，不手改健康或容量。见[恢复决定](../.agents/notes/implemented/bug-fix/2026-11-05-dedicated-probe-panel-origin.md)、[运维](./zh-CN/installation/node-probes.md)与[验收](../progress-log.md#2026-11-05恢复独享出口与-nas-探针面板连接)；真实客户新购与长期稳定未验，荷兰独立探测异常不纳入。
+<!-- dedicated-probe-recovery-20261105:end -->
+
 <!-- hub-recovery-20261103:start -->
 客户端Go/Hub恢复：[入口目录](../desktop/capybara/src-tauri/src/entries.rs)验证签名清单和无凭据探针，[账号](../desktop/capybara/src-tauri/src/account.rs)受控GET切换、写操作不重放，[更新器](../desktop/capybara/src-tauri/src/updates.rs)双索引及包失败备用；[Hub](../.docker/hub/build.py)静态恢复元数据与固定GitHub包代理，[备用域名运维](../.docker/production/configure-hub-domain.py)严格TLS直回同账号源站。[订阅地址](../app/Utils/Helper.php)仅在固定备用Host生成备用URL，支持用户手动重新导入。0.1.14已发布部署，[只读分发验收](../.github/workflows/verify-capybara-distribution.yml)已核对21个Release附件、Hub的7个完整包和2个恢复JSON及两路签名；第三方自动切换、离线许可及双后端不在本轮。见[决定](../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)与[进展](../progress-log.md#2026-11-03客户端-gohub-自动兜底)。
 <!-- hub-recovery-20261103:end -->

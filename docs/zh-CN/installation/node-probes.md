@@ -44,6 +44,10 @@ docker compose logs --tail=20
 
 容器没有宿主机端口、特权、TUN 或主机网络，根文件系统只读，临时配置在 tmpfs，状态目录仅保存测速间隔。CPU 上限 1 核，内存 384 MiB，日志轮转 2 × 5 MiB。一个 state 目录只能运行一个探针进程。配置中的 `panel_url` 必须为可访问的 HTTPS 根地址；上报直接访问面板，不继承环境代理、不跟随重定向、不关闭证书校验。
 
+当前 NAS 的 `panel_url` 为 `https://capybarago.uk`。网站迁移主域不会同步外部探针配置；迁移后要从探针容器验证新域认证、原监控范围、实际节点检测和上报。更新时在 NAS 本地备份 0600 的 `agent.json`，保留 token 及其他字段，仅替换面板根地址。原子替换单文件 bind mount 后，在原 Compose 目录执行 `docker compose up -d --no-build --no-deps --force-recreate xboard-node-probe`，让绑定切换到新 inode；保留原镜像、`state/` 和传输预算，不重建其他服务。备份含凭据，不上传仓库或日志。
+
+2026-11-05 旧域超时修复后，独享出口经三轮自然 HTTPS 检测和完整上传/下载恢复五个健康可售名额；不能用手改 healthy/checked_at 代替这一步。详情与回退位置见[恢复决定](../../../.agents/notes/implemented/bug-fix/2026-11-05-dedicated-probe-panel-origin.md)和[生产记录](../../../progress-log.md#2026-11-05恢复独享出口与-nas-探针面板连接)。
+
 17 个节点按默认传输配置的理论载荷约 408 MiB/天，此外有 HTTPS/TLS/隧道开销，实际流量还受节点倍率影响。可在创建 API 中调整检测间隔（60–3600 秒）、传输间隔（1800–86400 秒）、载荷（64 KiB–1 MiB）；生产建议先使用默认小样本。
 
 ## 运维与排查
