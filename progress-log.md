@@ -9,7 +9,10 @@
 
 - 本地：真实打包存储函数模拟第 29/30 天、主动退出、网络/429/502/非认证403、认证401/403、导航、补丁幂等与不匹配拒绝，合计前端 28 项通过。
 - PHP 相关回归 23 项/211 断言、PHP/JS 语法、Blade 编译通过；Actionlint 排除远程 shell 既有 SC2016 信息提示后通过；工作流笔记校验提交前执行。
-- 发布复用现有 amd64/arm64 镜像和日期-SHA 版本，使用 web 前缀 GitHub Release 记录网站更新；无桌面安装包变更。当前尚未推送、CI/镜像/Release/生产待执行，不视为成功。
+- 发布复用现有 amd64/arm64 镜像和日期-SHA 版本，使用 web 前缀 GitHub Release 记录网站更新；无桌面安装包变更。代码 `7277048` 已中文提交并推送 `master`；README/progress-log 已按精确 SHA 从 GitHub 回读一致。
+- [网站 CI](https://github.com/nanashiwang/Xboard/actions/runs/42277831215)成功：新增登录 13 项、授权脚本 14 项、网站/邀请/恢复前端 18 项、完整桌面 PHP 86 项/959 断言；运维与注册安全、笔记工作流通过。[Docker 构建](https://github.com/nanashiwang/Xboard/actions/runs/42277831015)成功，registry manifest 实读含 linux/amd64 与 linux/arm64。
+- [生产部署](https://github.com/nanashiwang/Xboard/actions/runs/42279405895)成功：在线数据库备份验证通过，容器 Healthy，运行 revision 与代码 SHA 一致。[只读核验](https://github.com/nanashiwang/Xboard/actions/runs/42279875751)确认版本 `20261107-7277048`、两端 30 天、用户网络失败保留、管理入口内容哈希、无短全局到期全部通过；挂载不覆盖上述代码。Go 两个公开脚本均 HTTP 200 且内容 SHA256 与本次产物匹配；用户包 `a94dcb8c…483bc2751`，管理包 `a8fd06e1…385a5d07`。
+- [Release web-20261107-7277048](https://github.com/nanashiwang/Xboard/releases/tag/web-20261107-7277048) 已公开，包含运行核验 JSON、双架构 manifest 和资源摘要三个附件；无桌面版本变化。GitHub 状态读取曾遇 TLS 超时，重试后以实际 workflow 成功及线上内容核验收口，未将查询失败当作部署失败。
 - 真实浏览器重新登录和实际等待 30 天尚未验收；时间推进测试验证到期规则。不同域名、清除浏览器数据、主动退出或服务端撤销仍会要求登录。
 <!-- browser-session-20261107:end -->
 

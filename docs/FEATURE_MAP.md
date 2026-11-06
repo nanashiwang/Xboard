@@ -1,7 +1,7 @@
 # Xboard 能力地图
 
 <!-- browser-session-20261107:start -->
-网页登录保持：[用户包](../theme/Xboard/assets/umi.js) PN 与[管理构建补丁](../scripts/frontend/patch-admin-session.php)将新登录 localStorage 保留 30 天；管理 manifest 与 HTML 使用补丁内容哈希入口。[用户导航](../theme/Xboard/patches/session-navigation.js)临时故障保留令牌并取消导航，明确认证拒绝清除。[AuthService](../app/Services/AuthService.php)仍签发一年 token，退出/撤销规则不变。[测试](../tests/Frontend/browser-session.test.cjs)验证时间、删除、错误分类和发行补丁；[生产只读检查](../.docker/production/verify-web-session.php)核对运行文件与配置。旧会话重新登录生效，不跨域迁移；本地通过，生产见[进展](../progress-log.md#2026-11-07网页登录保持时间)与[决定](../.agents/notes/implemented/bug-fix/2026-11-07-browser-login-retention.md)。
+网页登录保持：[用户包](../theme/Xboard/assets/umi.js) PN 与[管理构建补丁](../scripts/frontend/patch-admin-session.php)将新登录 localStorage 保留 30 天；管理 manifest 与 HTML 使用补丁内容哈希入口。[用户导航](../theme/Xboard/patches/session-navigation.js)临时故障保留令牌并取消导航，明确认证拒绝清除。[AuthService](../app/Services/AuthService.php)仍签发一年 token，退出/撤销规则不变。[测试](../tests/Frontend/browser-session.test.cjs)验证时间、删除、错误分类和发行补丁；[生产只读检查](../.docker/production/verify-web-session.php)核对运行文件与配置。旧会话重新登录生效，不跨域迁移；本地及 CI 通过，`20261107-7277048` 已上线、运行文件/配置/公开脚本哈希已验；真实账号重登与实际 30 天等待仍未验收。证据见[进展](../progress-log.md#2026-11-07网页登录保持时间)与[决定](../.agents/notes/implemented/bug-fix/2026-11-07-browser-login-retention.md)。
 <!-- browser-session-20261107:end -->
 
 <!-- dedicated-probe-recovery-20261105:start -->
