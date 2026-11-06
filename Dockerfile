@@ -35,6 +35,7 @@ RUN echo "Attempting to clone branch: ${BRANCH_NAME} from ${REPO_URL} with CACHE
         test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"; \
     fi && \
     git submodule update --init --recursive --force && \
+    php scripts/frontend/patch-admin-session.php && \
     mkdir -p /opt/default-plugins && \
     cp -a /www/plugins/. /opt/default-plugins/
 

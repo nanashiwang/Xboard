@@ -1,5 +1,9 @@
 # Xboard 能力地图
 
+<!-- browser-session-20261107:start -->
+网页登录保持：[用户包](../theme/Xboard/assets/umi.js) PN 与[管理构建补丁](../scripts/frontend/patch-admin-session.php)将新登录 localStorage 保留 30 天；管理 manifest 与 HTML 使用补丁内容哈希入口。[用户导航](../theme/Xboard/patches/session-navigation.js)临时故障保留令牌并取消导航，明确认证拒绝清除。[AuthService](../app/Services/AuthService.php)仍签发一年 token，退出/撤销规则不变。[测试](../tests/Frontend/browser-session.test.cjs)验证时间、删除、错误分类和发行补丁；[生产只读检查](../.docker/production/verify-web-session.php)核对运行文件与配置。旧会话重新登录生效，不跨域迁移；本地通过，生产见[进展](../progress-log.md#2026-11-07网页登录保持时间)与[决定](../.agents/notes/implemented/bug-fix/2026-11-07-browser-login-retention.md)。
+<!-- browser-session-20261107:end -->
+
 <!-- dedicated-probe-recovery-20261105:start -->
 独享出口恢复：NAS 1.1.0 [探针](../tools/node-probe/probe.py)的 panel_url 已从不可达旧域改为 capybarago.uk，令牌/镜像/state/七节点范围保持；单文件绑定原子替换后仅重建探针容器。[原健康服务](../app/Services/DedicatedExitHealthService.php)依据新鲜真实样本恢复 #14，五名额及购买列表已验，不手改健康或容量。见[恢复决定](../.agents/notes/implemented/bug-fix/2026-11-05-dedicated-probe-panel-origin.md)、[运维](./zh-CN/installation/node-probes.md)与[验收](../progress-log.md#2026-11-05恢复独享出口与-nas-探针面板连接)；真实客户新购与长期稳定未验，荷兰独立探测异常不纳入。
 <!-- dedicated-probe-recovery-20261105:end -->

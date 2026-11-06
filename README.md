@@ -1,5 +1,11 @@
 # Xboard
 
+<!-- browser-session-20261107:start -->
+### 网页登录保持 30 天（2026-11-07）
+
+用户中心原为 6 小时、管理后台原为 3 天；两端新登录现统一保存 30 天。用户中心获取账号信息遇到网络、限流或服务端错误保留登录并提示重试，明确认证失效仍清除；主动退出与服务端撤销继续生效。已有登录需重新登录一次，域名与浏览器各自独立保存。后端原一年令牌及两小时 Laravel Cookie Session 不变。本地前端 28 项、PHP 相关 23 项/211 断言和 Blade 编译通过；镜像、Release、生产尚待验证。见[登录决定](./.agents/notes/implemented/bug-fix/2026-11-07-browser-login-retention.md)与[交付进展](./progress-log.md#2026-11-07网页登录保持时间)。
+<!-- browser-session-20261107:end -->
+
 <!-- dedicated-probe-recovery-20261105:start -->
 ### 独享套餐出口已恢复（2026-11-05）
 

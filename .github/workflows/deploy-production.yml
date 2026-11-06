@@ -21,6 +21,7 @@ on:
           - registration-apply
           - registration-rollback
           - inspect-mail
+          - verify-web-session
           - inspect-browser-login
           - inspect-dedicated
           - inspect-residential-capacity
@@ -105,6 +106,11 @@ jobs:
               sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
                 'cd /root/Xboard && docker compose exec -T xboard php artisan octane:reload'
             fi
+            exit 0
+          fi
+          if [ "$OPERATION" = verify-web-session ]; then
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker inspect --format '\''{{range .Mounts}}{{println .Destination}}{{end}}'\'' "$(docker compose ps -q xboard)" && docker compose exec -T xboard php' < .docker/production/verify-web-session.php
             exit 0
           fi
           if [ "$OPERATION" = inspect-browser-login ]; then
