@@ -1,9 +1,9 @@
 # Xboard 能力地图
 
 <!-- upload-only-20261107:start -->
-上传单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)统一解释 upload_only/download_only/无标记双向快照；[UserService](../app/Services/UserService.php)新任务默认 upload_only，用户额度及日统计只计上传乘倍率，节点统计保留双向。[方向回归](../tests/Feature/Operations/DirectionalTrafficBillingTest.php)验证新入队、序列化、旧任务重试、三个计费模式与原始节点统计；[审计](../.docker/production/audit-traffic.php)按快照核对，不输出身份凭据。实现通过本地检查，生产待切换，见[当前决定](../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。
+上传单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)统一解释 upload_only/download_only/无标记双向快照；[UserService](../app/Services/UserService.php)新任务默认 upload_only，用户额度及日统计只计上传乘倍率，节点统计保留双向。[方向回归](../tests/Feature/Operations/DirectionalTrafficBillingTest.php)验证新入队、序列化、旧任务重试、三个计费模式与原始节点统计；[审计](../.docker/production/audit-traffic.php)按快照核对，不输出身份凭据。生产 1839948 已部署，七个运行源哈希及真实两笔任务对账通过：上行 60,279×2=120,558，下行 7,880 不扣。见[当前决定](../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。
 
-八个节点的 UDP 方向修复已部署，继续沿用[固定构建](../.docker/dedicated/build-node.sh)、[原子安装器](../.docker/dedicated/install-metering.py)与[内部监控 TCP/UDP 探测](../.docker/production/verify-metering-nodes.py)；本轮不重启节点。客户端模式没有上报，不能从服务端用量判断规则/全局。扩展 #392 是先前独立故障，见[既有节点记录](../progress-log.md#2026-11-07只计下载与节点方向核查)。
+八个节点的 UDP 方向修复继续沿用[固定构建](../.docker/dedicated/build-node.sh)、[原子安装器](../.docker/dedicated/install-metering.py)与[内部监控 TCP/UDP 探测](../.docker/production/verify-metering-nodes.py)；本轮未重启节点。部署后七条自有线路 HTTPS/UDP 通过，扩展 #392 仍失败。客户端模式没有上报，不能从服务端用量判断规则/全局；客户端 DIRECT 不进入节点计费。见[上线验证](../progress-log.md#2026-11-07计费改为只上传)。
 <!-- upload-only-20261107:end -->
 
 

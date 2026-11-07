@@ -3,10 +3,14 @@
 <!-- upload-only-20261107:start -->
 ## 2026-11-07：计费改为只上传
 
-- 用户在只下载规则上线后明确改成“只计算上传，下载就不算”。新规则为上传 × 原节点倍率，下载免费；历史已用不回写。见[新决定](./.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)，旧下载决定保留历史队列语义与验收。
+- 用户在只下载规则上线后明确改成“只计算上传，下载就不算”。现按客户端上传 × 原节点倍率扣量，下载免费；历史已用不回写。见[新决定](./.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)，旧下载决定保留历史队列语义与验收。
 - 新增 upload_only 入队快照，TrafficBilling 同时识别 upload_only/download_only/缺标记双向。两个用户计费任务共用方向选择，StatServerJob 保留原始上下行。页面及审计同步当前口径。旧 download_only 任务不翻转含义，避免重试时按错误方向结算。
-- 本地 PHP Operations/耗尽提醒 30 项/178 断言、前端 4 项、JS/PHP 语法及笔记校验通过。覆盖纯上传、纯下载、1×/2×/5×、历史三种模式及序列化重试。CI、双架构镜像、Release、部署及实际新任务对账待完成。
-- 复用前一阶段已部署到八个节点进程的 UDP 方向修复，无需再升级节点或修改 SSH 凭据。先前扩展 #392 的独立故障不在本次规则变更范围。回退旧镜像前须处理 upload_only 队列，旧版本不认识该模式。
+- 本地 PHP Operations/耗尽提醒 30 项/178 断言、前端 4 项、JS/PHP 语法及笔记校验通过。覆盖纯上传、纯下载、1×/2×/5×、历史三种模式及序列化重试。[计费 CI 42384074489](https://github.com/nanashiwang/Xboard/actions/runs/42384074489) 108 项/661 断言通过，邮件、注册、节点探测、网站、笔记工作流均通过。
+- 代码提交 `1839948d38f9bffeac4b59db138c1c51bfc2dece` 已推送 master。[镜像 42384074420](https://github.com/nanashiwang/Xboard/actions/runs/42384074420) 完成 linux/amd64、linux/arm64，两平台 OCI revision 匹配。[部署 42384392887](https://github.com/nanashiwang/Xboard/actions/runs/42384392887) 已验证在线数据库备份，运行版本 1839948 且 Healthy。
+- 上线前[快照 42384307722](https://github.com/nanashiwang/Xboard/actions/runs/42384307722)仍为只下载；上线后[快照一 42384539268](https://github.com/nanashiwang/Xboard/actions/runs/42384539268)、[快照二 42384684154](https://github.com/nanashiwang/Xboard/actions/runs/42384684154)七个运行源哈希匹配，新/旧/缺标记三种计费函数结果分别为 [111,0]/[0,222]/[111,222]。23:04:10→23:05:58 两笔新任务上传 60,279、下载 7,880、倍率 2；账户 u 增加 120,558、d 不变，日统计相同，精确吻合上传×倍率。公网内容寻址 panel.js 已回读确认仅上传说明。
+- [代理验收 42384595332](https://github.com/nanashiwang/Xboard/actions/runs/42384595332)七条自有线路 HTTPS 出口/UDP DNS 通过；唯一失败仍是既有扩展 #392，整体工作流为失败，未将其写成全通过。复用八个节点已部署的 UDP 修复，本轮未升级节点。
+- [正式网站 Release web-20261107-1839948](https://github.com/nanashiwang/Xboard/releases/tag/web-20261107-1839948)已发布：版本 20261107-1839948，镜像 ghcr.io/nanashiwang/xboard:1839948；三项附件为双架构 manifest、脱敏验证结果、SHA256SUMS，下载回读校验通过。没有新的客户端安装包。README/progress-log 在代码提交推送后已按完整 SHA 从 GitHub 回读，本次验收记录提交后再次回读。
+- 客户端规则/全局仍未上报，DIRECT 不计费。历史用量未重算；回退旧镜像前须处理 upload_only 队列，旧版本不认识该模式。
 <!-- upload-only-20261107:end -->
 
 <!-- download-only-20261107:start -->
