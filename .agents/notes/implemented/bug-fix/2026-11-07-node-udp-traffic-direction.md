@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-落实[仅下载扣量](../../implemented/feature/2026-11-07-download-only-billing.md)前核查固定节点源码 0a29338，发现 UDP UnwrapPacketReader 使用 download、UnwrapPacketWriter 使用 upload，与普通 ReadPacket/WritePacket 相反。此外 sing v0.8.2 在提取写计数器前先解包 replaceable writer，导致 trackedPacketConn 写回调被绕过。入口扩展运行文件哈希与保留的同版本源码构建产物一致；其他节点需逐台核验。
+落实[仅下载扣量](../../implemented/feature/2026-11-07-download-only-billing.md)前核查固定节点源码 0a29338，发现 UDP UnwrapPacketReader 使用 download、UnwrapPacketWriter 使用 upload，与普通 ReadPacket/WritePacket 相反。此外 sing v0.8.2 在提取写计数器前先解包 replaceable writer，导致 trackedPacketConn 写回调被绕过。入口扩展运行文件哈希与保留的同版本源码构建产物一致；日本节点实查同一旧哈希并 active。其余节点需逐台核验，美国02保存连接在第一跳认证失败，随后经用户提供的既有跳板恢复美国02登录。
 
 ## Decision
 
@@ -22,7 +22,7 @@ Status: implemented
 
 ## Verification
 
-原版本真实复制回归复现上传进入 download、下载为零；修复后普通/快速复制、上传/下载、有/无限速 8 组合通过，singbox/tracker/service 三包 race 检测通过。固定源码叠加两补丁完整构建成功，产物 SHA256 f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb。逐节点生产升级及面板切换待完成。
+原版本真实复制回归复现上传进入 download、下载为零；修复后普通/快速复制、上传/下载、有/无限速 8 组合通过，singbox/tracker/service 三包 race 检测通过。固定源码叠加两补丁完整构建成功，产物 SHA256 f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb。GitHub 节点 CI 42363366636 通过，附件下载哈希与本地完全一致。只读安装器在入口扩展实测成功。逐节点生产升级及面板切换待完成。
 
 ## Consequences
 
