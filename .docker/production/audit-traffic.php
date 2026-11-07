@@ -36,7 +36,9 @@ try {
             ->map(function ($r) {
                 $r->date = date('Y-m-d', $r->record_at);
                 $r->billed_bytes = $r->u + $r->d;
-                $r->reported_bytes_inferred = (float) $r->server_rate > 0
+                // Daily user counters store charged directions, not full raw
+                // transfer. Uploads become free after the policy cutover.
+                $r->billed_base_bytes_inferred = (float) $r->server_rate > 0
                     ? $r->billed_bytes / (float) $r->server_rate : null;
                 return $r;
             });
@@ -53,6 +55,7 @@ try {
             ->groupBy('server_id', 'record_at')->orderBy('record_at')->get();
         return [
             'at' => now()->toIso8601String(), 'timezone' => date_default_timezone_get(),
+            'daily_byte_basis' => 'charged directions only; free uploads are absent',
             'user' => $u, 'daily' => $daily, 'lifetime_daily' => $lifetime, 'recent_resets' => $resets,
             'enabled_servers' => $servers, 'server_daily_all_users' => $serverDaily,
             'enabled_plugin_codes' => DB::table('v2_plugins')->where('is_enabled', 1)->pluck('code'),
@@ -93,15 +96,20 @@ try {
                 $history['matched_reports']++;
                 $history['first_at'] = min($history['first_at'] ?? $at, $at);
                 $history['last_at'] = max($history['last_at'] ?? $at, $at);
-                $key = $nodeId.':'.$rate;
-                $history['nodes'][$key] ??= ['node_id' => $nodeId, 'rate' => $rate, 'reports' => 0, 'u' => 0, 'd' => 0];
+                $mode = ($server['traffic_billing_mode'] ?? null) === 'download_only'
+                    ? 'download_only' : 'bidirectional';
+                $billed = (($mode === 'download_only' ? 0 : $traffic[0]) + $traffic[1]) * $rate;
+                $key = $nodeId.':'.$rate.':'.$mode;
+                $history['nodes'][$key] ??= ['node_id' => $nodeId, 'rate' => $rate,
+                    'billing_mode' => $mode, 'reports' => 0, 'u' => 0, 'd' => 0, 'billed_bytes' => 0];
                 $history['nodes'][$key]['reports']++;
                 $history['nodes'][$key]['u'] += $traffic[0];
                 $history['nodes'][$key]['d'] += $traffic[1];
+                $history['nodes'][$key]['billed_bytes'] += $billed;
                 $bucket = (int) (floor($at / 300) * 300);
                 $history['five_minute_buckets'][$bucket] ??= ['reported_bytes' => 0, 'billed_bytes' => 0, 'reports' => 0];
                 $history['five_minute_buckets'][$bucket]['reported_bytes'] += $traffic[0] + $traffic[1];
-                $history['five_minute_buckets'][$bucket]['billed_bytes'] += ($traffic[0] + $traffic[1]) * $rate;
+                $history['five_minute_buckets'][$bucket]['billed_bytes'] += $billed;
                 $history['five_minute_buckets'][$bucket]['reports']++;
             }
         }
@@ -123,6 +131,14 @@ try {
     foreach (['app/Services/ServerService.php', 'app/Services/UserService.php', 'app/Jobs/TrafficFetchJob.php',
         'app/Jobs/StatUserJob.php', 'app/Jobs/StatServerJob.php', 'app/Models/Server.php'] as $file) {
         $result['runtime_source_sha256'][$file] = hash_file('sha256', '/www/'.$file);
+    }
+    $billingFile = 'app/Services/TrafficBilling.php';
+    if (is_file('/www/'.$billingFile)) {
+        $result['runtime_source_sha256'][$billingFile] = hash_file('sha256', '/www/'.$billingFile);
+        $result['runtime_billing_examples'] = [
+            'download_only' => App\Services\TrafficBilling::forUser([111, 222], ['traffic_billing_mode' => 'download_only']),
+            'legacy_queue_payload' => App\Services\TrafficBilling::forUser([111, 222], []),
+        ];
     }
     $errors = [];
     $files = glob('/www/storage/logs/*.log') ?: [];

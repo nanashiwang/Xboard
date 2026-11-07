@@ -4,6 +4,7 @@
 namespace App\Jobs;
 
 use App\Models\StatUser;
+use App\Services\TrafficBilling;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,6 +68,7 @@ class StatUserJob implements ShouldQueue
 
     protected function processUserStat(int $uid, array $v, int $recordAt): void
     {
+        $v = TrafficBilling::forUser($v, $this->server);
         $driver = config('database.default');
         if ($driver === 'sqlite') {
             $this->processUserStatForSqlite($uid, $v, $recordAt);

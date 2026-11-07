@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Services\TrafficBilling;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -34,6 +35,7 @@ class TrafficFetchJob implements ShouldQueue
         $userIds = array_keys($this->data);
 
         foreach ($this->data as $uid => $v) {
+            $v = TrafficBilling::forUser($v, $this->server);
             User::where('id', $uid)
                 ->incrementEach(
                     [

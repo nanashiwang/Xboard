@@ -123,6 +123,10 @@ class UserService
         // Compatible with legacy hook
         list($server, $protocol, $data) = HookManager::filter('traffic.before_process', [$server, $protocol, $data]);
 
+        // Snapshot the policy with the report so queue retries and all user
+        // accounting jobs agree, while node statistics retain both directions.
+        $server['traffic_billing_mode'] = TrafficBilling::DOWNLOAD_ONLY;
+
         $timestamp = strtotime(date('Y-m-d'));
         collect($data)->chunk(1000)->each(function ($chunk) use ($timestamp, $server, $protocol) {
             TrafficFetchJob::dispatch($server, $chunk->toArray(), $protocol, $timestamp);

@@ -1,5 +1,10 @@
 # Xboard 能力地图
 
+<!-- download-only-20261107:start -->
+下载单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，节点原始双向计数保留；旧任务缺标记时按旧双向规则。覆盖 REST/合并报告及旧 Tidalab 入口。见[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)、[方向决策](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)；生产待节点 UDP 方向修正与验收。客户端模式只存本地、不在面板设备表或流量报文中，无法从服务端用量推出当前模式。
+<!-- download-only-20261107:end -->
+
+
 <!-- traffic-audit-20261107:start -->
 流量扣量审计：[工作流](../.github/workflows/traffic-audit.yml)经既有生产 SSH 执行[只读脚本](../.docker/production/audit-traffic.php)，输入规范化邮箱 SHA256；SQLite query_only 与单一读取事务核对用户双向额度、按倍率日统计、重置、全站节点汇总、失败队列及运行哈希。输出字段白名单，无邮箱/UUID/凭据/原始错误；全站节点量不等于目标用户逐节点量。反推上报量不证明真实传输；统计任务通过用户整批事务与节点日报/累计事务防止失败后部分提交重复，见[故障注入回归](../tests/Feature/Operations/TrafficStatRetryTest.php)与[修复决定](../.agents/notes/implemented/bug-fix/2026-11-07-traffic-stat-retry-atomicity.md)。见[审计决定](../.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)。
 生产修复 `b48053d` 的运行源哈希和 Healthy 已核验；近期用户任务读取默认保留 60 分钟，最多 10,000 条，输出五分钟汇总和节点计数，不输出 IP 或序列化任务。
