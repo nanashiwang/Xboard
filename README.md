@@ -1,5 +1,12 @@
 # Xboard
 
+<!-- traffic-audit-20261107:start -->
+### 流量扣量审计（2026-11-07）
+
+针对三天约 10 GB 用量反馈，新增[只读生产审计](./.github/workflows/traffic-audit.yml)，核对账户扣量、按倍率日统计、重置、队列错误及运行源哈希。上传与下载均扣量，日统计已乘倍率；按倍率反推的是节点上报量，不能替代客户端真实传输对账。本地夹具与语法通过，生产结果待执行；未修改客户额度或部署应用。见[审计决定](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)及[进展](./progress-log.md#2026-11-07流量扣量审计)。
+<!-- traffic-audit-20261107:end -->
+
+
 <!-- browser-session-20261107:start -->
 ### 网页登录保持 30 天（2026-11-07）
 

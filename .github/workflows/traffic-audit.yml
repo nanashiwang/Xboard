@@ -1,0 +1,37 @@
+name: Traffic Audit
+on:
+  workflow_dispatch:
+    inputs:
+      email_sha256:
+        description: SHA256 of lowercase trimmed account email (never enter the email)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read production traffic accounting
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          EMAIL_SHA256: ${{ inputs.email_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$EMAIL_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          test -n "$SSHPASS"
+          php -l .docker/production/audit-traffic.php
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            'cd /root/Xboard && docker inspect --format '\''revision={{index .Config.Labels "org.opencontainers.image.revision"}} mounts={{range .Mounts}}{{.Destination}} {{end}}'\'' "$(docker compose ps -q xboard)"'
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            "cd /root/Xboard && docker compose exec -T -e TRAFFIC_EMAIL_SHA256='$EMAIL_SHA256' xboard php" < .docker/production/audit-traffic.php

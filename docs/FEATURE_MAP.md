@@ -1,5 +1,10 @@
 # Xboard 能力地图
 
+<!-- traffic-audit-20261107:start -->
+流量扣量审计：[工作流](../.github/workflows/traffic-audit.yml)经既有生产 SSH 执行[只读脚本](../.docker/production/audit-traffic.php)，输入规范化邮箱 SHA256；SQLite query_only 与单一读取事务核对用户双向额度、按倍率日统计、重置、全站节点汇总、失败队列及运行哈希。输出字段白名单，无邮箱/UUID/凭据/原始错误；全站节点量不等于目标用户逐节点量。反推上报量不证明真实传输；见[审计决定](../.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)。
+<!-- traffic-audit-20261107:end -->
+
+
 <!-- browser-session-20261107:start -->
 网页登录保持：[用户包](../theme/Xboard/assets/umi.js) PN 与[管理构建补丁](../scripts/frontend/patch-admin-session.php)将新登录 localStorage 保留 30 天；管理 manifest 与 HTML 使用补丁内容哈希入口。[用户导航](../theme/Xboard/patches/session-navigation.js)临时故障保留令牌并取消导航，明确认证拒绝清除。[AuthService](../app/Services/AuthService.php)仍签发一年 token，退出/撤销规则不变。[测试](../tests/Frontend/browser-session.test.cjs)验证时间、删除、错误分类和发行补丁；[生产只读检查](../.docker/production/verify-web-session.php)核对运行文件与配置。旧会话重新登录生效，不跨域迁移；本地及 CI 通过，`20261107-7277048` 已上线、运行文件/配置/公开脚本哈希已验；真实账号重登与实际 30 天等待仍未验收。证据见[进展](../progress-log.md#2026-11-07网页登录保持时间)与[决定](../.agents/notes/implemented/bug-fix/2026-11-07-browser-login-retention.md)。
 <!-- browser-session-20261107:end -->

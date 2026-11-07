@@ -1,5 +1,16 @@
 # Xboard 项目进展记录
 
+<!-- traffic-audit-20261107:start -->
+## 2026-11-07：流量扣量审计
+
+- 用户反馈三天约用 10 GB，需检查流量虚高。账号与凭据不写入仓库。
+- 已核对 UserService、TrafficFetchJob、StatUserJob 及节点倍率决定：上传下载双向累计，日统计已乘倍率；真实生产原因尚待查询。
+- 新增邮箱 SHA256 选择、SQLite query_only、一致读取事务、字段白名单及错误分类的[审计工作流](./.github/workflows/traffic-audit.yml)。见[决定及证据边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)。
+- 本地 PHP 语法、2× 夹具还原、邮箱脱敏、数据库哈希不变、笔记检查通过。生产审计与 GitHub Actions 尚待执行，不宣称计费修复。
+- 本轮为运维诊断工具，不变更应用计费和客户权益，无应用版本或 Release。提交/推送与生产查询结果随后回填。
+<!-- traffic-audit-20261107:end -->
+
+
 <!-- browser-session-20261107:start -->
 ## 2026-11-07：网页登录保持时间
 
