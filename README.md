@@ -1,14 +1,12 @@
 # Xboard
 
-<!-- download-only-20261107:start -->
-### 用户流量只计下载（2026-11-07 已上线）
+<!-- upload-only-20261107:start -->
+### 用户流量改为只计上传（2026-11-07，待上线）
 
-生产新上报按 **下载 × 节点倍率** 扣套餐额度，上传免费；节点原始双向运维统计保留。旧任务保留入队时规则，历史计费不追溯改写。客户端 DIRECT 连接不进入节点计费；规则命中代理仍计费。客户端不上传规则/全局选择，服务端日志无法确定具体用户当前模式。
+用户后续明确要求仅上传计费，已实现新上报按 **上传 × 节点倍率** 扣套餐，下载免费。新模式 upload_only 与已排队的 download_only、无标记双向任务分别处理；历史已扣额度不改写，节点原始双向统计保留。客户端 DIRECT 不计费，规则命中代理仅计上传；客户端规则/全局选择仍未上报。
 
-面板 `0f3883f` 已部署；七个计费相关源文件哈希匹配，新任务与账户增量已现场对账，上传扣量不增加。八个节点进程已升级 `0a29338-metering.2`，修复 UDP 快速复制方向及漏计，配置和原监听保持。七条自有线路 HTTPS 出口/UDP DNS 全通过；扩展 #392 升级前后均连接失败，仍是独立待查项。不能据此推导此前所有流量四倍，也没有完成客户设备的定量流量验收。
-
-[Release web-20261107-0f3883f](https://github.com/nanashiwang/Xboard/releases/tag/web-20261107-0f3883f) · [套餐口径](./.agents/notes/implemented/feature/2026-11-07-download-only-billing.md) · [节点修复](./.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md) · [验证与发布记录](./progress-log.md#2026-11-07只计下载与节点方向核查)
-<!-- download-only-20261107:end -->
+本地 PHP 30 项/178 断言、前端 4 项及语法/笔记检查通过；CI、镜像、Release 和生产切换待完成。八个节点先前已部署的 UDP 计数修复继续使用，本轮无需再升级节点。扩展 #392 仍为先前记录的独立连接故障。见[当前计费决定](./.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)、[节点修复](./.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)与[进展](./progress-log.md#2026-11-07计费改为只上传)。
+<!-- upload-only-20261107:end -->
 
 
 <!-- traffic-audit-20261107:start -->

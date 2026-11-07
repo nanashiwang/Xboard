@@ -1,10 +1,10 @@
 # Xboard 能力地图
 
-<!-- download-only-20261107:start -->
-下载单向计费已上线：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，原始双向数据保留；旧任务缺标记时按旧规则。[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)覆盖 REST/合并上报/旧 Tidalab 入口；[只读审计](../.docker/production/audit-traffic.php)按新旧口径对账，不输出身份凭据。客户端模式未上报，无法从服务端用量推断规则/全局。
+<!-- upload-only-20261107:start -->
+上传单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)统一解释 upload_only/download_only/无标记双向快照；[UserService](../app/Services/UserService.php)新任务默认 upload_only，用户额度及日统计只计上传乘倍率，节点统计保留双向。[方向回归](../tests/Feature/Operations/DirectionalTrafficBillingTest.php)验证新入队、序列化、旧任务重试、三个计费模式与原始节点统计；[审计](../.docker/production/audit-traffic.php)按快照核对，不输出身份凭据。实现通过本地检查，生产待切换，见[当前决定](../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。
 
-[固定节点构建](../.docker/dedicated/build-node.sh)叠加[UDP 计数回归补丁](../.docker/dedicated/node-traffic-direction.patch)，八个生产节点进程已升级；[原子安装器](../.docker/dedicated/install-metering.py)校验新旧哈希、备份和进程，失败回退；[TCP/UDP 探测](../.docker/production/verify-metering-nodes.py)使用已有内部监控身份，凭据仅留服务器临时目录。七条自有线路通过；扩展 #392 是升级前后共同失败项。见[计费决定](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)、[节点决定](../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)与[生产记录](../progress-log.md#2026-11-07只计下载与节点方向核查)。
-<!-- download-only-20261107:end -->
+八个节点的 UDP 方向修复已部署，继续沿用[固定构建](../.docker/dedicated/build-node.sh)、[原子安装器](../.docker/dedicated/install-metering.py)与[内部监控 TCP/UDP 探测](../.docker/production/verify-metering-nodes.py)；本轮不重启节点。客户端模式没有上报，不能从服务端用量判断规则/全局。扩展 #392 是先前独立故障，见[既有节点记录](../progress-log.md#2026-11-07只计下载与节点方向核查)。
+<!-- upload-only-20261107:end -->
 
 
 <!-- traffic-audit-20261107:start -->

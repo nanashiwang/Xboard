@@ -36,8 +36,8 @@ try {
             ->map(function ($r) {
                 $r->date = date('Y-m-d', $r->record_at);
                 $r->billed_bytes = $r->u + $r->d;
-                // Daily user counters store charged directions, not full raw
-                // transfer. Uploads become free after the policy cutover.
+                // Daily counters store charged directions, not full raw
+                // transfer; the charged direction depends on each snapshot.
                 $r->billed_base_bytes_inferred = (float) $r->server_rate > 0
                     ? $r->billed_bytes / (float) $r->server_rate : null;
                 return $r;
@@ -55,7 +55,7 @@ try {
             ->groupBy('server_id', 'record_at')->orderBy('record_at')->get();
         return [
             'at' => now()->toIso8601String(), 'timezone' => date_default_timezone_get(),
-            'daily_byte_basis' => 'charged directions only; free uploads are absent',
+            'daily_byte_basis' => 'charged directions only; free directions are absent; historical modes may coexist',
             'user' => $u, 'daily' => $daily, 'lifetime_daily' => $lifetime, 'recent_resets' => $resets,
             'enabled_servers' => $servers, 'server_daily_all_users' => $serverDaily,
             'enabled_plugin_codes' => DB::table('v2_plugins')->where('is_enabled', 1)->pluck('code'),
@@ -98,9 +98,10 @@ try {
                 $history['matched_reports']++;
                 $history['first_at'] = min($history['first_at'] ?? $at, $at);
                 $history['last_at'] = max($history['last_at'] ?? $at, $at);
-                $mode = ($server['traffic_billing_mode'] ?? null) === 'download_only'
-                    ? 'download_only' : 'bidirectional';
-                $billed = (($mode === 'download_only' ? 0 : $traffic[0]) + $traffic[1]) * $rate;
+                $mode = $server['traffic_billing_mode'] ?? 'bidirectional';
+                if (!in_array($mode, ['upload_only', 'download_only'], true)) $mode = 'bidirectional';
+                $billed = (($mode === 'download_only' ? 0 : $traffic[0])
+                    + ($mode === 'upload_only' ? 0 : $traffic[1])) * $rate;
                 $key = $nodeId.':'.$rate.':'.$mode;
                 $history['nodes'][$key] ??= ['node_id' => $nodeId, 'rate' => $rate,
                     'billing_mode' => $mode, 'reports' => 0, 'u' => 0, 'd' => 0, 'billed_bytes' => 0];
@@ -143,6 +144,7 @@ try {
     if (is_file('/www/'.$billingFile)) {
         $result['runtime_source_sha256'][$billingFile] = hash_file('sha256', '/www/'.$billingFile);
         $result['runtime_billing_examples'] = [
+            'upload_only' => App\Services\TrafficBilling::forUser([111, 222], ['traffic_billing_mode' => 'upload_only']),
             'download_only' => App\Services\TrafficBilling::forUser([111, 222], ['traffic_billing_mode' => 'download_only']),
             'legacy_queue_payload' => App\Services\TrafficBilling::forUser([111, 222], []),
         ];

@@ -125,7 +125,7 @@ class UserService
 
         // Snapshot the policy with the report so queue retries and all user
         // accounting jobs agree, while node statistics retain both directions.
-        $server['traffic_billing_mode'] = TrafficBilling::DOWNLOAD_ONLY;
+        $server['traffic_billing_mode'] = TrafficBilling::UPLOAD_ONLY;
 
         $timestamp = strtotime(date('Y-m-d'));
         collect($data)->chunk(1000)->each(function ($chunk) use ($timestamp, $server, $protocol) {

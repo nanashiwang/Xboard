@@ -48,3 +48,5 @@ NAS probe #1 的 server_ids 增加 #356/#358，expected_exits 对应各自公网
 ## 2026-11-07 计量更新
 
 上文二进制哈希为接入时快照。当前荷兰、罗马尼亚均运行 `0a29338-metering.2`，SHA256 `f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb`；程序备份位于各机 `/root/xboard-metering-backups/`。配置、权限及监听保持，真实 HTTPS 出口与 UDP DNS 验证通过。此补丁修复 UDP 计数方向及漏计，面板新任务同时改为上传免费、下载乘既有倍率。见[计量决定](../../../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。
+
+当前套餐口径已按用户后续要求改为只上传（上传 × 原节点倍率，下载免费），本轮切换进度见[上传决定](../../../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。上文只下载验收为同日较早阶段的历史记录；节点双向原始计数和 UDP 补丁继续适用。

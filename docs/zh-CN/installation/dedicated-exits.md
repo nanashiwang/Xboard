@@ -73,3 +73,5 @@
 固定版本的 UDP 快速复制存在上传计入下载、写计数回调被提前解包的问题；补丁、8 组合回归及部署边界见[计量决定](../../../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。构建保留既有首用户启动修复和生产标签。不能由该缺陷推导所有流量四倍。
 
 在目标机器运行 `python3 install-metering.py xboard-node` 默认只读检查；入口扩展选择 `xboard-extension`。安装时提供 `--binary /已校验路径/xboard-node-linux-amd64 --expected-old-sha256 <本次实查旧哈希>`。工具检查新二进制固定哈希，备份至 `/root/xboard-metering-backups/`，原子替换并确认实际进程，失败自动恢复旧程序。配置与凭据不改；本轮八个进程已升级，七条自有线路真实 TCP/UDP 代理通过，面板只下载计费已启用并对账。扩展 #392 是升级前后共同失败项；未验收每条扩展和客户设备的定量传输。
+
+当前套餐口径已按用户后续要求改为只上传（上传 × 原节点倍率，下载免费），本轮切换进度见[上传决定](../../../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。上文只下载验收为同日较早阶段的历史记录；节点双向原始计数和 UDP 补丁继续适用。

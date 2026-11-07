@@ -1,5 +1,14 @@
 # Xboard 项目进展记录
 
+<!-- upload-only-20261107:start -->
+## 2026-11-07：计费改为只上传
+
+- 用户在只下载规则上线后明确改成“只计算上传，下载就不算”。新规则为上传 × 原节点倍率，下载免费；历史已用不回写。见[新决定](./.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)，旧下载决定保留历史队列语义与验收。
+- 新增 upload_only 入队快照，TrafficBilling 同时识别 upload_only/download_only/缺标记双向。两个用户计费任务共用方向选择，StatServerJob 保留原始上下行。页面及审计同步当前口径。旧 download_only 任务不翻转含义，避免重试时按错误方向结算。
+- 本地 PHP Operations/耗尽提醒 30 项/178 断言、前端 4 项、JS/PHP 语法及笔记校验通过。覆盖纯上传、纯下载、1×/2×/5×、历史三种模式及序列化重试。CI、双架构镜像、Release、部署及实际新任务对账待完成。
+- 复用前一阶段已部署到八个节点进程的 UDP 方向修复，无需再升级节点或修改 SSH 凭据。先前扩展 #392 的独立故障不在本次规则变更范围。回退旧镜像前须处理 upload_only 队列，旧版本不认识该模式。
+<!-- upload-only-20261107:end -->
+
 <!-- download-only-20261107:start -->
 ## 2026-11-07：只计下载与节点方向核查
 

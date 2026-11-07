@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-class DownloadOnlyBillingTest extends TestCase
+class DirectionalTrafficBillingTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -42,7 +42,7 @@ class DownloadOnlyBillingTest extends TestCase
     }
 
     #[DataProvider('reports')]
-    public function test_new_reports_only_charge_download_but_keep_node_uploads(int $rate, int $up, int $down): void
+    public function test_new_reports_only_charge_upload_but_keep_node_downloads(int $rate, int $up, int $down): void
     {
         $user = $this->user();
         $server = $this->server($rate);
@@ -54,25 +54,36 @@ class DownloadOnlyBillingTest extends TestCase
             // Exercise the same serialized policy snapshot consumed by workers.
             unserialize(serialize(Bus::dispatched($type)->first()))->handle();
         }
-        $this->assertSame(12, (int) $user->fresh()->u, 'Historical upload charges must remain unchanged');
-        $this->assertSame(34 + $down * $rate, (int) $user->fresh()->d);
-        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => 0, 'd' => $down * $rate]);
+        $this->assertSame(12 + $up * $rate, (int) $user->fresh()->u);
+        $this->assertSame(34, (int) $user->fresh()->d, 'Historical download charges must remain unchanged');
+        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => $up * $rate, 'd' => 0]);
         $this->assertDatabaseHas('v2_stat_server', ['server_id' => $server->id, 'u' => $up, 'd' => $down]);
         $this->assertSame($up, (int) $server->fresh()->u);
         $this->assertSame($down, (int) $server->fresh()->d);
     }
 
-    public function test_pre_cutover_jobs_keep_their_original_policy(): void
+    public static function queuedPolicies(): array
+    {
+        return [
+            'legacy bidirectional' => [null, 200, 400],
+            'previous download only' => ['download_only', 0, 400],
+            'upload only retry' => ['upload_only', 200, 0],
+        ];
+    }
+
+    #[DataProvider('queuedPolicies')]
+    public function test_pre_cutover_jobs_keep_their_original_policy(?string $mode, int $up, int $down): void
     {
         $user = $this->user();
-        $server = $this->server(2)->toArray(); // Old payload: no billing policy marker.
+        $server = $this->server(2)->toArray();
+        if ($mode !== null) $server['traffic_billing_mode'] = $mode;
         Redis::shouldReceive('sadd')->once()->with('traffic:pending_check', $user->id);
         $data = [$user->id => [100, 200]];
-        (new TrafficFetchJob($server, $data, 'vless', time()))->handle();
-        (new StatUserJob($server, $data, 'vless'))->handle();
-        $this->assertSame(212, (int) $user->fresh()->u);
-        $this->assertSame(434, (int) $user->fresh()->d);
-        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => 200, 'd' => 400]);
+        unserialize(serialize(new TrafficFetchJob($server, $data, 'vless', time())))->handle();
+        unserialize(serialize(new StatUserJob($server, $data, 'vless')))->handle();
+        $this->assertSame(12 + $up, (int) $user->fresh()->u);
+        $this->assertSame(34 + $down, (int) $user->fresh()->d);
+        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => $up, 'd' => $down]);
     }
 
     public function test_no_report_does_not_dispatch_accounting(): void
