@@ -8,6 +8,7 @@ require '/www/vendor/autoload.php';
 $app = require '/www/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 try {
     // The production SQLite connection refuses writes for this audit process.
@@ -15,12 +16,14 @@ try {
         throw new RuntimeException('unsupported driver');
     }
     DB::statement('PRAGMA query_only = ON');
-    $result = DB::transaction(function () use ($hash) {
+    $targetId = null;
+    $result = DB::transaction(function () use ($hash, &$targetId) {
         $ids = DB::table('v2_user')->select(['id', 'email'])->get()->filter(
             fn ($u) => hash_equals($hash, hash('sha256', strtolower(trim($u->email))))
         )->pluck('id');
         if ($ids->count() !== 1) throw new RuntimeException('account not unique');
         $uid = $ids->first();
+        $targetId = $uid;
         $u = DB::table('v2_user')->where('id', $uid)->first([
             'u', 'd', 'transfer_enable', 'plan_id', 'created_at', 'updated_at',
             'expired_at', 't', 'last_reset_at', 'next_reset_at', 'reset_count',
@@ -57,6 +60,65 @@ try {
                 ->groupBy('queue')->get(),
         ];
     });
+    // Horizon retains only a short window. Decode objects without instantiating
+    // job classes; never execute or print a serialized job or its server config.
+    try {
+        $redis = Redis::connection('horizon');
+        $ids = $redis->zrange('recent_jobs', 0, 9999);
+        $history = ['available' => true, 'scanned_jobs' => count($ids), 'limit' => 10000,
+            'retention_minutes' => config('horizon.trim.recent'), 'matched_reports' => 0,
+            'first_at' => null, 'last_at' => null, 'nodes' => [], 'five_minute_buckets' => []];
+        foreach (array_chunk($ids, 100) as $chunk) {
+            $rows = $redis->pipeline(function ($pipe) use ($chunk) {
+                foreach ($chunk as $id) $pipe->hmget($id, ['name', 'status', 'created_at', 'payload']);
+            });
+            foreach ($rows as $row) {
+                [$name, $status, $created, $raw] = array_values($row);
+                if ($name !== App\Jobs\TrafficFetchJob::class || $status !== 'completed'
+                    || !is_string($raw) || strlen($raw) > 2 * 1024 * 1024) continue;
+                $payload = json_decode($raw, true);
+                $command = $payload['data']['command'] ?? null;
+                if (!is_string($command)) continue;
+                $object = @unserialize($command, ['allowed_classes' => false]);
+                if (!is_object($object)) continue;
+                $values = (array) $object;
+                $data = $values["\0*\0data"] ?? null;
+                $server = $values["\0*\0server"] ?? null;
+                if (!is_array($data) || !isset($data[$targetId]) || !is_array($server)) continue;
+                $traffic = $data[$targetId];
+                if (!is_array($traffic) || count($traffic) !== 2 || !is_numeric($traffic[0]) || !is_numeric($traffic[1])) continue;
+                $at = (int) ((float) $created);
+                $nodeId = (int) ($server['id'] ?? 0);
+                $rate = (float) ($server['rate'] ?? 0);
+                $history['matched_reports']++;
+                $history['first_at'] = min($history['first_at'] ?? $at, $at);
+                $history['last_at'] = max($history['last_at'] ?? $at, $at);
+                $key = $nodeId.':'.$rate;
+                $history['nodes'][$key] ??= ['node_id' => $nodeId, 'rate' => $rate, 'reports' => 0, 'u' => 0, 'd' => 0];
+                $history['nodes'][$key]['reports']++;
+                $history['nodes'][$key]['u'] += $traffic[0];
+                $history['nodes'][$key]['d'] += $traffic[1];
+                $bucket = (int) (floor($at / 300) * 300);
+                $history['five_minute_buckets'][$bucket] ??= ['reported_bytes' => 0, 'billed_bytes' => 0, 'reports' => 0];
+                $history['five_minute_buckets'][$bucket]['reported_bytes'] += $traffic[0] + $traffic[1];
+                $history['five_minute_buckets'][$bucket]['billed_bytes'] += ($traffic[0] + $traffic[1]) * $rate;
+                $history['five_minute_buckets'][$bucket]['reports']++;
+            }
+        }
+        $history['nodes'] = array_values($history['nodes']);
+        ksort($history['five_minute_buckets']);
+        $result['recent_user_reports'] = $history;
+        $devices = Redis::hgetall('user_devices:'.$targetId);
+        $activeNodes = [];
+        foreach ($devices as $field => $at) {
+            if (time() - (int) $at > 300) continue;
+            $node = (int) explode(':', $field, 2)[0];
+            $activeNodes[$node] = ($activeNodes[$node] ?? 0) + 1;
+        }
+        $result['active_node_device_counts'] = $activeNodes;
+    } catch (Throwable $e) {
+        $result['recent_user_reports'] = ['available' => false, 'error_class' => get_class($e)];
+    }
     $result['runtime_source_sha256'] = [];
     foreach (['app/Services/ServerService.php', 'app/Services/UserService.php', 'app/Jobs/TrafficFetchJob.php',
         'app/Jobs/StatUserJob.php', 'app/Jobs/StatServerJob.php', 'app/Models/Server.php'] as $file) {
