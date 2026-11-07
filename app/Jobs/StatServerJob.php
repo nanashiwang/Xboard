@@ -60,8 +60,12 @@ class StatServerJob implements ShouldQueue
         }
 
         try {
-            $this->processServerStat($u, $d, $recordAt);
-            $this->updateServerTraffic($u, $d);
+            // Keep both counters atomic: a failed lifetime update must not
+            // leave a daily increment that the next queue attempt repeats.
+            DB::transaction(function () use ($u, $d, $recordAt) {
+                $this->processServerStat($u, $d, $recordAt);
+                $this->updateServerTraffic($u, $d);
+            }, 3);
         } catch (\Exception $e) {
             Log::error('StatServerJob failed for server ' . $this->server['id'] . ': ' . $e->getMessage());
             throw $e;

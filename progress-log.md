@@ -3,11 +3,11 @@
 <!-- traffic-audit-20261107:start -->
 ## 2026-11-07：流量扣量审计
 
-- 用户反馈三天约用 10 GB，需检查流量虚高。账号与凭据不写入仓库。
-- 已核对 UserService、TrafficFetchJob、StatUserJob 及节点倍率决定：上传下载双向累计，日统计已乘倍率；真实生产原因尚待查询。
-- 新增邮箱 SHA256 选择、SQLite query_only、一致读取事务、字段白名单及错误分类的[审计工作流](./.github/workflows/traffic-audit.yml)。见[决定及证据边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)。
-- 本地 PHP 语法、2× 夹具还原、邮箱脱敏、数据库哈希不变、笔记检查通过。生产审计与 GitHub Actions 尚待执行，不宣称计费修复。
-- 本轮为运维诊断工具，不变更应用计费和客户权益，无应用版本或 Release。提交/推送与生产查询结果随后回填。
+- 用户反馈三天约用 10 GB，检查流量虚高；账号与凭据不写入仓库。审计工具 `6f73bc0` 已提交并推送 master。[生产审计 42356038298](https://github.com/nanashiwang/Xboard/actions/runs/42356038298)成功，运行 revision 为 `7277048`，六个计量源哈希匹配，未发现公开节点重复绑定机器；启用插件无流量处理钩子。
+- 16:34 一致读取快照：该账号 11 月 5 日开通，额度 50 GiB，实际余额字段累计 39.27136 GiB；按日统计 11/5、11/6、11/7 分别约 3.80、17.00、18.49 GiB，几乎全部 2×。反推节点上报分别 1.90、8.50、9.24 GiB。上传已计入；没有该用户 5× 记录。日统计高于余额累计 7,755,708 字节（约 7.40 MiB，0.0184%），不把差额全部归因于单一故障，也不猜测回写历史。
+- 有界近期日志发现 StatUserJob 锁错误 38 条、StatServerJob 14 条，失败队列没有流量/统计任务。统计用户逐条提交、节点日报先提交再写累计的旧逻辑在后半段失败后会重复前半段；四项故障注入在旧代码全部失败，修复后 Operations/耗尽提醒 21 项/115 断言通过。用户实际扣量由独立 TrafficFetchJob 处理，本轮不修改额度扣量、倍率或重置。
+- [统计回滚决定](./.agents/notes/implemented/bug-fix/2026-11-07-traffic-stat-retry-atomicity.md)与[审计边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)。事务解决部分提交后重试；队列 ACK 丢失或节点重复上报仍缺端到端幂等证据，不宣称解决所有重复路径。
+- 本地 PHP 语法、2× 夹具还原、邮箱脱敏、数据库哈希不变、笔记检查通过；GitHub CI、镜像、Release 与生产部署待完成。待客户提供实际日期/客户端/节点，若继续反馈偏高，需独立测试账号定量传输及客户端计数对账；现有日表无法追溯用户逐节点/逐请求原始字节。
 <!-- traffic-audit-20261107:end -->
 
 

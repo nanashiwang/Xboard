@@ -1,9 +1,11 @@
 # Xboard
 
 <!-- traffic-audit-20261107:start -->
-### 流量扣量审计（2026-11-07）
+### 流量扣量审计与统计重试修复（2026-11-07）
 
-针对三天约 10 GB 用量反馈，新增[只读生产审计](./.github/workflows/traffic-audit.yml)，核对账户扣量、按倍率日统计、重置、队列错误及运行源哈希。上传与下载均扣量，日统计已乘倍率；按倍率反推的是节点上报量，不能替代客户端真实传输对账。本地夹具与语法通过，生产结果待执行；未修改客户额度或部署应用。见[审计决定](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)及[进展](./progress-log.md#2026-11-07流量扣量审计)。
+针对三天约 10 GB 反馈，[生产只读审计](https://github.com/nanashiwang/Xboard/actions/runs/42356038298)确认目标账号截至 16:34 扣量 39.27 GiB、几乎全部 2×，按倍率反推节点上报约 19.64 GiB；这不是客户端实测。日统计较账户额度高约 7.40 MiB，未发现足以解释数十 GiB 的面板重复扣量证据。
+
+已复现并修复统计任务部分提交后重试重复累计：用户整批与节点双计数各用原子事务，历史用量和倍率不变。本地 21 项/115 断言通过，CI、镜像和生产部署待完成。客户端日期/节点/全局模式与实际传输仍待用户侧对应，不能据此宣称全部计费无误。见[修复决定](./.agents/notes/implemented/bug-fix/2026-11-07-traffic-stat-retry-atomicity.md)、[只读审计边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)及[进展](./progress-log.md#2026-11-07流量扣量审计)。
 <!-- traffic-audit-20261107:end -->
 
 
