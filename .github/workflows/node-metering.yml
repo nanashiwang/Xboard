@@ -1,6 +1,11 @@
 name: Node Metering Inspection
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        default: inspect
+        options: [inspect, proxy-check]
 permissions:
   contents: read
 concurrency:
@@ -15,6 +20,7 @@ jobs:
       - name: Inspect existing node management metadata
         env:
           SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
           test -n "$SSHPASS"
@@ -22,5 +28,7 @@ jobs:
           install -d -m 700 ~/.ssh
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           chmod 600 ~/.ssh/xboard_known_hosts
+          script=.docker/production/inspect-node-metering.py
+          if [ "$OPERATION" = proxy-check ]; then script=.docker/production/verify-metering-nodes.py; fi
           sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 root@107.173.191.23 \
-            'python3 -' < .docker/production/inspect-node-metering.py
+            'cd /root/Xboard && python3 -' < "$script"
