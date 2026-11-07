@@ -42,7 +42,7 @@
 
 生产 `xboard-node` 基于上游 `0a29338e1f102a462363ce3527417029f89bab28`。此版本在零用户启动后，先检查旧用户列表能否启动内核，再应用新用户；因此首个用户购买后，专属端口仍不监听，入口返回 502。
 
-`.docker/dedicated/node-idle-start.patch` 修复全量同步和增量新增两条路径：先准备新用户状态再启动内核，失败时还原用户和限速状态。使用 Go 1.26.2 执行 `bash .docker/dedicated/build-node.sh /绝对路径/xboard-node-linux-amd64`，生成 `0a29338-dedicated.1`，保持生产构建标签。脚本只构建，不修改线上服务。
+`.docker/dedicated/node-idle-start.patch` 修复全量同步和增量新增两条路径：先准备新用户状态再启动内核，失败时还原用户和限速状态。使用 Go 1.26.2 执行 `bash .docker/dedicated/build-node.sh /绝对路径/xboard-node-linux-amd64`，生成 `0a29338-metering.2`（同时叠加 UDP 方向补丁），保持生产构建标签。脚本只构建，不修改线上服务。
 
 部署前备份入口程序及配置，核对上传二进制哈希，再替换程序并重启 `xboard-node`。验收必须包含“空节点启动 → 新增首个用户 → 无重启建立代理连接”，同时检查原有公共节点；只重启旧程序会暂时掩盖问题。回退时恢复备份程序并重启。
 
@@ -67,3 +67,9 @@
 恢复上游 `34bb1fd` 的列重命名迁移及余额计算：统一使用 `surplus_credit` 保存退回站内余额的余款，历史已退回余额从下一次折抵基数中扣除。保留原迁移文件名，使已迁移数据库跳过重命名；旧数据库升级时保留列内金额。订单 API 额外提供 `refund_amount` 兼容现有主题展示，不再向数据库写入旧列。
 
 执行 `vendor/bin/phpunit tests/Feature/Dedicated tests/Feature/Payments`，覆盖折抵超过/不足新套餐价格、零元结算及重复开通、取消预留、旧列金额迁移与已迁移数据库再次升级。生产核验使用事务回滚的下单请求，不替用户确认换购、不进行真实付款。
+
+## UDP 计量补丁（2026-11-07，待生产部署）
+
+固定版本的 UDP 快速复制存在上传计入下载、写计数回调被提前解包的问题；补丁、8 组合回归及部署边界见[计量决定](../../../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。构建保留既有首用户启动修复和生产标签。不能由该缺陷推导所有流量四倍。
+
+在目标机器运行 `python3 install-metering.py xboard-node` 默认只读检查；入口扩展选择 `xboard-extension`。安装时提供 `--binary /已校验路径/xboard-node-linux-amd64 --expected-old-sha256 <本次实查旧哈希>`。工具检查新二进制固定哈希，备份至 `/root/xboard-metering-backups/`，原子替换并确认实际进程，失败自动恢复旧程序。配置与凭据不改；逐台验证真实 TCP/UDP 代理与面板上报后，才能启用面板只下载计费。

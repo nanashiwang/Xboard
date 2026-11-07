@@ -1,7 +1,7 @@
 # Xboard 能力地图
 
 <!-- download-only-20261107:start -->
-下载单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，节点原始双向计数保留；旧任务缺标记时按旧双向规则。覆盖 REST/合并报告及旧 Tidalab 入口。见[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)、[方向决策](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)；生产待节点 UDP 方向修正与验收。客户端模式只存本地、不在面板设备表或流量报文中，无法从服务端用量推出当前模式。
+下载单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，节点原始双向计数保留；旧任务缺标记时按旧双向规则。覆盖 REST/合并报告及旧 Tidalab 入口。见[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)、[方向决策](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)；生产待节点 UDP 补丁部署与验收；[固定节点构建](../.docker/dedicated/build-node.sh)、[计数回归补丁](../.docker/dedicated/node-traffic-direction.patch)、[只读/原子升级工具](../.docker/dedicated/install-metering.py)及[节点决定](../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)已提供。客户端模式只存本地、不在面板设备表或流量报文中，无法从服务端用量推出当前模式。
 <!-- download-only-20261107:end -->
 
 

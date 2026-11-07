@@ -1,0 +1,127 @@
+--- a/internal/kernel/singbox/conntracker.go
++++ b/internal/kernel/singbox/conntracker.go
+@@ -794 +794 @@
+-	return c.PacketConn, []N.CountFunc{c.makeCountFunc(&c.us.download)}
++	return c.PacketConn, []N.CountFunc{c.makeCountFunc(&c.us.upload)}
+@@ -801 +801 @@
+-	return c.PacketConn, []N.CountFunc{c.makeCountFunc(&c.us.upload)}
++	return c.PacketConn, []N.CountFunc{c.makeCountFunc(&c.us.download)}
+@@ -806 +806,3 @@
+-func (c *trackedPacketConn) WriterReplaceable() bool { return true }
++// sing unwraps replaceable packet writers before extracting counters.
++// Keep this wrapper until UnwrapPacketWriter returns the counting callback.
++func (c *trackedPacketConn) WriterReplaceable() bool { return false }
+--- /dev/null
++++ b/internal/kernel/singbox/traffic_direction_test.go
+@@ -0,0 +1,111 @@
++package singbox
++
++import (
++	"context"
++	"errors"
++	"io"
++	"net"
++	"testing"
++	"time"
++
++	"github.com/sagernet/sing/common/buf"
++	"github.com/sagernet/sing/common/bufio"
++	SM "github.com/sagernet/sing/common/metadata"
++	N "github.com/sagernet/sing/common/network"
++	"golang.org/x/time/rate"
++)
++
++type billingPacketFixture struct {
++	packets [][]byte
++	written int
++}
++
++func (f *billingPacketFixture) ReadPacket(b *buf.Buffer) (SM.Socksaddr, error) {
++	if len(f.packets) == 0 {
++		return SM.Socksaddr{}, io.EOF
++	}
++	_, err := b.Write(f.packets[0])
++	f.packets = f.packets[1:]
++	return SM.Socksaddr{}, err
++}
++func (f *billingPacketFixture) WritePacket(b *buf.Buffer, _ SM.Socksaddr) error {
++	f.written += b.Len()
++	b.Release()
++	return nil
++}
++func (f *billingPacketFixture) Close() error                     { return nil }
++func (f *billingPacketFixture) LocalAddr() net.Addr              { return &net.UDPAddr{} }
++func (f *billingPacketFixture) SetDeadline(time.Time) error      { return nil }
++func (f *billingPacketFixture) SetReadDeadline(time.Time) error  { return nil }
++func (f *billingPacketFixture) SetWriteDeadline(time.Time) error { return nil }
++
++// Exercise sing's actual unwrap/copy path: testing callbacks alone misses a
++// replaceable writer that is unwrapped before its counter can be extracted.
++func TestBillingPacketDirection(t *testing.T) {
++	for _, fast := range []bool{false, true} {
++		for _, limited := range []bool{false, true} {
++			for _, upload := range []bool{true, false} {
++				name := "download"
++				if upload {
++					name = "upload"
++				}
++				if fast {
++					name += "/copy"
++				} else {
++					name += "/direct"
++				}
++				if limited {
++					name += "/limited"
++				}
++				t.Run(name, func(t *testing.T) {
++					stats := &userStats{}
++					inbound := &billingPacketFixture{}
++					wrapped := &trackedPacketConn{PacketConn: inbound, us: stats, ctx: context.Background()}
++					if limited {
++						wrapped.limiter = rate.NewLimiter(rate.Inf, 65535)
++					}
++					remote := &billingPacketFixture{}
++					var reader N.PacketReader = remote
++					var writer N.PacketWriter = wrapped
++					remote.packets = [][]byte{make([]byte, 123), make([]byte, 456)}
++					sink := inbound
++					if upload {
++						inbound.packets = remote.packets
++						remote.packets = nil
++						reader = wrapped
++						writer = remote
++						sink = remote
++					}
++					if fast {
++						_, err := bufio.CopyPacket(writer, reader)
++						if !errors.Is(err, io.EOF) {
++							t.Fatalf("copy: %v", err)
++						}
++					} else {
++						for range 2 {
++							packet := buf.NewPacket()
++							dest, err := reader.ReadPacket(packet)
++							if err != nil {
++								packet.Release()
++								t.Fatal(err)
++							}
++							if err = writer.WritePacket(packet, dest); err != nil {
++								t.Fatal(err)
++							}
++						}
++					}
++					wantUp, wantDown := int64(0), int64(579)
++					if upload {
++						wantUp, wantDown = 579, 0
++					}
++					if sink.written != 579 {
++						t.Fatalf("payload: got %d; want 579", sink.written)
++					}
++					if stats.upload.Load() != wantUp || stats.download.Load() != wantDown {
++						t.Fatalf("got upload=%d download=%d; want upload=%d download=%d", stats.upload.Load(), stats.download.Load(), wantUp, wantDown)
++					}
++				})
++			}
++		}
++	}
++}
