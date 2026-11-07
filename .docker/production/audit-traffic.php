@@ -65,6 +65,7 @@ try {
     });
     // Horizon retains only a short window. Decode objects without instantiating
     // job classes; never execute or print a serialized job or its server config.
+    $auditPhase = 'history_index';
     try {
         $redis = Redis::connection('horizon');
         $ids = $redis->zrange('recent_jobs', 0, 9999);
@@ -72,6 +73,7 @@ try {
             'retention_minutes' => config('horizon.trim.recent'), 'matched_reports' => 0,
             'first_at' => null, 'last_at' => null, 'nodes' => [], 'five_minute_buckets' => []];
         foreach (array_chunk($ids, 100) as $chunk) {
+            $auditPhase = 'history_records';
             $rows = $redis->pipeline(function ($pipe) use ($chunk) {
                 foreach ($chunk as $id) $pipe->hmget($id, ['name', 'status', 'created_at', 'payload']);
             });
@@ -116,6 +118,7 @@ try {
         $history['nodes'] = array_values($history['nodes']);
         ksort($history['five_minute_buckets']);
         $result['recent_user_reports'] = $history;
+        $auditPhase = 'device_counts';
         $devices = Redis::hgetall('user_devices:'.$targetId);
         $activeNodes = [];
         foreach ($devices as $field => $at) {
@@ -125,7 +128,11 @@ try {
         }
         $result['active_node_device_counts'] = $activeNodes;
     } catch (Throwable $e) {
-        $result['recent_user_reports'] = ['available' => false, 'error_class' => get_class($e)];
+        $error = ['available' => false, 'error_class' => get_class($e), 'phase' => $auditPhase];
+        foreach (['WRONGTYPE', 'Connection refused', 'read error', 'NOAUTH', 'timeout'] as $code) {
+            if (stripos($e->getMessage(), $code) !== false) $error['error_code'] = $code;
+        }
+        $result[$auditPhase === 'device_counts' ? 'active_node_device_counts' : 'recent_user_reports'] = $error;
     }
     $result['runtime_source_sha256'] = [];
     foreach (['app/Services/ServerService.php', 'app/Services/UserService.php', 'app/Jobs/TrafficFetchJob.php',
