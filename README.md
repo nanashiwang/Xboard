@@ -5,7 +5,7 @@
 
 针对三天约 10 GB 反馈，[生产只读审计](https://github.com/nanashiwang/Xboard/actions/runs/42356038298)确认目标账号截至 16:34 扣量 39.27 GiB、几乎全部 2×，按倍率反推节点上报约 19.64 GiB；这不是客户端实测。日统计较账户额度高约 7.40 MiB，未发现足以解释数十 GiB 的面板重复扣量证据。
 
-已复现并修复统计任务部分提交后重试重复累计：用户整批与节点双计数各用原子事务，历史用量和倍率不变。本地 21 项/115 断言通过，CI、镜像和生产部署待完成。客户端日期/节点/全局模式与实际传输仍待用户侧对应，不能据此宣称全部计费无误。见[修复决定](./.agents/notes/implemented/bug-fix/2026-11-07-traffic-stat-retry-atomicity.md)、[只读审计边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)及[进展](./progress-log.md#2026-11-07流量扣量审计)。
+已复现并修复统计任务部分提交后重试重复累计：用户整批与节点双计数各用原子事务，历史用量和倍率不变。本地 21 项/115 断言、CI 99 项/598 断言及邮件/节点专项通过；双架构镜像与生产 `b48053d` 已部署 Healthy，六个运行源哈希匹配。[网站 Release 20261107-b48053d](https://github.com/nanashiwang/Xboard/releases/tag/web-20261107-b48053d) 已发布。按用户要求直接查近期任务：15:43–16:42 共 66 条目标用户上报，主要为 2× 后端 #336；16:15–16:20 上报约 491 MiB、扣量约 983 MiB。任务只保留约一小时，日表无应用/逐节点三天历史，仍不能独立证明客户端实际传输。见[修复决定](./.agents/notes/implemented/bug-fix/2026-11-07-traffic-stat-retry-atomicity.md)、[只读审计边界](./.agents/notes/implemented/process/2026-11-07-traffic-accounting-audit.md)及[进展](./progress-log.md#2026-11-07流量扣量审计)。
 <!-- traffic-audit-20261107:end -->
 
 
