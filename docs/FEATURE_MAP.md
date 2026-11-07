@@ -1,7 +1,9 @@
 # Xboard 能力地图
 
 <!-- download-only-20261107:start -->
-下载单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，节点原始双向计数保留；旧任务缺标记时按旧双向规则。覆盖 REST/合并报告及旧 Tidalab 入口。见[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)、[方向决策](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)；生产待节点 UDP 补丁部署与验收；[固定节点构建](../.docker/dedicated/build-node.sh)、[计数回归补丁](../.docker/dedicated/node-traffic-direction.patch)、[只读/原子升级工具](../.docker/dedicated/install-metering.py)及[节点决定](../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)已提供。客户端模式只存本地、不在面板设备表或流量报文中，无法从服务端用量推出当前模式。
+下载单向计费已上线：[TrafficBilling](../app/Services/TrafficBilling.php)由[UserService](../app/Services/UserService.php)在入队快照模式，用户额度/日统计只取下载，原始双向数据保留；旧任务缺标记时按旧规则。[回归](../tests/Feature/Operations/DownloadOnlyBillingTest.php)覆盖 REST/合并上报/旧 Tidalab 入口；[只读审计](../.docker/production/audit-traffic.php)按新旧口径对账，不输出身份凭据。客户端模式未上报，无法从服务端用量推断规则/全局。
+
+[固定节点构建](../.docker/dedicated/build-node.sh)叠加[UDP 计数回归补丁](../.docker/dedicated/node-traffic-direction.patch)，八个生产节点进程已升级；[原子安装器](../.docker/dedicated/install-metering.py)校验新旧哈希、备份和进程，失败回退；[TCP/UDP 探测](../.docker/production/verify-metering-nodes.py)使用已有内部监控身份，凭据仅留服务器临时目录。七条自有线路通过；扩展 #392 是升级前后共同失败项。见[计费决定](../.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)、[节点决定](../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)与[生产记录](../progress-log.md#2026-11-07只计下载与节点方向核查)。
 <!-- download-only-20261107:end -->
 
 

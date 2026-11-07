@@ -44,3 +44,7 @@ NAS probe #1 的 server_ids 增加 #356/#358，expected_exits 对应各自公网
 撤回时先隐藏对应公开节点，移除探针/预期出口和两处隧道映射；再撤销该节点专用 Nginx location、WireGuard peer、精确路由与防火墙来源项，并检查、重载。最后停用对应后端和机器、停止该机节点服务。只撤回对应新增条目，不能整库回滚或覆盖后来新增的另一台配置。
 
 日本、荷兰、罗马尼亚的新路径均未复制到旧香港入口。若将域名切回旧入口，须先同步这三条 peer/路由并验收，或隐藏对应节点并撤下探针；其余回退约束见[第一阶段运维](./vpn-stage1.md)。
+
+## 2026-11-07 计量更新
+
+上文二进制哈希为接入时快照。当前荷兰、罗马尼亚均运行 `0a29338-metering.2`，SHA256 `f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb`；程序备份位于各机 `/root/xboard-metering-backups/`。配置、权限及监听保持，真实 HTTPS 出口与 UDP DNS 验证通过。此补丁修复 UDP 计数方向及漏计，面板新任务同时改为上传免费、下载乘既有倍率。见[计量决定](../../../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。

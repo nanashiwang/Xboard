@@ -68,8 +68,8 @@
 
 执行 `vendor/bin/phpunit tests/Feature/Dedicated tests/Feature/Payments`，覆盖折抵超过/不足新套餐价格、零元结算及重复开通、取消预留、旧列金额迁移与已迁移数据库再次升级。生产核验使用事务回滚的下单请求，不替用户确认换购、不进行真实付款。
 
-## UDP 计量补丁（2026-11-07，待生产部署）
+## UDP 计量补丁（2026-11-07，已部署）
 
 固定版本的 UDP 快速复制存在上传计入下载、写计数回调被提前解包的问题；补丁、8 组合回归及部署边界见[计量决定](../../../.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。构建保留既有首用户启动修复和生产标签。不能由该缺陷推导所有流量四倍。
 
-在目标机器运行 `python3 install-metering.py xboard-node` 默认只读检查；入口扩展选择 `xboard-extension`。安装时提供 `--binary /已校验路径/xboard-node-linux-amd64 --expected-old-sha256 <本次实查旧哈希>`。工具检查新二进制固定哈希，备份至 `/root/xboard-metering-backups/`，原子替换并确认实际进程，失败自动恢复旧程序。配置与凭据不改；逐台验证真实 TCP/UDP 代理与面板上报后，才能启用面板只下载计费。
+在目标机器运行 `python3 install-metering.py xboard-node` 默认只读检查；入口扩展选择 `xboard-extension`。安装时提供 `--binary /已校验路径/xboard-node-linux-amd64 --expected-old-sha256 <本次实查旧哈希>`。工具检查新二进制固定哈希，备份至 `/root/xboard-metering-backups/`，原子替换并确认实际进程，失败自动恢复旧程序。配置与凭据不改；本轮八个进程已升级，七条自有线路真实 TCP/UDP 代理通过，面板只下载计费已启用并对账。扩展 #392 是升级前后共同失败项；未验收每条扩展和客户设备的定量传输。

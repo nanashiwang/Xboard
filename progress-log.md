@@ -3,13 +3,14 @@
 <!-- download-only-20261107:start -->
 ## 2026-11-07：只计下载与节点方向核查
 
-- 用户要求上传免费、只计节点发给客户端的下载，同时询问是否四倍、规则/全局及直连计费。原式为 `(上行+下行)×倍率`，不能按网卡收发次数推断四倍；此前反馈账号 39.27 GiB 中账面上行约 1.97 GiB（约 5%），但 UDP 方向误记使账面上行不等于全部真实上传，不能用 5% 预测实际节省；2× 保留。
-- UserService 为新任务快照 download_only；两个用户计费任务共用方向筛选；原始任务及节点运维统计保留双向，旧任务继续原规则。审计按任务快照区分公式，用户日表反推值仅为计费基数、不再代表完整上传。见[决策](./.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)。
-- 客户端模式存本地 routing.json，设备注册与节点流量接口均不携带该模式，不能猜测客户当前规则/全局；真正客户端 DIRECT 不经过节点，不进入计费上报。默认模板为规则模式，不等于客户端当前选择。
-- 本地 PHP 28 项/170 断言（含上传独占、下载独占、1×/2×/5×、历史任务与统计回滚）、前端 10 项及语法检查通过。面板 CI 与双架构镜像已完成（0f3883f，构建 42361681559），Release 与生产切换待完成。
-- 固定节点上游 0a29338 的真实 CopyPacket 回归复现：上传被累计为下载，下载写计数被提前解包跳过。入口扩展服务运行二进制 SHA256 为 28662b4803bf5cbf3db9079b6fe24921f43b1ebb06e64ec187de6a85e548a4f0，匹配已有部署备份，备份源码存在同一代码。日本节点 185.39.31.75 经已有 XTerminal 连接实查也为同一哈希且服务 active。美国02保存连接两次在第一跳报 All configured authentication methods failed / ECONNRESET；既有面板 fleet 脚本使用交互密码，备份清单不含可复用 SSH 凭据。尚未重启或替换任何节点；先保留原生产计费规则。
-- 节点补丁将 UDP 读回调归上传、写回调归下载，并阻止写包装在提取计数器之前被解包。原版本 4 个快速路径组合失败，补丁后普通/快速 × 上传/下载 × 有/无限速 8 组合与 singbox/tracker/service race 通过。固定 Go 1.26.2 构建 0a29338-metering.2，SHA256 f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb；保留首用户启动修复。见[节点修复](./.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。
-- 新增逐台安装器：默认只读，安装须匹配已核验旧哈希和固定新哈希，备份程序/配置/单位，原子替换并验证运行文件；重启失败自动恢复旧程序。进程验证不代表真实 TCP/UDP 验收。用户提供既有跳板后美国02已成功登录，密码只用于认证；继续逐台升级、代理验证、面板切换和新上报抽查。节点 CI 42363366636 成功，下载回来的 Linux 程序哈希与本地完全一致。
+- 用户要求上传免费、仅下载扣量，并询问是否四倍以及规则/全局、直连计费。原式为 `(上行+下行)×倍率`，不能按物理网卡收发次数推导四倍。反馈账号账面 u 占约 5%，但 UDP 方向误记使其不能代表全部真实上传或准确节省比例；原 2×/5× 倍率保留。
+- UserService 为新任务快照 download_only；用户额度/日统计复用方向选择；原始任务与节点运维统计保留双向。旧任务继续旧规则，历史已用额度不回写。客户端模式仅存本地 routing.json，设备注册/流量接口不携带选择；真正客户端 DIRECT 不计费，规则命中代理仍计费。见[计费决定](./.agents/notes/implemented/feature/2026-11-07-download-only-billing.md)。
+- 本地 PHP 28 项/170 断言、前端 10 项、语法及笔记结构通过；面板 CI [42361681811](https://github.com/nanashiwang/Xboard/actions/runs/42361681811) 106 项/653 断言通过，双架构镜像 [42361681559](https://github.com/nanashiwang/Xboard/actions/runs/42361681559) 完成，两个架构标签均核对为 0f3883f435585427b6ec2c3bed607bb90f6b610a。
+- 固定上游 0a29338 的 UDP 快速路径：读回调方向倒置，写包装在提取计数器前被解包，导致漏计。原版 4 个快速路径组合失败；修复后普通/快速 × 上传/下载 × 有/无限速 8 组合及 singbox/tracker/service race 通过。[节点 CI 42363366636](https://github.com/nanashiwang/Xboard/actions/runs/42363366636) 成功，下载产物与本地哈希完全一致。见[节点决定](./.agents/notes/implemented/bug-fix/2026-11-07-node-udp-traffic-direction.md)。
+- 美国02保存连接曾在第一跳认证失败；用户提供既有跳板后恢复，复用既有节点认证，未更改密码/权限。七个出口及入口扩展共八个进程已逐台备份并升级为 0a29338-metering.2，运行 SHA256 全部为 f002b9f882cc282911e6113c50d8f36a83cf77e2f558bd3104321a4cd104f6eb。香港原显示 v1.13，但二进制构建信息确认同一固定源码。原配置哈希、每个进程监听集合保持。备份在各机 /root/xboard-metering-backups/，保留旧程序、配置与 unit；未触发回退。
+- [升级前基线 42364708127](https://github.com/nanashiwang/Xboard/actions/runs/42364708127)、[日本首台复测 42364937996](https://github.com/nanashiwang/Xboard/actions/runs/42364937996)、[全量节点复测 42365236546](https://github.com/nanashiwang/Xboard/actions/runs/42365236546)：七条自有线路 #322/#323/#324/#325/#354/#356/#358 HTTPS 真实出口与 UDP DNS 均通过；[面板切换后 42365934526](https://github.com/nanashiwang/Xboard/actions/runs/42365934526) 七条自有线路也全部通过。扩展 #392 四轮均连接失败，因此四个工作流整体结论为 failure。该故障早于本次升级，不写成新增回归，也不写成已修复；其余扩展线路和客户设备定量传输未验收。
+- 面板[部署 42365436754](https://github.com/nanashiwang/Xboard/actions/runs/42365436754) 成功：数据库备份校验通过、容器 Healthy，应用版本 20261107-0f3883f。2026-11-07 18:49:05 与 18:52:36 只读快照核对，七个源文件哈希匹配；反馈账号 u 不变，d 增加 53,152 字节，恰等于两笔 download_only 任务下载 26,576 × 2；任务中另有上传 145,509 字节，未计入用户扣量。[流量对账 42365764875](https://github.com/nanashiwang/Xboard/actions/runs/42365764875) 成功。首轮近期队列读取曾报 RedisException，重试恢复；审计增加脱敏阶段标识并隔离设备读取失败，没有将该异常推断为扣费故障。
+- 实现与运维提交依次为 0f3883f、335ffcf、545b2f4、16f1a49、34792c3，均推送 master。网站 [web-20261107-0f3883f](https://github.com/nanashiwang/Xboard/releases/tag/web-20261107-0f3883f) 提供双架构镜像说明、Linux amd64 节点程序、安装器、去标识化验证清单及 SHA256SUMS；无桌面客户端更新。正式 Release 已发布；五个附件重新下载并逐个核对 SHA256。临时凭据传递密钥及加密中间记录已删除，任务 SSH 会话关闭；已有服务器凭据和授权不变。README 与本文件按最终提交从 GitHub 回读核对。
 <!-- download-only-20261107:end -->
 
 
