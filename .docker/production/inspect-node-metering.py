@@ -1,6 +1,7 @@
 """List bounded deployment metadata locations, never file contents or credentials."""
 import json
 import ast
+import subprocess
 from pathlib import Path
 
 roots = [
@@ -36,3 +37,25 @@ for root in roots[:2]:
             tree = ast.parse(path.read_text())
             print(json.dumps({'path': str(path), 'functions': [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)],
                               'imports': [ast.unparse(n) for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))]}))
+            class RedactConstants(ast.NodeTransformer):
+                def visit_Constant(self, node):
+                    if isinstance(node.value, str):
+                        return ast.Constant(value='<string>')
+                    return node
+            for node in tree.body:
+                if isinstance(node, ast.Assign) or (isinstance(node, ast.FunctionDef) and node.name == 'conn'):
+                    print(json.dumps({'code_shape': ast.unparse(RedactConstants().visit(node))}))
+
+containers = subprocess.check_output(['docker', 'ps', '--format', '{{.ID}} {{.Names}}'], text=True)
+for line in containers.splitlines():
+    cid, name = line.split(' ', 1)
+    if 'xboard' not in name.lower():
+        continue
+    meta = json.loads(subprocess.check_output(['docker', 'inspect', cid], text=True))[0]
+    for mount in meta['Mounts']:
+        if mount['Destination'] != '/www/storage':
+            continue
+        root = Path(mount['Source']) / 'app/backups'
+        for tag in ('friendhosting-jp-20261021', 'friendhosting-nl-20261021', 'friendhosting-ro-20261021'):
+            folder = root / tag
+            print(json.dumps({'backup': str(folder), 'files': [f.name for f in folder.iterdir()] if folder.is_dir() else []}))
