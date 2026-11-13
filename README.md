@@ -681,6 +681,6 @@ Issues and Pull Requests are welcome to help improve the project.
 [![Stargazers over time](https://starchart.cc/cedar2025/Xboard.svg)](https://starchart.cc/cedar2025/Xboard)
 
 
-### 支付报价仍包含成本（2026-11-13核验）
+### 支付按人民币标价收款（2026-11-13）
 
-生产当前启用「微信 / 银行卡（Raymi）」：面板固定/比例手续费均为 0，但 Stripe 美元报价仍按 1 USD = 6.7075 CNY，将 4.4% 和 $0.30 支付成本计入售价。因此不能将 handling_amount 为空理解为最终付款无加价。只读配置、运行代码及已支付报价已核对，未修改线上配置或发起付款；详见[核验记录](./progress-log.md#2026-11-13线上支付手续费只读核验)。
+用户要求按页面标价收款后，生产「微信 / 银行卡（Raymi）」已切换人民币 CNY 直接收款：固定/比例手续费和美元成本预算均为 0，关闭自动换汇。实际运行插件生成的真实收银台已确认 ¥9.90 → ¥9.90，支持微信和银行卡，验证链接随后过期，未付款；¥32 的运行请求为 CNY 3200 分。旧待付款美元链接为 0，历史已付订单不改。见[实施决定](./.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)和[验证记录](./progress-log.md#2026-11-13取消支付加价并按人民币标价收款)。

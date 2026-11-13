@@ -176,4 +176,4 @@ python3 -m unittest discover -s tests/Operations -v
 
 ### 支付成本核验（2026-11-13）
 
-[订单结算](../app/Http/Controllers/V1/User/OrderController.php)的 handling_fee 与 [Stripe 美元报价](../plugins/Stripe/UsdPricing.php)的成本预算是两层计算。当前生产前者为零，后者仍为 4.4% + $0.30、汇率 6.7075；真实已支付报价支持最终售价包含成本的结论。仅只读核验，见[进展](../progress-log.md#2026-11-13线上支付手续费只读核验)。
+[订单结算](../app/Http/Controllers/V1/User/OrderController.php)与 [Stripe 插件](../plugins/Stripe/Plugin.php)复用既有 CNY 收款分支，当前生产两层成本均归零、不经过美元报价。真实运行收银台 CNY 990 分与标价 ¥9.90 一致、微信/银行卡可用，验证链接已过期；[运维脚本](../.docker/production/checkout-no-surcharge.php)保留通道备份和旧 USD 会话检查，见[决定](../.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)与[进展](../progress-log.md#2026-11-13取消支付加价并按人民币标价收款)。
