@@ -172,3 +172,8 @@ python3 -m unittest discover -s tests/Operations -v
 ```
 
 [`phpunit.xml`](../phpunit.xml) 使用测试环境、SQLite 内存库、array 缓存和 sync 队列。根 [`package.json`](../package.json) 没有前端构建脚本；前端或子模块变更需按其实际工程验证。当前依赖以 [`composer.json`](../composer.json) 的 PHP ^8.2、Laravel ^12.0 为准。
+
+
+### 支付成本核验（2026-11-13）
+
+[订单结算](../app/Http/Controllers/V1/User/OrderController.php)的 handling_fee 与 [Stripe 美元报价](../plugins/Stripe/UsdPricing.php)的成本预算是两层计算。当前生产前者为零，后者仍为 4.4% + $0.30、汇率 6.7075；真实已支付报价支持最终售价包含成本的结论。仅只读核验，见[进展](../progress-log.md#2026-11-13线上支付手续费只读核验)。

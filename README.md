@@ -679,3 +679,8 @@ Issues and Pull Requests are welcome to help improve the project.
 ## 📈 Star History
 
 [![Stargazers over time](https://starchart.cc/cedar2025/Xboard.svg)](https://starchart.cc/cedar2025/Xboard)
+
+
+### 支付报价仍包含成本（2026-11-13核验）
+
+生产当前启用「微信 / 银行卡（Raymi）」：面板固定/比例手续费均为 0，但 Stripe 美元报价仍按 1 USD = 6.7075 CNY，将 4.4% 和 $0.30 支付成本计入售价。因此不能将 handling_amount 为空理解为最终付款无加价。只读配置、运行代码及已支付报价已核对，未修改线上配置或发起付款；详见[核验记录](./progress-log.md#2026-11-13线上支付手续费只读核验)。
