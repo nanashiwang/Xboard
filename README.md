@@ -691,3 +691,8 @@ Issues and Pull Requests are welcome to help improve the project.
 生产新增「支付宝（taige）」通道 3，使用 acct_1UGbyu1DvmJXrFlV；原「微信 / 银行卡（Raymi）」通道 2 保留。两条通道均按人民币标价收款，固定/比例手续费为 0。
 实际生产插件创建 CNY 990/3200 收银台，确认目标配置包含支付宝，验证会话均已过期、未付款。独立回调正确签名通过、错误签名拒绝，生产只读回读成功；真实付款、订单开通和到账仍未验证。
 见[实施决定](./.agents/notes/implemented/feature/2026-11-16-taige-alipay-channel.md)、[接入工作流](./.github/workflows/stripe-alipay-provision.yml)与[进展](./progress-log.md#2026-11-16taige-支付宝账户接入核验)。
+
+
+### taige 微信支付复核中（2026-11-16）
+
+用户要求 taige 同时开通微信支付。当前账户状态任务仍为「已关闭——已拒绝」；10 月 5 日的 Stripe 通知说明未收到补充业务信息，旧补件链接现已跳转至账户状态页，不能重新填写。经用户授权联系人工后，Stripe 已建立邮件工单并转交相关团队，客服确认当前无需补充材料，具体拒绝原因和是否可恢复仍待团队回复，未承诺回复时限；**taige 微信支付尚未开通**。现有支付宝（taige）和微信／银行卡（Raymi）继续保留，见[进展](./progress-log.md#2026-11-16taige-微信支付人工复核)。
