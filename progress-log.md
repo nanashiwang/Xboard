@@ -2065,3 +2065,5 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 支付宝核验补充：`0aa79d1` 已推送 master，[生产只读核验 43801765868](https://github.com/nanashiwang/Xboard/actions/runs/43801765868)成功，运行 revision 1839948，确认现用账户为 Raymi。Stripe 授权正式 API 已可用，目标支付宝 available=true；旧 Webhook 绑定通道 2，不能直接用于新通道。新增宿主备份只读检查，限定项目备份目录并仅输出文件路径/账户 ID，不输出凭据。本地语法和笔记校验通过；未写生产配置。README 精确 SHA 回读通过；progress-log 回读遇网络超时，待重试。
 
 [备份只读核验 43802011313](https://github.com/nanashiwang/Xboard/actions/runs/43802011313)成功，首轮 60 条路径限额可能漏过后续 Stripe 专用目录；修正为优先专项备份、最多检查 500 文件、仅输出发现凭据的账户身份与来源，不输出重复空记录，继续核验。`0465d93` 已推送，README/progress-log 均从 GitHub 精确 SHA 回读一致；笔记 CI 成功，自动镜像构建仍待完成，生产配置未变。
+
+[备份只读核验 43802011313](https://github.com/nanashiwang/Xboard/actions/runs/43802011313)成功，首轮 60 条路径限额可能漏过后续 Stripe 专用目录；修正为优先专项备份、最多检查 500 文件、仅输出发现凭据的账户身份与来源，不输出重复空记录，继续核验。`0465d93` 已推送，README/progress-log 均从 GitHub 精确 SHA 回读一致；笔记 CI 成功，自动镜像构建仍待完成，生产配置未变。

@@ -693,3 +693,5 @@ Issues and Pull Requests are welcome to help improve the project.
 生产只读核验已成功：当前启用通道仍为 Raymi，原支付宝是停用的 EPay；目标 taige 的旧 Webhook 指向现用通道 2，需要独立回调。Stripe 正式 API 已确认目标支付宝可用，生产接入仍待完成。
 
 宿主备份核验已执行，首轮扫描有条目上限；继续优先检查 Stripe 专用备份并扩大有界检查，尚不据首轮结果断言旧密钥不存在。
+
+宿主备份核验已执行，首轮扫描有条目上限；继续优先检查 Stripe 专用备份并扩大有界检查，尚不据首轮结果断言旧密钥不存在。
