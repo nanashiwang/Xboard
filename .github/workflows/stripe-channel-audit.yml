@@ -1,0 +1,30 @@
+name: Stripe Channel Audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read production payment channel identities
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$SSHPASS"
+          php -l .docker/production/inspect-stripe-channels.php
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            'cd /root/Xboard && docker inspect --format '\''revision={{index .Config.Labels "org.opencontainers.image.revision"}} mounts={{range .Mounts}}{{.Destination}} {{end}}'\'' "$(docker compose ps -q xboard)"'
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            'cd /root/Xboard && docker compose exec -T xboard php' < .docker/production/inspect-stripe-channels.php

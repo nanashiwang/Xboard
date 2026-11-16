@@ -2051,3 +2051,13 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 实际运行 PaymentService 的隔离请求验证 ¥9.90 → CNY 990 分、¥32 → CNY 3200 分；随后通过生产真实 PaymentService 创建收银台，Stripe 返回 cny/990、微信和银行卡可用，立即过期。没有创建站内客户订单、实际付款或开通权益，未宣称已验证最终到账。
 - 当前项目旧未付款 USD Checkout 在切换前后均为 0，没有需要关闭的客户链接；其他项目与历史已支付报价未改。旧美元商品与报价作为历史保留，不作为当前价目使用；手续费由商户承担，发卡行独立费用未核验。
 - 工作流、文档链接及差异检查后，仅本任务文件中文提交推送 master，并按精确 SHA 从 GitHub 回读 README/progress-log。原暂存/未暂存工作保留。生产运行 revision 仍为 1839948；仅配置生效，无应用构建/部署、新版本或 Release。提交和回读终态见本次交付。
+
+
+## 2026-11-16：taige 支付宝账户接入核验
+
+用户要求接入 acct_1UGbyu1DvmJXrFlV / pmc_1UGbzR1DvmJXrFlVLsBXHPnq。浏览器确认账户名 taige（raymi labs）、支付宝启用、微信不符合资格；存在 Xboard taige server 受限密钥及旧回调。用户已完成 Stripe 插件重新授权，连接页面不再显示认证失效；API 账户列表仍等待响应。
+
+- 选择独立支付宝通道，继续 CNY 标价、零附加费，保留原通道；见[提案](./.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
+- 本机 SSH 密钥登录被拒绝，复用现有 GitHub SSH Secret 与固定主机公钥，新增仅查询的 Stripe Channel Audit；不输出密钥、签名秘密或客户数据。
+- 本地 PHP 8.2.33 语法检查、隔离禁网 Payments 21 项/95 断言、工作流笔记校验通过。提交前差异与链接回读；本批中文提交推送 master 后执行生产只读核验，Actions 结果待记录。尚未写入通道、未创建真实 Checkout、未付款或验证到账。
+- 此批为运维核验工具和接入提案，无应用镜像部署、客户端版本或 GitHub Release。

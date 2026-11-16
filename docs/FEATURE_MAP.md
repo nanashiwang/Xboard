@@ -177,3 +177,8 @@ python3 -m unittest discover -s tests/Operations -v
 ### 支付成本核验（2026-11-13）
 
 [订单结算](../app/Http/Controllers/V1/User/OrderController.php)与 [Stripe 插件](../plugins/Stripe/Plugin.php)复用既有 CNY 收款分支，当前生产两层成本均归零、不经过美元报价。真实运行收银台 CNY 990 分与标价 ¥9.90 一致、微信/银行卡可用，验证链接已过期；[运维脚本](../.docker/production/checkout-no-surcharge.php)保留通道备份和旧 USD 会话检查，见[决定](../.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)与[进展](../progress-log.md#2026-11-13取消支付加价并按人民币标价收款)。
+
+
+### taige 支付宝接入提案（2026-11-16）
+
+目标账户支付宝启用、微信不符合资格，计划复用 StripeCheckout 的独立通道与 CNY 原价。新增[只读配置核验](../.docker/production/inspect-stripe-channels.php)和[运维工作流](../.github/workflows/stripe-channel-audit.yml)，仅输出安全字段；生产接入尚未完成，见[提案](../.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
