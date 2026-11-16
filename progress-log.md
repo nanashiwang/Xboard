@@ -2076,3 +2076,12 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 人工客服 Soon 已建立邮件工单，转交相关团队排查，并通过账户绑定邮箱回复。已要求确认能否重新开启复核、具体拒绝原因和所需材料；客服明确当前暂时无需补充材料，团队先排查再邮件联系；未提供预计首次回复时间。在线会话已结束，后续通过邮件工单处理。未声称已批准、已恢复或已完成新补件。工单编号保留在当前用户会话，不将邮箱或完整支持对话写入仓库。
 - 当前生产支付配置、账户业务资料和原有回调均未更改；Raymi 微信支付及 taige 支付宝保持已启用状态。后续应根据 Stripe 人工回复补充真实资料，获得资格后再验证 Checkout 包含微信支付。
 - 本次仅同步核查事实和待办，执行笔记门禁、文档链接及差异检查，不重复运行无关业务测试；中文提交推送 master 后回读 README/progress-log，并核实自动构建。无版本升级、GitHub Release 或生产部署。前次收尾 2fb5268 的 Docker Build and Publish 43816962162 已成功。
+
+
+## 2026-11-16：客户端配置完整性排查
+
+- 用户反馈分流页出现“配置完整性校验失败，请重试”。定位 Account::config：成功响应正文超过 4 MiB，或 ETag 去引号后不等于正文 SHA-256，返回该提示；已知 Content-Length 超限另报“配置过大”。前两句是静态模式说明。
+- 服务端 ClientConfigService 对正文求 SHA-256，ClientController 使用带引号 ETag。客户端只去引号，不能识别 W/ 前缀；这是可疑兼容边界，尚无现场响应证明。缺失摘要头或正文变化也可能命中相同提示。
+- 本机禁用代理请求 capybarago.uk 与 app.capybarahub.fyi 的公开 health，均 HTTP 200/application/json；未读取登录凭据或下载真实账号配置，不据此宣称故障已修复。
+- 本地 Rust manual_subscription_update_fetches_verified_content_even_before_due 精确回归通过（1 项），验证正确摘要接受、错误摘要不应用。PHP 测试未运行成功，PATH 无 php。没有修改业务代码、版本或生产配置，没有触发 Actions、构建或 Release。
+- 后续需要客户端系统、版本、触发步骤及故障请求的脱敏摘要信息；尚未确定根因。沿用[桌面配置校验决定](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)，不改变协议或绕过校验。文档检查、提交推送和 GitHub 回读结果由本次回复报告。

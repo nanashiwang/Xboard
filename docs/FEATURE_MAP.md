@@ -187,3 +187,8 @@ python3 -m unittest discover -s tests/Operations -v
 
 
 微信支付跟进：2026-11-16 taige 账户仍受资格限制，旧补件任务已关闭拒绝；已获用户授权联系 Stripe 人工并建立邮件复核工单。此为账户资格处理，尚未改变通道或开通微信；继续使用既有 Raymi 微信通道，见[进展](../progress-log.md#2026-11-16taige-微信支付人工复核)。
+
+
+### 客户端配置完整性诊断（2026-11-16）
+
+[配置下载](../desktop/capybara/src-tauri/src/account.rs)沿用[服务端摘要](../app/Services/Client/ClientConfigService.php)与[ETag 响应](../app/Http/Controllers/V1/Desktop/ClientController.php)。现有正确/错误摘要回归通过，两路 health 正常；故障请求尚未取得，不能确认摘要头或正文问题。见[排查进展](../progress-log.md#2026-11-16客户端配置完整性排查)。
