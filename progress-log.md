@@ -2085,3 +2085,5 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 本机禁用代理请求 capybarago.uk 与 app.capybarahub.fyi 的公开 health，均 HTTP 200/application/json；未读取登录凭据或下载真实账号配置，不据此宣称故障已修复。
 - 本地 Rust manual_subscription_update_fetches_verified_content_even_before_due 精确回归通过（1 项），验证正确摘要接受、错误摘要不应用。PHP 测试未运行成功，PATH 无 php。没有修改业务代码、版本或生产配置，没有触发 Actions、构建或 Release。
 - 后续需要客户端系统、版本、触发步骤及故障请求的脱敏摘要信息；尚未确定根因。沿用[桌面配置校验决定](./.agents/notes/implemented/architecture/2026-10-23-capybara-desktop.md)，不改变协议或绕过校验。文档检查、提交推送和 GitHub 回读结果由本次回复报告。
+
+- 用户补充系统为 macOS。本机 /Applications/Capybara.app 为 0.1.13，进程路径及项目构建包 Info.plist、窗口均确认正在运行 0.1.14；UI 显示未登录，没有现场报错。GitHub 0.1.13 发布标签源码回读确认与 0.1.14 使用相同的 ETag/SHA-256 判断。尚需确认用户反馈是否来自本机，以及登录后自动触发还是手动更新订阅触发；未重新登录、更新安装包或改动网络设置。
