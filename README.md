@@ -690,5 +690,5 @@ Issues and Pull Requests are welcome to help improve the project.
 
 已完成 taige 正式账户授权，Stripe API 确认指定配置支付宝可用、微信不可用。
 生产只读核验及 58 个项目备份检查完成，现用账户仍为 Raymi，未找到目标账户可复用的服务器密钥；旧 taige Webhook 指向现用通道 2，需要为新通道配置独立回调。
-当前等待新受限密钥创建与安全配置，**生产支付宝尚未上线**。继续保留 Raymi 微信/银行卡及人民币原价政策。
+新受限密钥已按用户授权保存到 GitHub 加密 Secret，独立通道接入脚本和回退测试已就绪，**生产支付宝尚待执行验收**。继续保留 Raymi 微信/银行卡及人民币原价政策。
 见[接入提案](./.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)、[运维核验](./.github/workflows/stripe-channel-audit.yml)与[进展](./progress-log.md#2026-11-16taige-支付宝账户接入核验)。

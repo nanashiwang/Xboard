@@ -34,5 +34,8 @@ Status: proposed
 2026-11-16 正式 API 已确认目标 pmc 支付宝 available=true、微信=false。生产只读工作流 43801765868 成功：通道 1 为停用的 EPay，通道 2 为 Raymi；目标账户旧 Webhook 同样指向通道 2，不能直接复用地址。容器内仅发现 11 月 13 日的 Raymi 配置备份，继续在项目宿主备份内只读检查旧 Stripe 凭据是否存在。
 
 完整补充核验 43802313152 成功，检查 58 个项目备份文件，仅发现 Raymi 账户凭据，未找到目标 taige 密钥。
-需要创建新的受限密钥；浏览器已准备 Checkout Sessions 写、Payment Method Configurations 读、Webhook Endpoints 写三项权限及名称 Xboard taige Alipay，尚未提交创建。
-生产通道保持原状，待凭据后继续独立回调、CNY 收银台与签名校验。
+用户已创建 Xboard taige Alipay 受限密钥，权限为 Checkout Sessions 写、Payment Method Configurations 读、Webhook Endpoints 写；并明确授权保存到 GitHub 加密 Secret XBOARD_TAIGE_STRIPE_KEY 及写入本站服务器。
+
+新增独立运维脚本与手动工作流：通过固定主机公钥 SSH 传输私有临时凭据包，完成后清理；服务器先备份、创建停用通道、配置独立回调。实际 PaymentService 生成 CNY 990/3200 收银台，检查支付宝与指定 PMC 后立即过期，不付款；启用后检查公开回调正确签名成功、错误签名拒绝，失败停用本次启用的新通道。原通道与旧回调不改；重复执行复用已记录端点。
+
+本地 Payments 25 项/114 断言通过，含重复执行、原通道隔离、金额异常会话过期与回调失败停用。生产执行尚待手动工作流结果。

@@ -183,4 +183,4 @@ python3 -m unittest discover -s tests/Operations -v
 
 目标账户支付宝启用、微信不符合资格，计划复用 StripeCheckout 的独立通道与 CNY 原价。新增[只读配置核验](../.docker/production/inspect-stripe-channels.php)和[运维工作流](../.github/workflows/stripe-channel-audit.yml)，仅输出安全字段；生产接入尚未完成，见[提案](../.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
 
-接入前置核验完成：正式授权和支付宝能力已确认；58 个项目备份未找到目标服务器密钥，等待创建受限密钥，生产未启用新通道。
+接入前置核验与新受限密钥保存完成；[独立通道配置脚本](../.docker/production/provision-taige-alipay.php)、[手动接入工作流](../.github/workflows/stripe-alipay-provision.yml)和 [隔离/回退测试](../tests/Feature/Payments/TaigeProvisioningTest.php)已就绪，待生产执行验收。

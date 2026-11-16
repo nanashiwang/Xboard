@@ -2072,3 +2072,10 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 
 `9a3e7c1` 已推送 master，README/progress-log 精确 SHA 回读一致，Agent Workflow Notes 和生产核验成功。
 自动 Docker Build and Publish 仍运行中，未据此宣称镜像发布成功。此批不改客户端版本、不创建 GitHub Release、不部署生产应用。
+
+
+### taige 支付宝凭据与接入工具就绪
+
+用户已创建受限密钥，并明确批准保存到 nanashiwang/Xboard 的 GitHub 加密 Secret XBOARD_TAIGE_STRIPE_KEY，页面已确认保存。新增[接入工作流](./.github/workflows/stripe-alipay-provision.yml)和[配置脚本](./.docker/production/provision-taige-alipay.php)，先备份并停用配置，验证 CNY 金额、支付宝、独立签名回调后启用；校验失败停用本次新通道，原 Raymi 与旧回调不改。
+
+本地 PHP 语法与 Payments 25 项/114 断言通过，覆盖通道隔离、重试幂等、异常金额会话过期与回调失败回退；工作流 YAML/Shell 及笔记门禁在提交前检查。生产接入尚待本次手动工作流结果，未付款。此前 9534bb2 的 Docker Build and Publish（43802875178）已成功；本次不改客户端版本、不创建 GitHub Release、不重启生产应用。

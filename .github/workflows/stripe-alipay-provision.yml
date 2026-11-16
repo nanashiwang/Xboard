@@ -1,0 +1,48 @@
+name: Provision taige Alipay
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure and verify independent Alipay channel
+        env:
+          SSHPASS: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          TAIGE_KEY: ${{ secrets.XBOARD_TAIGE_STRIPE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SSHPASS"
+          test -n "$TAIGE_KEY"
+          php -l .docker/production/provision-taige-alipay.php
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          install -d -m 700 ~/.ssh
+          echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
+          chmod 600 ~/.ssh/xboard_known_hosts
+          umask 077
+          bundle=$(mktemp -d)
+          trap 'rm -rf "$bundle"' EXIT
+          printf '%s' "$TAIGE_KEY" > "$bundle/key"
+          unset TAIGE_KEY
+          cp .docker/production/provision-taige-alipay.php "$bundle/provision.php"
+          tar -C "$bundle" -cf - provision.php key | sshpass -e ssh \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" \
+            -o ConnectTimeout=20 -o ServerAliveInterval=15 root@107.173.191.23 '
+              set -eu
+              umask 077
+              cd /root/Xboard
+              container=$(docker compose ps -q xboard)
+              test -n "$container"
+              work=$(mktemp -d /tmp/xboard-alipay.XXXXXXXX)
+              trap '\''docker exec "$container" rm -rf "$work"; rm -rf "$work"'\'' EXIT
+              tar -xf - -C "$work"
+              docker cp "$work" "$container:$work"
+              docker exec "$container" php "$work/provision.php" "$work/key"
+            '
