@@ -7,15 +7,16 @@ from pathlib import Path
 
 roots = [Path('/root/Xboard/backups'), Path('/root/xboard-backups'), Path('/root/Xboard/.docker/.data')]
 results, seen = [], set()
+scanned = 0
 for root in roots:
     if not root.is_dir():
         continue
-    for path in sorted(root.rglob('*')):
+    for path in sorted(root.rglob('*'), key=lambda p: (not bool(re.search(r'stripe|payment', str(p), re.I)), str(p))):
         if path.is_symlink() or not path.is_file() or len(path.relative_to(root).parts) > 5:
             continue
         if not re.search(r'stripe|payment|sqlite', str(path), re.I):
             continue
-        if path.stat().st_size > 100 * 1024 * 1024:
+        if path.name.endswith(('-shm', '-wal')) or path.stat().st_size > 100 * 1024 * 1024:
             continue
         item = {'path': str(path), 'accounts': []}
         candidates = []
@@ -46,7 +47,9 @@ for root in roots:
                         item['account_lookup_failed'] = True
         except (ValueError, sqlite3.Error, OSError):
             item['unreadable'] = True
-        results.append(item)
-        if len(results) >= 60:
-            break
-print(json.dumps({'read_only': True, 'backup_inventory': results}, ensure_ascii=False))
+        scanned += 1
+        if item['accounts'] or item.get('account_lookup_failed'):
+            results.append(item)
+        if scanned >= 500:
+            raise SystemExit('Inspection limit reached; narrow inspection')
+print(json.dumps({'read_only': True, 'files_scanned': scanned, 'backup_inventory': results}, ensure_ascii=False))
