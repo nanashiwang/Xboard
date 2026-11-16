@@ -28,3 +28,5 @@ jobs:
             'cd /root/Xboard && docker inspect --format '\''revision={{index .Config.Labels "org.opencontainers.image.revision"}} mounts={{range .Mounts}}{{.Destination}} {{end}}'\'' "$(docker compose ps -q xboard)"'
           sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
             'cd /root/Xboard && docker compose exec -T xboard php' < .docker/production/inspect-stripe-channels.php
+          sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+            'python3 -' < .docker/production/inspect-stripe-backups.py

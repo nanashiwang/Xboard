@@ -2061,3 +2061,5 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 - 本机 SSH 密钥登录被拒绝，复用现有 GitHub SSH Secret 与固定主机公钥，新增仅查询的 Stripe Channel Audit；不输出密钥、签名秘密或客户数据。
 - 本地 PHP 8.2.33 语法检查、隔离禁网 Payments 21 项/95 断言、工作流笔记校验通过。提交前差异与链接回读；本批中文提交推送 master 后执行生产只读核验，Actions 结果待记录。尚未写入通道、未创建真实 Checkout、未付款或验证到账。
 - 此批为运维核验工具和接入提案，无应用镜像部署、客户端版本或 GitHub Release。
+
+支付宝核验补充：`0aa79d1` 已推送 master，[生产只读核验 43801765868](https://github.com/nanashiwang/Xboard/actions/runs/43801765868)成功，运行 revision 1839948，确认现用账户为 Raymi。Stripe 授权正式 API 已可用，目标支付宝 available=true；旧 Webhook 绑定通道 2，不能直接用于新通道。新增宿主备份只读检查，限定项目备份目录并仅输出文件路径/账户 ID，不输出凭据。本地语法和笔记校验通过；未写生产配置。README 精确 SHA 回读通过；progress-log 回读遇网络超时，待重试。

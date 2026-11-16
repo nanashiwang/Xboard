@@ -28,3 +28,7 @@ Status: proposed
 ## Related notes audit
 
 活跃 Stripe/支付宝/收款检索仅命中人民币原价决定，属于部分重叠，本篇复用其价格政策并新增账户隔离边界，无需替代旧决定。
+
+## Inspection evidence
+
+2026-11-16 正式 API 已确认目标 pmc 支付宝 available=true、微信=false。生产只读工作流 43801765868 成功：通道 1 为停用的 EPay，通道 2 为 Raymi；目标账户旧 Webhook 同样指向通道 2，不能直接复用地址。容器内仅发现 11 月 13 日的 Raymi 配置备份，继续在项目宿主备份内只读检查旧 Stripe 凭据是否存在。

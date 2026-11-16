@@ -689,3 +689,5 @@ Issues and Pull Requests are welcome to help improve the project.
 ### taige 支付宝接入核验（2026-11-16）
 
 目标账户 taige 的支付宝已在 Stripe 后台启用，微信不符合资格；计划作为独立通道接入并保留原 Raymi 微信/银行卡。当前仅完成浏览器与本地回归，尚未启用生产支付宝。[只读运维核验](./.github/workflows/stripe-channel-audit.yml)复用现有服务器凭据，输出白名单账户信息；方案及验收边界见[接入提案](./.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
+
+生产只读核验已成功：当前启用通道仍为 Raymi，原支付宝是停用的 EPay；目标 taige 的旧 Webhook 指向现用通道 2，需要独立回调。Stripe 正式 API 已确认目标支付宝可用，生产接入仍待完成。
