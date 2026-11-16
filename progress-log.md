@@ -2066,4 +2066,9 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 
 [备份只读核验 43802011313](https://github.com/nanashiwang/Xboard/actions/runs/43802011313)成功，首轮 60 条路径限额可能漏过后续 Stripe 专用目录；修正为优先专项备份、最多检查 500 文件、仅输出发现凭据的账户身份与来源，不输出重复空记录，继续核验。`0465d93` 已推送，README/progress-log 均从 GitHub 精确 SHA 回读一致；笔记 CI 成功，自动镜像构建仍待完成，生产配置未变。
 
-[备份只读核验 43802011313](https://github.com/nanashiwang/Xboard/actions/runs/43802011313)成功，首轮 60 条路径限额可能漏过后续 Stripe 专用目录；修正为优先专项备份、最多检查 500 文件、仅输出发现凭据的账户身份与来源，不输出重复空记录，继续核验。`0465d93` 已推送，README/progress-log 均从 GitHub 精确 SHA 回读一致；笔记 CI 成功，自动镜像构建仍待完成，生产配置未变。
+最终只读结论：[核验 43802313152](https://github.com/nanashiwang/Xboard/actions/runs/43802313152)成功，检查 58 个项目备份文件，仅发现 Raymi 凭据，未找到目标 taige 可复用服务器密钥。
+浏览器已准备 Xboard taige Alipay 新受限密钥的三项权限（Checkout 写、支付配置读、Webhook 写），等待用户完成创建，不在聊天或仓库保存密钥。
+新支付宝生产通道、独立回调和真实 Checkout 仍未创建，任务未完成。
+
+`9a3e7c1` 已推送 master，README/progress-log 精确 SHA 回读一致，Agent Workflow Notes 和生产核验成功。
+自动 Docker Build and Publish 仍运行中，未据此宣称镜像发布成功。此批不改客户端版本、不创建 GitHub Release、不部署生产应用。

@@ -182,3 +182,5 @@ python3 -m unittest discover -s tests/Operations -v
 ### taige 支付宝接入提案（2026-11-16）
 
 目标账户支付宝启用、微信不符合资格，计划复用 StripeCheckout 的独立通道与 CNY 原价。新增[只读配置核验](../.docker/production/inspect-stripe-channels.php)和[运维工作流](../.github/workflows/stripe-channel-audit.yml)，仅输出安全字段；生产接入尚未完成，见[提案](../.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
+
+接入前置核验完成：正式授权和支付宝能力已确认；58 个项目备份未找到目标服务器密钥，等待创建受限密钥，生产未启用新通道。
