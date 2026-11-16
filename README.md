@@ -686,9 +686,8 @@ Issues and Pull Requests are welcome to help improve the project.
 用户要求按页面标价收款后，生产「微信 / 银行卡（Raymi）」已切换人民币 CNY 直接收款：固定/比例手续费和美元成本预算均为 0，关闭自动换汇。实际运行插件生成的真实收银台已确认 ¥9.90 → ¥9.90，支持微信和银行卡，验证链接随后过期，未付款；¥32 的运行请求为 CNY 3200 分。旧待付款美元链接为 0，历史已付订单不改。见[实施决定](./.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)和[验证记录](./progress-log.md#2026-11-13取消支付加价并按人民币标价收款)。
 
 
-### taige 支付宝接入核验（2026-11-16）
+### taige 支付宝已接入（2026-11-16）
 
-已完成 taige 正式账户授权，Stripe API 确认指定配置支付宝可用、微信不可用。
-生产只读核验及 58 个项目备份检查完成，现用账户仍为 Raymi，未找到目标账户可复用的服务器密钥；旧 taige Webhook 指向现用通道 2，需要为新通道配置独立回调。
-新受限密钥已按用户授权保存到 GitHub 加密 Secret，独立通道接入脚本和回退测试已就绪，**生产支付宝尚待执行验收**。继续保留 Raymi 微信/银行卡及人民币原价政策。
-见[接入提案](./.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)、[运维核验](./.github/workflows/stripe-channel-audit.yml)与[进展](./progress-log.md#2026-11-16taige-支付宝账户接入核验)。
+生产新增「支付宝（taige）」通道 3，使用 acct_1UGbyu1DvmJXrFlV；原「微信 / 银行卡（Raymi）」通道 2 保留。两条通道均按人民币标价收款，固定/比例手续费为 0。
+实际生产插件创建 CNY 990/3200 收银台，确认目标配置包含支付宝，验证会话均已过期、未付款。独立回调正确签名通过、错误签名拒绝，生产只读回读成功；真实付款、订单开通和到账仍未验证。
+见[实施决定](./.agents/notes/implemented/feature/2026-11-16-taige-alipay-channel.md)、[接入工作流](./.github/workflows/stripe-alipay-provision.yml)与[进展](./progress-log.md#2026-11-16taige-支付宝账户接入核验)。

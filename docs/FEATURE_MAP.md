@@ -179,8 +179,8 @@ python3 -m unittest discover -s tests/Operations -v
 [订单结算](../app/Http/Controllers/V1/User/OrderController.php)与 [Stripe 插件](../plugins/Stripe/Plugin.php)复用既有 CNY 收款分支，当前生产两层成本均归零、不经过美元报价。真实运行收银台 CNY 990 分与标价 ¥9.90 一致、微信/银行卡可用，验证链接已过期；[运维脚本](../.docker/production/checkout-no-surcharge.php)保留通道备份和旧 USD 会话检查，见[决定](../.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)与[进展](../progress-log.md#2026-11-13取消支付加价并按人民币标价收款)。
 
 
-### taige 支付宝接入提案（2026-11-16）
+### taige 支付宝独立通道（2026-11-16）
 
-目标账户支付宝启用、微信不符合资格，计划复用 StripeCheckout 的独立通道与 CNY 原价。新增[只读配置核验](../.docker/production/inspect-stripe-channels.php)和[运维工作流](../.github/workflows/stripe-channel-audit.yml)，仅输出安全字段；生产接入尚未完成，见[提案](../.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
+生产通道 3「支付宝（taige）」复用 StripeCheckout/CNY 原价，独立账户、密钥和回调；原 Raymi 微信/银行卡通道保留。[配置脚本](../.docker/production/provision-taige-alipay.php)和[手动工作流](../.github/workflows/stripe-alipay-provision.yml)先备份、配置停用通道、验证真实未付款 Checkout 后启用；公开签名校验失败停用本次新通道。[测试](../tests/Feature/Payments/TaigeProvisioningTest.php)覆盖幂等、原通道保留、金额异常过期和回调失败停用。
 
-接入前置核验与新受限密钥保存完成；[独立通道配置脚本](../.docker/production/provision-taige-alipay.php)、[手动接入工作流](../.github/workflows/stripe-alipay-provision.yml)和 [隔离/回退测试](../tests/Feature/Payments/TaigeProvisioningTest.php)已就绪，待生产执行验收。
+生产接入及独立只读回读成功：CNY 990/3200、支付宝、指定 PMC、正确/错误签名均通过；不代表真实付款或到账。见[决定](../.agents/notes/implemented/feature/2026-11-16-taige-alipay-channel.md)。

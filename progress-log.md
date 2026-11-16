@@ -2055,27 +2055,12 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 
 ## 2026-11-16：taige 支付宝账户接入核验
 
-用户要求接入 acct_1UGbyu1DvmJXrFlV / pmc_1UGbzR1DvmJXrFlVLsBXHPnq。浏览器确认账户名 taige（raymi labs）、支付宝启用、微信不符合资格；存在 Xboard taige server 受限密钥及旧回调。用户已完成 Stripe 插件重新授权，连接页面不再显示认证失效；API 账户列表仍等待响应。
+用户要求接入 acct_1UGbyu1DvmJXrFlV / pmc_1UGbzR1DvmJXrFlVLsBXHPnq。正式 API 确认 taige（raymi labs）支付宝可用、微信不可用；选择独立通道，保留 Raymi 微信/银行卡，继续人民币原价、零附加费。取舍见[实施决定](./.agents/notes/implemented/feature/2026-11-16-taige-alipay-channel.md)。
 
-- 选择独立支付宝通道，继续 CNY 标价、零附加费，保留原通道；见[提案](./.agents/notes/proposed/feature/2026-11-16-taige-alipay-channel.md)。
-- 本机 SSH 密钥登录被拒绝，复用现有 GitHub SSH Secret 与固定主机公钥，新增仅查询的 Stripe Channel Audit；不输出密钥、签名秘密或客户数据。
-- 本地 PHP 8.2.33 语法检查、隔离禁网 Payments 21 项/95 断言、工作流笔记校验通过。提交前差异与链接回读；本批中文提交推送 master 后执行生产只读核验，Actions 结果待记录。尚未写入通道、未创建真实 Checkout、未付款或验证到账。
-- 此批为运维核验工具和接入提案，无应用镜像部署、客户端版本或 GitHub Release。
-
-支付宝核验补充：`0aa79d1` 已推送 master，[生产只读核验 43801765868](https://github.com/nanashiwang/Xboard/actions/runs/43801765868)成功，运行 revision 1839948，确认现用账户为 Raymi。Stripe 授权正式 API 已可用，目标支付宝 available=true；旧 Webhook 绑定通道 2，不能直接用于新通道。新增宿主备份只读检查，限定项目备份目录并仅输出文件路径/账户 ID，不输出凭据。本地语法和笔记校验通过；未写生产配置。README 精确 SHA 回读通过；progress-log 回读遇网络超时，待重试。
-
-[备份只读核验 43802011313](https://github.com/nanashiwang/Xboard/actions/runs/43802011313)成功，首轮 60 条路径限额可能漏过后续 Stripe 专用目录；修正为优先专项备份、最多检查 500 文件、仅输出发现凭据的账户身份与来源，不输出重复空记录，继续核验。`0465d93` 已推送，README/progress-log 均从 GitHub 精确 SHA 回读一致；笔记 CI 成功，自动镜像构建仍待完成，生产配置未变。
-
-最终只读结论：[核验 43802313152](https://github.com/nanashiwang/Xboard/actions/runs/43802313152)成功，检查 58 个项目备份文件，仅发现 Raymi 凭据，未找到目标 taige 可复用服务器密钥。
-浏览器已准备 Xboard taige Alipay 新受限密钥的三项权限（Checkout 写、支付配置读、Webhook 写），等待用户完成创建，不在聊天或仓库保存密钥。
-新支付宝生产通道、独立回调和真实 Checkout 仍未创建，任务未完成。
-
-`9a3e7c1` 已推送 master，README/progress-log 精确 SHA 回读一致，Agent Workflow Notes 和生产核验成功。
-自动 Docker Build and Publish 仍运行中，未据此宣称镜像发布成功。此批不改客户端版本、不创建 GitHub Release、不部署生产应用。
-
-
-### taige 支付宝凭据与接入工具就绪
-
-用户已创建受限密钥，并明确批准保存到 nanashiwang/Xboard 的 GitHub 加密 Secret XBOARD_TAIGE_STRIPE_KEY，页面已确认保存。新增[接入工作流](./.github/workflows/stripe-alipay-provision.yml)和[配置脚本](./.docker/production/provision-taige-alipay.php)，先备份并停用配置，验证 CNY 金额、支付宝、独立签名回调后启用；校验失败停用本次新通道，原 Raymi 与旧回调不改。
-
-本地 PHP 语法与 Payments 25 项/114 断言通过，覆盖通道隔离、重试幂等、异常金额会话过期与回调失败回退；工作流 YAML/Shell 及笔记门禁在提交前检查。生产接入尚待本次手动工作流结果，未付款。此前 9534bb2 的 Docker Build and Publish（43802875178）已成功；本次不改客户端版本、不创建 GitHub Release、不重启生产应用。
+- 只读核验 [43801765868](https://github.com/nanashiwang/Xboard/actions/runs/43801765868) 确认原通道 2 为 Raymi，旧 taige 回调错误地指向同一通道。完整备份检查 [43802313152](https://github.com/nanashiwang/Xboard/actions/runs/43802313152) 检查 58 个项目文件，仅找到 Raymi 凭据。
+- 用户完成 Stripe 重新授权，创建 Xboard taige Alipay 受限密钥（三项权限：Checkout 写、支付配置读、Webhook 写），并明确批准保存到 GitHub 加密 Secret XBOARD_TAIGE_STRIPE_KEY 及本站服务器。
+- `7412dc2` 已提交并推送 master；README/progress-log 从 GitHub 精确 SHA 回读与本地 Git blob 一致。生产[接入 43816465969](https://github.com/nanashiwang/Xboard/actions/runs/43816465969) 于北京时间 14:24 成功：新增并启用通道 3「支付宝（taige）」，uuid 9c6bc4e15d688363，独立端点 we_1UcJKi1DvmJXrFlV4oqriAnb。原通道快照完全一致。
+- 实际生产 PaymentService 创建 CNY 990/3200 收银台，指定 PMC、支付宝和关闭自动换汇检查通过；两个验证会话均过期，未创建本地订单或付款。公开回调正确签名返回 success，错误签名拒绝。之后[只读回读 43816611823](https://github.com/nanashiwang/Xboard/actions/runs/43816611823)成功。
+- 服务器配置备份保存在 storage/app/backups/taige-alipay-20261116/，目录 0700、文件 0600；工作流临时凭据包清理完毕。旧回调和其他项目不改，脚本支持恢复；校验失败停用本次启用通道。
+- 本地 PHP 8.2.33 禁网 Payments 25 项/114 断言、PHP 语法、工作流 YAML/Shell 和笔记门禁通过。GitHub Agent Workflow Notes 与 Order Queue Checks 对 7412dc2 均成功。自动镜像构建 43816446620 在本记录提交前仍运行，不据此宣称镜像发布成功；生产实际仍用 revision 1839948，本次仅写入支付配置，无应用重启或镜像部署。
+- 真实付款、订单开通和到账仍未验证。此项不改客户端版本、不创建 GitHub Release；此前 9534bb2 的 Docker Build and Publish 43802875178 已成功。本次收尾文档的提交、构建和远程回读结果另于最终交付中报告。

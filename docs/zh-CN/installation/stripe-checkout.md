@@ -38,9 +38,13 @@
 
 切换前保存旧通道配置，检查并关闭旧账户尚未付款的 Checkout 链接；保留站内订单，用户重新打开付款时创建新账户报价。不要直接把旧账户的 Price 或 Webhook 签名密钥带入新账户。完成接口、签名回调和未付款 Checkout 验证后，仍应以首笔真实付款及订单开通确认最终到账链路。
 
-## 当前后台设置（2026-11-13）
+## 当前后台设置（2026-11-16）
 
 生产收款币种设为 CNY，站点保持 CNY；固定与比例手续费为 0，cost_percent=0、cost_fixed_usd=0.00。插件直接传递订单人民币应付分，关闭 Adaptive Pricing，不经过 USD 报价或商品价格映射。原密钥、回调、支付方式配置保持不变，商户自行承担渠道费用。实际收银台已验 ¥9.90 → CNY 990 分、微信和银行卡可用，验证后过期，未付款。见[实施决定](../../../.agents/notes/implemented/feature/2026-11-13-checkout-no-surcharge.md)。
+
+2026-11-16 新增「支付宝（taige）」通道 3，正式收款账户 `acct_1UGbyu1DvmJXrFlV`，支付方式配置 `pmc_1UGbzR1DvmJXrFlVLsBXHPnq`。原「微信 / 银行卡（Raymi）」通道 2 继续使用 `acct_1U4aRn23UvHgD4dF`。两者均为 CNY 原价、零附加费；taige 不支持微信，不要用它覆盖原通道。
+
+支付宝通道使用独立回调 `/api/v1/guest/payment/notify/StripeCheckout/9c6bc4e15d688363`。实际生产插件创建的 CNY 990/3200 收银台均确认包含支付宝，随后过期；正确/错误签名检查及生产回读通过，尚未真实付款或验证到账。密钥存于授权的 GitHub 加密 Secret 和服务器配置，备份位于服务器私有目录。见[接入决定](../../../.agents/notes/implemented/feature/2026-11-16-taige-alipay-channel.md)。
 
 ## 历史美元设置（仅供追溯，不作为当前配置）
 
