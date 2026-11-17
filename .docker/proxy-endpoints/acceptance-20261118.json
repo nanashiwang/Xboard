@@ -1,0 +1,409 @@
+{
+  "sampled_at": "2026-11-18 Asia/Shanghai",
+  "source": "independent existing ingress 143.203.200.5",
+  "scope": "Twenty HTTP/SOCKS5 endpoints; point-in-time acceptance, not long-term availability",
+  "results": [
+    {
+      "host": "216.36.108.173",
+      "port": 20001,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20002,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20003,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20004,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20005,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20006,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20007,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20008,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20009,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "216.36.108.173",
+      "port": 20010,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20001,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20002,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20003,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20004,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20005,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20006,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20007,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20008,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20009,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    },
+    {
+      "host": "192.204.56.29",
+      "port": 20010,
+      "checks": {
+        "socks5h_https_exit": true,
+        "http_https_exit": true,
+        "http_forward_exit": true,
+        "socks5_no_auth_rejected": true,
+        "socks5_wrong_password_rejected": true,
+        "socks5_cross_port_rejected": true,
+        "http_no_auth_rejected": true,
+        "http_wrong_password_rejected": true,
+        "http_cross_port_rejected": true,
+        "socks4_rejected": true,
+        "http_private_destination_rejected": true,
+        "socks5h_private_destination_rejected": true,
+        "raw_tls_rejected": true
+      },
+      "ok": true
+    }
+  ],
+  "passed": 20,
+  "total": 20
+}

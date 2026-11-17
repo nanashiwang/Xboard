@@ -703,3 +703,13 @@ Issues and Pull Requests are welcome to help improve the project.
 “配置完整性校验失败，请重试”来自配置下载后的 ETag/SHA-256 比较，与分流模式说明无关。两路公开健康接口正常不等于登录后的配置交付正常；尚未取得故障请求，不能确定摘要头缺失、格式变化或内容差异。保留完整性检查，待补充系统、版本与触发步骤；见[排查证据](./progress-log.md#2026-11-16客户端配置完整性排查)。
 
 Mac 补充核对：本机 Applications 副本为 0.1.13，运行中的项目构建副本为 0.1.14；现场窗口未登录，未复现报错。两版配置摘要校验逻辑相同，不能据版本差异断定原因，详见上述排查记录。
+
+<!-- proxy-workspace-20261118:start -->
+## 家宽代理工作区与独立端点（2026-11-18）
+
+按用户确认完成[官网概览、代理详情、客户端三页交互预览](./docs/previews/proxy-workspace/README.md)，产品显示“家宽固定 IP”、39元/月、最高100 Mbps、不限累计流量；SOCKS5/HTTP切换共用端点和认证。主界面不展示十端口分配细节，也不宣称独享IP。页面为示例数据，正式购买、自动开通、到期撤权和原生客户端接入尚未实施。
+
+另经用户明确授权，两台美国服务器 **216.36.108.173 / 192.204.56.29** 各开通 **TCP 20001–20010**，共20组独立随机凭据；每端点同端口兼容SOCKS5与HTTP，双向分别限100 Mbps、不设累计流量额度，UDP未开放。私密凭据仅在受限目录交付，不进入仓库。配置、版本校验、回退见[端点运维](./.docker/proxy-endpoints/README.md)。
+
+独立服务器公网260项检查全部通过，两台各10组在重启后复验通过，原服务PID和配置摘要保持；Mac直连仍有间歇超时，不能视为国内稳定性验收。原Xboard线路回归中本次相关美国10（#322）HTTPS/UDP通过，全流程因香港#325和拓展#392失败，未宣称全站通过。参见[验证与进展](./progress-log.md#2026-11-18家宽代理预览与双协议端点)、[界面决定](./.agents/notes/implemented/feature/2026-11-18-residential-proxy-workspace.md)与[部署决定](./.agents/notes/implemented/architecture/2026-11-18-dual-protocol-proxy-endpoints.md)。本轮没有正式应用代码或安装包变更，客户端仍0.1.14，未创建应用Release。
+<!-- proxy-workspace-20261118:end -->

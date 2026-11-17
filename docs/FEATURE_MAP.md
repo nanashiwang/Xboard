@@ -192,3 +192,11 @@ python3 -m unittest discover -s tests/Operations -v
 ### 客户端配置完整性诊断（2026-11-16）
 
 [配置下载](../desktop/capybara/src-tauri/src/account.rs)沿用[服务端摘要](../app/Services/Client/ClientConfigService.php)与[ETag 响应](../app/Http/Controllers/V1/Desktop/ClientController.php)。现有正确/错误摘要回归通过，两路 health 正常；故障请求尚未取得，不能确认摘要头或正文问题。见[排查进展](../progress-log.md#2026-11-16客户端配置完整性排查)。
+
+<!-- proxy-workspace-20261118:start -->
+### 家宽代理预览与双协议独立端点（2026-11-18）
+
+- [预览入口](../docs/previews/proxy-workspace/index.html)以hash路由提供概览、详情和客户端；[脚本](../docs/previews/proxy-workspace/preview.js)仅处理内存示例数据，支持协议/复制/筛选/导出/模拟购买续费和连接。无真实账号、API、凭据或系统代理操作；[设计决定](../.agents/notes/implemented/feature/2026-11-18-residential-proxy-workspace.md)。
+- [管理脚本](../.docker/proxy-endpoints/manage.py)限定两台服务器，各十个20001–20010公网TCP端口，经GOST独立服务级限速转发至回环sing-box mixed认证。原Xboard库存、五名额固定出口、订单和配额未改；新端点尚无用户销售权益接口。[真实验收](../.docker/proxy-endpoints/verify.py)、[并发限速测试](../tests/ProxyEndpoints/test_bandwidth.py)、[独立公网验收快照](../.docker/proxy-endpoints/acceptance-20261118.json)和[运维](../.docker/proxy-endpoints/README.md)分别记录；[部署决定](../.agents/notes/implemented/architecture/2026-11-18-dual-protocol-proxy-endpoints.md)。
+- 两台20端点已运行，独立公网260项及重启后各10组验证通过；Mac直连存在超时。原线路回归本次相关#322通过，但#325/#392失败，见[进展](../progress-log.md#2026-11-18家宽代理预览与双协议端点)。界面预览不等于正式网页或原生客户端已上线。
+<!-- proxy-workspace-20261118:end -->
