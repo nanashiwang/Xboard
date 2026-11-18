@@ -1,0 +1,27 @@
+name: Residential Proxy Checks
+on:
+  push:
+    branches: [master]
+    paths: ['app/**', 'database/migrations/**', 'tests/Feature/ResidentialProxy/**', '.docker/proxy-endpoints/**', 'desktop/capybara/src/Proxies.tsx', '.github/workflows/residential-proxy.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sqlite3, pdo_sqlite, redis, gmp, bcmath
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: vendor/bin/phpunit tests/Feature/ResidentialProxy tests/Feature/Payments tests/Feature/Dedicated
+      - run: python3 -m unittest discover -s tests/ProxyEndpoints -p test_agent.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix desktop/capybara
+      - run: npm run web:build --prefix desktop/capybara
+      - run: git diff --exit-code -- public/assets/residential-proxy

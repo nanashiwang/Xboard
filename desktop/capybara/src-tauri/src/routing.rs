@@ -262,6 +262,10 @@ pub async fn save_routing(
     settings: RoutingSettings,
     rule_group: Option<String>,
 ) -> Result<RoutingView, Fault> {
+    let runtime = state.0.lock().await;
+    if runtime.proxy_engine.is_some() {
+        return Err(Fault::local("请先断开家宽代理，再修改 VPN 分流规则"));
+    }
     let mut nodes = state.1.lock().await;
     nodes.check_process();
     // Node clicks and native mode transitions own the selection, never an editor snapshot.

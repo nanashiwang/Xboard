@@ -49,3 +49,10 @@ python3 manage.py stop
 `stop`停用两个新服务并撤销本次UFW规则；独立nft表由服务退出动作移除。重新启用前核对凭据、配置、UFW放行和实际连接，不能只根据端口监听判断可用。已有安装调整需定向备份与验证，安装器不会直接覆盖。
 
 2026-11-18的实际结果、早期启动修复和公网网络波动见[进展记录](../../progress-log.md#2026-11-18家宽代理预览与双协议端点)。前端只交付[设计预览](../../docs/previews/proxy-workspace/README.md)，未发布正式网页或客户端版本。
+## 正式销售授权管理
+
+正式实现见 `app/Services/ResidentialProxyService.php` 和 `proxy:inventory`。`init --address=IP --output=/受限路径` 只创建停用库存，将节点专属令牌写入 0600 文件；令牌不得提交、记录或放入 URL。`bootstrap` 工作流安装每端口独立认证进程，保留原 GOST 转发、限速及私网防护。`acceptance` 创建一次性余额测试账号，验证二十端点后清理并保持停售；通过后才执行 `enable`。已售端点存在时验收脚本拒绝运行，不覆盖客户归属。
+
+节点每 20 秒拉取授权，最长 120 秒租约；到期或租约耗尽停止认证进程及现有连接。同步请求最多 10 秒，异常请求可能使停止比截止时间晚约 10 秒；代理进程退出时 systemd 绑定停止端口服务。过期端点不自动释放给新客户，保留原用户续费。`disable` 会停止该机代理授权，不能当作只暂停新购的操作。
+
+每个端口的认证配置位于 `/etc/xboard-proxy-endpoints/port-PORT.json`，主令牌配置为 `agent.json`，备份目录为 `/root/xboard-proxy-agent-backup-*`。安装脚本不修改原 Xboard 节点、Nginx 或 WireGuard 配置。回退旧认证服务可能恢复历史手工凭据，回退前必须停用公网端点，核对有效订单后再恢复；不得直接恢复旧认证文件继续销售。

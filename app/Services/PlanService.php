@@ -25,6 +25,7 @@ class PlanService
     public function getAvailablePlans(): Collection
     {
         return Plan::where('show', true)
+            ->where('is_proxy', false)
             ->where('sell', true)
             ->orderBy('sort')
             ->get()
@@ -57,6 +58,7 @@ class PlanService
      */
     public function isPlanAvailableForUser(Plan $plan, User $user): bool
     {
+        if ($plan->is_proxy) return false;
         // 如果是续费
         if ($user->plan_id === $plan->id) {
             return $plan->renew;
@@ -68,6 +70,7 @@ class PlanService
 
     public function validatePurchase(User $user, string $period): void
     {
+        if ($this->plan?->is_proxy) throw new ApiException('请从我的代理购买代理商品');
         if (!$this->plan) {
             throw new ApiException(__('Subscription plan does not exist'));
         }

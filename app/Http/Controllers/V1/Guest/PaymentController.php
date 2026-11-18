@@ -40,6 +40,11 @@ class PaymentController extends Controller
 
     private function handle($tradeNo, $callbackNo)
     {
+        $proxyOrder = Order::where('trade_no', $tradeNo)->where('product_type', 'proxy')->first();
+        if ($proxyOrder) {
+            // Proxy inventory always locks plan -> order, including cancelled late payments.
+            return app(\App\Services\ResidentialProxyService::class)->paid($proxyOrder, $callbackNo);
+        }
         return \Illuminate\Support\Facades\DB::transaction(function () use ($tradeNo, $callbackNo) {
             $order = Order::where('trade_no', $tradeNo)->lockForUpdate()->first();
             if (!$order) {

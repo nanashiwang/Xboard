@@ -7,6 +7,7 @@ mod invite;
 mod nodes;
 mod notices;
 mod proxy;
+mod residential;
 mod routing;
 mod subscription;
 mod updates;
@@ -66,6 +67,7 @@ struct View {
     sync_error: Option<String>,
     connection: String,
     connection_error: Option<String>,
+    proxy_id: Option<u64>,
     version: String,
     platform: String,
 }
@@ -81,6 +83,7 @@ impl Default for View {
             sync_error: None,
             connection: "disconnected".into(),
             connection_error: None,
+            proxy_id: None,
             version: account::VERSION.into(),
             platform: account::platform().into(),
         }
@@ -109,6 +112,9 @@ where
 }
 
 struct Runtime {
+    proxy_engine: Option<engine::Engine>,
+    proxy_expires: u64,
+    proxy_revision: u64,
     account: Account,
     browser_attempt: Option<String>,
     browser_session: Option<BrowserSession>,
@@ -124,6 +130,9 @@ impl Runtime {
         &mut self,
         target: Option<(String, String)>,
     ) -> Result<nodes::NodeView, Fault> {
+        if self.proxy_engine.is_some() {
+            self.shutdown().await?;
+        }
         if self.installing.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(Fault::local("正在更新，请稍候再连接"));
         }
@@ -178,6 +187,29 @@ impl Runtime {
     }
 
     async fn sync(&mut self) -> Result<(), Fault> {
+        if let Some(id) = self.view.proxy_id {
+            match self
+                .account
+                .get(&format!("client/proxies/detail?id={id}"))
+                .await
+            {
+                Ok(data) => {
+                    if data["status"] != "active"
+                        || data["revision"].as_u64() != Some(self.proxy_revision)
+                    {
+                        self.shutdown().await?;
+                    } else {
+                        self.proxy_expires = data["expires_at"].as_u64().unwrap_or(0);
+                    }
+                }
+                Err(error)
+                    if subscription::invalidates_session(&error) || !self.account.logged_in() =>
+                {
+                    self.shutdown().await?;
+                }
+                Err(_) => {}
+            }
+        }
         self.sync_subscription(false).await
     }
     async fn sync_subscription(&mut self, force_config: bool) -> Result<(), Fault> {
@@ -219,11 +251,13 @@ impl Runtime {
                 self.view.synced_at = Some(now());
                 self.view.sync_error = None;
                 if !active {
-                    self.shutdown().await?;
+                    if self.proxy_engine.is_none() {
+                        self.shutdown().await?;
+                    }
                     if force_config {
                         return Err(Fault::local("套餐当前不可用，请检查流量和到期时间"));
                     }
-                } else {
+                } else if self.proxy_engine.is_none() {
                     if let Err(error) = self.prepare_nodes(force_config).await {
                         if subscription::propagate_config_error(
                             &error,
@@ -333,10 +367,17 @@ impl Runtime {
         result.map(|_| ())
     }
     fn disconnect(&mut self) -> Result<(), Fault> {
+        let stopped = self
+            .proxy_engine
+            .take()
+            .map(|mut engine| engine.stop())
+            .unwrap_or(Ok(()));
+        self.view.proxy_id = None;
+        self.proxy_expires = 0;
         let result = proxy::recover(&self.dir);
         self.view.connection = "disconnected".into();
         self.view.connection_error = result.as_ref().err().cloned();
-        result.map_err(Fault::from)
+        result.and(stopped).map_err(Fault::from)
     }
     async fn shutdown(&mut self) -> Result<(), Fault> {
         let recovery = self.disconnect();
@@ -345,6 +386,15 @@ impl Runtime {
         recovery.and(stopped)
     }
     async fn check_process(&mut self) {
+        if let Some(engine) = self.proxy_engine.as_mut() {
+            if self.proxy_expires <= now() || !engine.alive() {
+                let _ = self.disconnect();
+                self.view.connection_error =
+                    Some("代理到期或连接组件已退出，请续费或重新连接".into());
+            } else {
+                return;
+            }
+        }
         let mut nodes = self.nodes.lock().await;
         nodes.check_process();
         if nodes.engine.is_none() && self.view.connection == "connected" {
@@ -739,6 +789,9 @@ fn main() {
             updates::start(app.handle(), &dir, installing.clone());
             let nodes = Arc::new(Mutex::new(nodes::Nodes::new(&dir)));
             let state = Arc::new(Mutex::new(Runtime {
+                proxy_engine: None,
+                proxy_expires: 0,
+                proxy_revision: 0,
                 account,
                 browser_attempt: None,
                 browser_session: None,
@@ -764,6 +817,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            residential::residential_request,
             invite::invite_request,
             desktop::desktop_settings,
             desktop::set_autostart,

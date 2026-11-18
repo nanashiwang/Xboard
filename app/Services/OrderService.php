@@ -106,7 +106,12 @@ class OrderService
     public function open(): void
     {
         $order = $this->order;
+        if ($order->product_type === 'proxy') {
+            app(ResidentialProxyService::class)->paid($order, $order->callback_no ?: $order->trade_no);
+            return;
+        }
         $plan = Plan::find($order->plan_id);
+        if ($plan?->is_proxy) throw new ApiException('代理商品必须通过代理订单开通');
 
         HookManager::call('order.open.before', $order);
 
@@ -240,6 +245,7 @@ class OrderService
     private function haveValidOrder(User $user): Order|null
     {
         return Order::where('user_id', $user->id)
+            ->where('product_type', 'vpn')
             ->whereNotIn('status', [Order::STATUS_PENDING, Order::STATUS_CANCELLED])
             ->first();
     }
@@ -248,6 +254,7 @@ class OrderService
     {
         if ($user->expired_at === NULL) {
             $lastOneTimeOrder = Order::where('user_id', $user->id)
+                ->where('product_type', 'vpn')
                 ->where('period', Plan::PERIOD_ONETIME)
                 ->where('status', Order::STATUS_COMPLETED)
                 ->orderBy('id', 'DESC')
@@ -265,12 +272,14 @@ class OrderService
             $result = $trafficUnitPrice * $notUsedTraffic;
             $order->surplus_amount = (int) ($result > 0 ? $result : 0);
             $order->surplus_order_ids = Order::where('user_id', $user->id)
+                ->where('product_type', 'vpn')
                 ->where('period', '!=', Plan::PERIOD_RESET_TRAFFIC)
                 ->where('status', Order::STATUS_COMPLETED)
                 ->pluck('id')
                 ->all();
         } else {
             $orders = Order::query()
+                ->where('product_type', 'vpn')
                 ->where('user_id', $user->id)
                 ->whereNotIn('period', [Plan::PERIOD_RESET_TRAFFIC, Plan::PERIOD_ONETIME])
                 ->where('status', Order::STATUS_COMPLETED)
@@ -312,6 +321,7 @@ class OrderService
     public function paid(string $callbackNo)
     {
         $order = $this->order;
+        if ($order->product_type === 'proxy') return app(ResidentialProxyService::class)->paid($order, $callbackNo);
         if ($order->status !== Order::STATUS_PENDING)
             return true;
         $order->status = Order::STATUS_PROCESSING;
@@ -331,6 +341,7 @@ class OrderService
     public function cancel(): bool
     {
         $order = $this->order;
+        if ($order->product_type === 'proxy') return app(ResidentialProxyService::class)->cancel($order);
         HookManager::call('order.cancel.before', $order);
         try {
             DB::beginTransaction();

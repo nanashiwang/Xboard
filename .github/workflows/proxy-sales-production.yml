@@ -1,0 +1,32 @@
+name: Proxy Sales Production
+run-name: 'Proxy Sales · ${{ inputs.operation }}'
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        options: [bootstrap, enable, disable, status, acceptance]
+        required: true
+      image_revision:
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: xboard-production-management
+  cancel-in-progress: false
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install paramiko
+      - name: Apply authorized proxy operation
+        env:
+          XBOARD_PASSWORD: ${{ secrets.XBOARD_SSH_PASSWORD }}
+          PROXY_US_A_PASSWORD: ${{ secrets.PROXY_US_A_PASSWORD }}
+          PROXY_US_B_PASSWORD: ${{ secrets.PROXY_US_B_PASSWORD }}
+          EXPECTED_REVISION: ${{ inputs.image_revision }}
+          OPERATION: ${{ inputs.operation }}
+        run: python3 .docker/proxy-endpoints/provision-sales.py "$OPERATION"

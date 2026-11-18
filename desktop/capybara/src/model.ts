@@ -28,6 +28,7 @@ export type View = {
     sync_error: string | null;
     connection: "connected" | "disconnected";
     connection_error: string | null;
+    proxy_id?: number | null;
     version: string;
     platform: string;
 };

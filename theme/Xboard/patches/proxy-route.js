@@ -1,0 +1,1 @@
+{default:{name:"residential-proxy",path:"/",component:cs.component,redirect:"/proxies",meta:{isHidden:!1},children:[{name:"ResidentialProxies",path:"proxies",component:()=>Promise.resolve({render(){return null},mounted(){window.location.assign("/proxies")}}),meta:{title:"我的代理",icon:"mdi:ip-network-outline",order:11,group:{key:"subscribe",label:"订阅"}}}]}}

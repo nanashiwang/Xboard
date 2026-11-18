@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 
+Route::get('/proxies', function (Request $request) {
+    abort_unless(app(WebsiteEntryService::class)->allowsHost($request), 403);
+    return response()->view('residential-proxies')->header('Cache-Control','no-store')->header('Referrer-Policy','no-referrer');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

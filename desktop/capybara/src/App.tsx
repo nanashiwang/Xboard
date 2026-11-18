@@ -1,6 +1,7 @@
 import Updates from "./Updates";
 import Notifications from "./Notifications";
 import Plans from "./Plans";
+import Proxies, { type ProxyRequest } from "./Proxies";
 import Home from "./Home";
 import { useNodes } from "./nodes";
 import { useRouting } from "./Routing";
@@ -29,6 +30,7 @@ import {
     Copy,
     ShoppingBag,
     Users,
+    Globe2,
 } from "lucide-react";
 import { command, errorText, preview } from "./bridge";
 import {
@@ -42,10 +44,26 @@ import {
 const pages = [
     { id: "home", name: "首页", icon: House },
     { id: "plans", name: "套餐", icon: ShoppingBag },
+    { id: "proxies", name: "我的代理", icon: Globe2 },
     { id: "invite", name: "邀请好友", icon: Users },
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
 ];
 export default function App() {
+    const proxyRequest: ProxyRequest = async <T,>(
+        action: string,
+        payload?: Record<string, unknown>,
+    ) => {
+        try {
+            if (["store", "order", "checkout", "cancel"].includes(action))
+                return await command<T>("store_request", {
+                    action: action === "store" ? "index" : action,
+                    payload,
+                });
+            return await command<T>("residential_request", { action, payload });
+        } catch (error) {
+            throw new Error(errorText(error));
+        }
+    };
     const nodes = useNodes();
     const routing = useRouting(nodes.refresh);
     const [view, setView] = useState<View>(emptyView),
@@ -322,10 +340,30 @@ export default function App() {
                         </button>
                     </div>
                 )}
+                {view.proxy_id && page !== "proxies" && (
+                    <div className="preview-label">
+                        当前已连接家宽代理 PX-{view.proxy_id}。
+                        <button onClick={() => setPage("proxies")}>
+                            管理代理连接
+                        </button>
+                    </div>
+                )}
                 {page === "invite" && (
                     <Invites
                         view={view}
                         onLogin={() => void act("begin_browser_login")}
+                    />
+                )}
+                {page === "proxies" && (
+                    <Proxies
+                        request={proxyRequest}
+                        loggedIn={view.logged_in}
+                        onLogin={() => void act("begin_browser_login")}
+                        native
+                        connectedId={view.proxy_id}
+                        onConnection={() =>
+                            void command<View>("snapshot").then(setView)
+                        }
                     />
                 )}
                 {page === "home" && (

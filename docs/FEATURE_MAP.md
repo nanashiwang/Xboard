@@ -206,3 +206,9 @@ python3 -m unittest discover -s tests/Operations -v
 
 现有官网/后台使用独立 SQLite、Redis、Horizon 在 127.0.0.1:8088 运行，测试登录、套餐和余额结算通过。桌面 Vite 1420 提供既有开发模拟桥接；原生 0.1.14 构建成功，账号源仍在线上。新增家宽代理仍位于 `docs/previews/proxy-workspace`，尚未接入正式官网或客户端。见[本地验收](../progress-log.md#2026-11-18本地完整体验环境)。
 <!-- /local-review-20261118 -->
+
+<!-- proxy-sales-20261118:start -->
+### 家宽代理正式业务（2026-11-18）
+
+官网用户菜单「我的代理」→ `/proxies`；[共用组件](../desktop/capybara/src/Proxies.tsx)通过用户 / 客户端认证 API 读取本人资产，复用既有订单收银台。[销售服务](../app/Services/ResidentialProxyService.php)与[迁移](../database/migrations/2026_11_18_000001_create_residential_proxies.php)提供独立库存、事务预留和订单类型，禁止覆盖 VPN 权益；[节点代理](../.docker/proxy-endpoints/agent.py)以短租约管理固定端口认证。[原生连接](../desktop/capybara/src-tauri/src/residential.rs)从可信 API 重新获取配置，不接受前端传入认证或任意地址。库存运维使用 `proxy:inventory` 和 [生产工作流](../.github/workflows/proxy-sales-production.yml)；[测试](../tests/Feature/ResidentialProxy)覆盖账务、归属及并发。生产发布状态见[进展](../progress-log.md#2026-11-18家宽代理正式接入)。
+<!-- proxy-sales-20261118:end -->
