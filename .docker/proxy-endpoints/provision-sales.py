@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run from the authorized deployment workflow. Never print credentials or SSH output."""
-import json, os, sys, time
+import json, os, sys, time, re
 from pathlib import Path
 import paramiko
 
@@ -58,6 +58,11 @@ def main():
  if operation=='status':
   status=json.loads(execute(origin,'cd /root/Xboard && docker compose exec -T xboard php artisan proxy:inventory status'))
   print(json.dumps(status))
+  logs=execute(origin,'cd /root/Xboard && docker compose logs --tail=120 xboard').decode(errors='replace')
+  for line in logs.splitlines():
+   if any(word in line.lower() for word in ['error','exception','fatal','spawn','exited','listening','started','permission','address already']):
+    line=re.sub(r'https?://\S+|[A-Za-z0-9_+/=-]{40,}', '[redacted]',line)
+    print(line[:400])
  origin.close()
 if __name__=='__main__':
  try:main()
