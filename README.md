@@ -713,3 +713,11 @@ Mac 补充核对：本机 Applications 副本为 0.1.13，运行中的项目构�
 
 独立服务器公网260项检查全部通过，两台各10组在重启后复验通过，原服务PID和配置摘要保持；Mac直连仍有间歇超时，不能视为国内稳定性验收。原Xboard线路回归中本次相关美国10（#322）HTTPS/UDP通过，全流程因香港#325和拓展#392失败，未宣称全站通过。参见[验证与进展](./progress-log.md#2026-11-18家宽代理预览与双协议端点)、[界面决定](./.agents/notes/implemented/feature/2026-11-18-residential-proxy-workspace.md)与[部署决定](./.agents/notes/implemented/architecture/2026-11-18-dual-protocol-proxy-endpoints.md)。本轮没有正式应用代码或安装包变更，客户端仍0.1.14，未创建应用Release。
 <!-- proxy-workspace-20261118:end -->
+
+<!-- local-review-20261118 -->
+### 本地完整体验环境（2026-11-18）
+
+已启动独立本地数据库、Redis 和 Horizon：[官网](http://127.0.0.1:8088/#/login)、[后台](http://127.0.0.1:8088/local-admin)、[客户端模拟界面](http://127.0.0.1:1420/?preview=active)、[家宽代理设计预览](http://127.0.0.1:8767/#overview)。地址仅在运行服务的电脑上有效。测试账号资料保存在仓库外；登录、套餐、订阅信息与模拟余额下单均通过。
+
+macOS Apple Silicon 客户端 0.1.14 已本地构建，产物为 `desktop/capybara/src-tauri/target/release/bundle/macos/Capybara.app`。原生客户端仍连接线上账号服务，本地账号仅用于网站；1420 页面使用模拟数据。新增家宽代理仍是独立设计预览，未接入真实购买、自动分配与原生连接。未发布新版本或部署生产。见[本地验收](./progress-log.md#2026-11-18本地完整体验环境)。
+<!-- /local-review-20261118 -->

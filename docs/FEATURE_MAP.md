@@ -200,3 +200,9 @@ python3 -m unittest discover -s tests/Operations -v
 - [管理脚本](../.docker/proxy-endpoints/manage.py)限定两台服务器，各十个20001–20010公网TCP端口，经GOST独立服务级限速转发至回环sing-box mixed认证。原Xboard库存、五名额固定出口、订单和配额未改；新端点尚无用户销售权益接口。[真实验收](../.docker/proxy-endpoints/verify.py)、[并发限速测试](../tests/ProxyEndpoints/test_bandwidth.py)、[独立公网验收快照](../.docker/proxy-endpoints/acceptance-20261118.json)和[运维](../.docker/proxy-endpoints/README.md)分别记录；[部署决定](../.agents/notes/implemented/architecture/2026-11-18-dual-protocol-proxy-endpoints.md)。
 - 两台20端点已运行，独立公网260项及重启后各10组验证通过；Mac直连存在超时。原线路回归本次相关#322通过，但#325/#392失败，见[进展](../progress-log.md#2026-11-18家宽代理预览与双协议端点)。界面预览不等于正式网页或原生客户端已上线。
 <!-- proxy-workspace-20261118:end -->
+
+<!-- local-review-20261118 -->
+### 本地体验入口（2026-11-18）
+
+现有官网/后台使用独立 SQLite、Redis、Horizon 在 127.0.0.1:8088 运行，测试登录、套餐和余额结算通过。桌面 Vite 1420 提供既有开发模拟桥接；原生 0.1.14 构建成功，账号源仍在线上。新增家宽代理仍位于 `docs/previews/proxy-workspace`，尚未接入正式官网或客户端。见[本地验收](../progress-log.md#2026-11-18本地完整体验环境)。
+<!-- /local-review-20261118 -->
