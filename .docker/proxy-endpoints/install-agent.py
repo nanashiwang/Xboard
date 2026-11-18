@@ -13,7 +13,9 @@ def main():
     for name in ['xboard-proxy-endpoints.service','xboard-proxy-auth.service']:
         shutil.copy2('/etc/systemd/system/'+name,backup/name)
     shutil.copy2(ROOT/'auth.json',backup/'auth.json')
-    shutil.copy2(Path(__file__).with_name('agent.py'),ROOT/'agent.py');os.chmod(ROOT/'agent.py',0o700)
+    source=Path(__file__).with_name('agent.py'); target=ROOT/'agent.py'
+    if source.resolve()!=target.resolve(): shutil.copy2(source,target)
+    os.chmod(target,0o700)
     forward=Path('/etc/systemd/system/xboard-proxy-endpoints.service')
     content=forward.read_text().replace('After=network-online.target xboard-proxy-auth.service','After=network-online.target').replace('Requires=xboard-proxy-auth.service\n','')
     forward.write_text(content)

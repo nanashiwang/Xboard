@@ -62,4 +62,6 @@ def main():
 if __name__=='__main__':
  try:main()
  except Exception as e:
-  print('operation_failed: '+type(e).__name__,file=sys.stderr);sys.exit(1)
+  safe_codes={'host_identity_mismatch','remote_operation_failed','remote_php_failed','production_revision_mismatch','incomplete_inventory','authentication_not_ready','dual_protocol_egress_failed','wrong_credentials_accepted','expired_authorization_remains','agent_stop_left_authorization_running'}
+  reason=str(e) if str(e) in safe_codes else type(e).__name__
+  print('operation_failed: '+reason,file=sys.stderr);sys.exit(1)
