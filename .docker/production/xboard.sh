@@ -2,7 +2,7 @@
 # Xboard server manager — managed by nanashiwang/Xboard.
 set -Eeuo pipefail
 
-MANAGER_VERSION=1.0.0
+MANAGER_VERSION=1.0.1
 SELF=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")
 export XBOARD_DIR=${XBOARD_DIR:-/root/Xboard}
 SERVICE=xboard
@@ -96,6 +96,26 @@ verify_running() {
         running_image=$(docker inspect --format '{{.Image}}' "$id")
         [[ "$running_image" = "$expected_image" ]] || fail '运行镜像与刚拉取的镜像不一致。'
     fi
+    compose exec -T "$SERVICE" php -r '
+$end = microtime(true) + 90;
+$context = stream_context_create(["http" => ["timeout" => 3]]);
+do {
+    $body = @file_get_contents("http://127.0.0.1:7001/api/v1/client/health", false, $context);
+    $data = json_decode($body ?: "", true);
+    if (($data["service"] ?? null) === "capybara-account" && ($data["protocol"] ?? null) === 1) exit(0);
+    sleep(2);
+} while (microtime(true) < $end);
+fwrite(STDERR, "应用 HTTP 健康检查失败，不能确认发布成功。\n"); exit(1);
+' || fail '容器已启动，但应用未就绪。'
+}
+
+require_disk_space() {
+    local minimum_kib=$1 docker_root path available
+    docker_root=$(docker info --format '{{.DockerRootDir}}')
+    for path in "$docker_root" "$XBOARD_DIR"; do
+        available=$(df -Pk "$path" | awk 'END {print $4}')
+        [[ "$available" =~ ^[0-9]+$ && "$available" -ge "$minimum_kib" ]] || fail "磁盘可用空间不足，停止更新：${path}。请先清理可重建镜像，勿删除业务数据。"
+    done
 }
 
 update() {
@@ -114,7 +134,9 @@ for v in s.get("volumes", []):
         sys.exit("检测到整个 /www 被挂载；此命令仅适用于镜像部署，请按源码部署文档更新。")
 print(s["image"])
 ')
+    require_disk_space 4194304
     compose pull "$SERVICE"
+    require_disk_space 524288
     expected_image=$(docker image inspect --format '{{.Id}}' "$image_ref")
     revision=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image_ref")
     if [[ -n "${XBOARD_EXPECTED_REVISION:-}" ]]; then

@@ -37,3 +37,7 @@ SQLite 忽略 SELECT FOR UPDATE。重复并发验证曾触发读事务升级写�
 短租约以可用性换取失联后及时撤权；明确记录超时窗口。代理带宽为每端点上限，不承诺物理线路始终达到 100 Mbps。真实第三方支付只能在用户授权付款范围内验证；不把创建支付会话作为实际到账证明。
 
 Local validation: PHP 172 tests / 1470 assertions passed, one external-core check skipped; 78 frontend and 17 script tests passed; 67 Rust tests passed and one manual keychain test ignored; proxy agent validation passed. Production deployment and cross-platform release remain pending until individually verified.
+
+生产部署暴露了原发布检查的缺口：容器 Running/Healthy 不代表应用已能响应。2026-11-18 镜像部署后的磁盘耗尽使 Octane 无法启动、外网返回 502；库存保持关闭。恢复只清理本仓库标签的悬空镜像，不碰数据卷、数据库或已引用镜像；恢复后须重验 HTTP 与业务授权，不能沿用容器健康状态作为成功证据。
+
+管理脚本 1.0.1 在拉取前要求 Docker 和业务分区各至少 4 GiB 空间，拉取后保留至少 512 MiB，再允许迁移；启动后必须在 90 秒内通过实际账户健康 HTTP 接口，拒绝仅凭容器 Running 判成功。真实脚本使用假 Docker 的 20 项操作测试通过，覆盖低磁盘在拉取前停止，以及容器运行但 HTTP 失败不得报成功。

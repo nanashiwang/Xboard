@@ -38,6 +38,11 @@ elif a == ["compose", "up", "--help"]:
     print("" if os.getenv("MOCK_OLD_COMPOSE") else "--wait --wait-timeout")
 elif a[:2] == ["compose", "up"]:
     sys.exit(int(os.getenv("MOCK_UP_EXIT", "0")))
+elif a[:2] == ["compose", "exec"]:
+    assert 'capybara-account' in a[-1]
+    sys.exit(int(os.getenv("MOCK_HTTP_EXIT", "0")))
+elif a[:2] == ["info", "--format"]:
+    print(os.environ["XBOARD_DIR"])
 elif a[:2] == ["compose", "ps"]:
     if "-q" in a:
         print("" if os.getenv("MOCK_NO_CONTAINER") else "container-1")
@@ -82,6 +87,7 @@ class XboardManagerTest(unittest.TestCase):
         for name, source in {
             "docker": DOCKER,
             "flock": '#!/bin/sh\nexit "${MOCK_LOCK_EXIT:-0}"\n',
+            "df": '#!/bin/sh\nprintf "Filesystem 1024-blocks Used Available Capacity Mounted\\nmock 99999999 1 %s 1%% /\\n" "${MOCK_FREE_KIB:-99999998}"\n',
         }.items():
             path = self.bin / name
             path.write_text(source)
@@ -118,7 +124,7 @@ class XboardManagerTest(unittest.TestCase):
         self.assertEqual(installed.read_bytes(), SCRIPT.read_bytes())
         result = subprocess.run([str(installed), "version"], capture_output=True, text=True, env=self.env)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("1.0.0", result.stdout)
+        self.assertIn("1.0.1", result.stdout)
         self.assertEqual(self.mutations(), [])
 
     def test_install_refuses_unrelated_program(self):
@@ -155,6 +161,16 @@ class XboardManagerTest(unittest.TestCase):
 
     def test_wrong_running_image_is_failure(self):
         result = self.run_cli("update", "--yes", MOCK_RUNNING_IMAGE="sha256:old")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("更新完成", result.stdout)
+
+    def test_full_disk_stops_before_pull_or_migration(self):
+        result = self.run_cli("update", "--yes", MOCK_FREE_KIB="100")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.mutations(), [])
+
+    def test_running_container_with_failed_http_is_not_success(self):
+        result = self.run_cli("update", "--yes", MOCK_HTTP_EXIT="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("更新完成", result.stdout)
 
