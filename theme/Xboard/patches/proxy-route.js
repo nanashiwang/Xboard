@@ -33,7 +33,7 @@
           }
           if(this.proxyActive&&generation===this.proxyGeneration){
             this.proxyCleanup=window.CapybaraResidentialProxies.mount(this.$refs.proxyContent,{
-              onLogin:()=>{pd();this.$router.replace({path:"/login",query:{redirect:"/proxies"}})}
+              onLogin:()=>{if(this.proxyActive&&generation===this.proxyGeneration){pd();this.$router.replace({path:"/login",query:{redirect:"/proxies"}})}}
             });
           }
         }catch(error){if(this.proxyActive&&generation===this.proxyGeneration)this.proxyError=true}

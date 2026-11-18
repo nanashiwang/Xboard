@@ -18,9 +18,11 @@ async function setup(ready=true){
 test('panel uses the existing layout, mounts once and clears content when leaving',async()=>{
   const x=await setup();assert.equal(x.route.children[0].meta.title,'家宽代理');
   await x.instance.startProxy();await x.instance.startProxy();assert.equal(x.calls.length,1);
+  const staleLogin=x.window.options.onLogin;
   x.definition.deactivated.call(x.instance);x.definition.beforeUnmount.call(x.instance);
   assert.equal(x.calls.filter(c=>c[0]==='unmount').length,1);
   await x.instance.startProxy();assert.equal(x.calls.filter(c=>c[0]==='mount').length,2);
+  staleLogin();assert.equal(x.calls.filter(c=>c[0]==='logout').length,0);
   x.window.options.onLogin();assert.deepEqual(x.calls.slice(-2),[['logout'],['route','/login']]);
 });
 test('leaving during asset loading never mounts stale private content; returning works',async()=>{
