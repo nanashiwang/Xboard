@@ -184,11 +184,11 @@ export default function Proxies({
         ? `${protocol === "HTTP" ? "http" : "socks5"}://${encodeURIComponent(selected.credentials.username)}:${encodeURIComponent(selected.credentials.password)}@${selected.address}:${selected.port}`
         : "";
     return (
-        <section className="rp" aria-label="我的代理">
+        <section className="rp" aria-label="家宽代理">
             <header className="rp-heading">
                 <div>
                     <span className="rp-eyebrow">RESIDENTIAL PROXY</span>
-                    <h2>{selected ? selected.name : "我的代理"}</h2>
+                    <h2>{selected ? selected.name : "家宽代理"}</h2>
                     <p>
                         固定出口 · SOCKS5 / HTTP · 每个端点最高 100 Mbps ·
                         不限累计流量
@@ -255,7 +255,7 @@ export default function Proxies({
                                 }}
                             >
                                 <ArrowLeft size={16} />
-                                返回我的代理
+                                返回家宽代理
                             </button>
                             <div className="rp-detail">
                                 <section className="rp-card">

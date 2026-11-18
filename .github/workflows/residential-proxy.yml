@@ -2,7 +2,7 @@ name: Residential Proxy Checks
 on:
   push:
     branches: [master]
-    paths: ['app/**', 'database/migrations/**', 'tests/Feature/ResidentialProxy/**', '.docker/proxy-endpoints/**', 'desktop/capybara/src/Proxies.tsx', '.github/workflows/residential-proxy.yml']
+    paths: ['app/**', 'database/migrations/**', 'tests/Feature/ResidentialProxy/**', '.docker/proxy-endpoints/**', 'desktop/capybara/src/Proxies.tsx', 'desktop/capybara/src/proxies*', 'desktop/capybara/scripts/build-proxy-web.mjs', 'theme/Xboard/patches/proxy-route.js', 'tests/Frontend/proxy-panel.test.cjs', '.github/workflows/residential-proxy.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,4 +24,5 @@ jobs:
           node-version: '22'
       - run: npm ci --prefix desktop/capybara
       - run: npm run web:build --prefix desktop/capybara
-      - run: git diff --exit-code -- public/assets/residential-proxy
+      - run: git diff --exit-code -- public/assets/residential-proxy theme/Xboard/assets/umi.js
+      - run: node --test tests/Frontend/proxy-panel.test.cjs

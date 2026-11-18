@@ -1,3 +1,46 @@
+.residential-panel {
+    padding: 24px;
+    min-width: 0;
+}
+.residential-panel .rp {
+    max-width: none;
+}
+.residential-panel .rp-eyebrow {
+    display: none;
+}
+.residential-panel .rp h2 {
+    font-size: 26px;
+    margin-top: 0;
+}
+.residential-panel .rp-card {
+    border-radius: 12px;
+}
+.residential-panel .rp .rp-primary {
+    background: #486f72;
+    border-color: #486f72;
+}
+.residential-panel .rp-tabs .active {
+    background: #eaf0f0;
+    color: #486f72;
+}
+.residential-panel .rp button:hover:not(:disabled) {
+    border-color: #486f72;
+}
+.residential-panel-error {
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+.dark .residential-panel .rp-tabs .active {
+    background: #284044;
+    color: #a6d6d4;
+}
+@media (max-width: 650px) {
+    .residential-panel {
+        padding: 16px;
+    }
+}
 .rp {
     color: #263650;
     font-size: 14px;

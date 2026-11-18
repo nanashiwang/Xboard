@@ -9,6 +9,13 @@ class WebsiteHomeTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_legacy_proxy_page_returns_to_the_existing_panel_layout(): void
+    {
+        $this->get('/proxies')->assertRedirect('/#/proxies')->assertHeader('Cache-Control', 'no-store, private');
+        admin_setting(['app_url' => 'https://home.example', 'safe_mode_enable' => 1]);
+        $this->get('https://other.example/proxies')->assertForbidden();
+    }
+
     public function test_public_home_renders_and_keeps_existing_panel_entry_points(): void
     {
         $response = $this->get('/')->assertOk()

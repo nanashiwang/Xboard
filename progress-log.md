@@ -2132,4 +2132,9 @@ PHP 8.2.33 下专属并发、订单/支付和失败分页共 **55 项测试、27
 最终上线记录：两机 enable 44230740083 成功；status 44231429536 显示两机 enabled、心跳新鲜、20 总库存/0 已分配，临时节点 SSH Secrets 已移除。生产管理脚本 1.0.1 安装成功（44230910124）。[网站 Release](https://github.com/nanashiwang/Xboard/releases/tag/web-20261118-3c2abff)已发布 3 个验证附件；[客户端 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.15)通过已授权账号发布，21 附件全部 uploaded，15 个分发文件的远端 digest 与本地验签产物一致。原工作流发布重试仍为 403，如实保留失败状态；未重建或替换安装包。
 
 官网下载同步 44232286480 成功，Go current 与 Hub recovery JSON 均为 0.1.15；Cloudflare Pages 部署 f7c9f6fc-ad16-400f-8300-e54261498422，源清单 d28517b，公开下载页面已浏览器核验。分发工具 7 项、Hub 前端 8 项检查通过；[完整分发验收 44232522193](https://github.com/nanashiwang/Xboard/actions/runs/44232522193)成功下载校验全部 21 个 Release 附件、7 个 Hub 完整安装包和 2 个恢复 JSON，两条路径的四平台更新签名及服务入口签名全部通过。前述等待事项均已完成；真实第三方付款未执行，原生客户端已安装并验证入口，实际端点出网由生产测试执行。
+### 家宽代理整合用户中心
+
+用户要求将「我的代理」更名为「家宽代理」，取消进入独立页面。实现为 Vue 路由承载共用 React 组件，保留侧栏、面包屑与手机抽屉菜单；离开或停用时卸载，防止残留凭据和轮询。旧 `/proxies` 兼容跳回 `/#/proxies`。官网留白、圆角与按钮配色和主布局统一，客户端版本调整为 0.1.16。决定见[页面整合](./.agents/notes/implemented/feature/2026-11-18-proxy-panel-integration.md)。
+
+本地 PHP 16 项/110 断言、客户端 78 项前端与 17 项脚本、宿主生命周期 4 项检查通过；浏览器完成概览、详情、仪表盘往返及 390px 手机菜单验收。额外浏览器会话测试第一次因主机没有 PHP 无法执行，改用容器 PHP 后会话、加载与宿主共 21 项检查全部通过；生产/Release 状态将在完成后更新。现有无关未提交改动保留。
 <!-- proxy-sales-20261118:end -->

@@ -16,6 +16,8 @@ Status: implemented
 
 ## History audit
 
+- [用户中心整合](2026-11-18-proxy-panel-integration.md)接管页面宿主与导航生命周期，名称统一为「家宽代理」，资产和账务沿用本篇。
+
 - [原设计](../../implemented/feature/2026-11-18-residential-proxy-workspace.md)部分重叠，保留视觉及产品约束，正式数据接入由本篇负责。
 - [端点部署](../../implemented/architecture/2026-11-18-dual-protocol-proxy-endpoints.md)部分重叠，复用转发、限速及私网防护，认证进程由授权代理管理。
 - [客户端恢复](../../implemented/architecture/2026-11-03-client-hub-recovery.md)复用固定源、签名升级和受控请求。

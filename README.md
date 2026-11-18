@@ -730,4 +730,5 @@ macOS Apple Silicon 客户端 0.1.14 已本地构建，产物为 `desktop/capyba
 真实节点 20 端点的双协议及撤权验收通过，库存已开放。[正式页面](https://capybarago.uk/proxies)从用户中心「我的代理」进入；[客户端 0.1.15](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.15)四平台安装包、官网下载及自动更新索引已发布，本机安装已更新。21 个 Release 附件、7 个 Hub 完整安装包、2 个恢复索引及四平台签名全部验收通过。[网站版本](https://github.com/nanashiwang/Xboard/releases/tag/web-20261118-3c2abff)记录镜像与生产证据。上线期间磁盘耗尽导致的 502 已修复，发布脚本补上空间预检与实际 HTTP 检查。
 
 详情见[正式接入决定](./.agents/notes/implemented/feature/2026-11-18-residential-proxy-sales.md)及[进展](./progress-log.md#2026-11-18家宽代理正式接入)。上文 0.1.14 本地体验及独立 8767 页面是历史阶段记录；正式页面使用 `/proxies`，不使用预览数据。未进行真实第三方付款，开通验收使用临时余额账号。
+用户反馈独立页面丢失侧栏、有割裂感后，入口统一为「家宽代理」，页面改为挂载到用户中心 `/#/proxies`，沿用侧栏、页头和移动菜单；旧 `/proxies` 链接兼容返回用户中心。客户端同步更名，源码版本 0.1.16。本地布局与生命周期检查通过，生产更新尚在发布中。见[页面整合决定](./.agents/notes/implemented/feature/2026-11-18-proxy-panel-integration.md)。
 <!-- proxy-sales-20261118:end -->

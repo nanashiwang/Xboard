@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import Proxies, { type ProxyRequest } from "./Proxies";
-const login = () => location.assign("/#/login?redirect=/proxies");
+const login = () => {
+    location.hash = "/login?redirect=/proxies";
+};
 function token(): string {
     try {
         const v = JSON.parse(
@@ -15,10 +17,14 @@ function token(): string {
         return "";
     }
 }
-async function api(path: string, payload?: Record<string, unknown>) {
+async function api(
+    path: string,
+    payload: Record<string, unknown> | undefined,
+    onLogin: () => void,
+) {
     const auth = token();
     if (!auth) {
-        login();
+        onLogin();
         throw new Error("请先登录");
     }
     const response = await fetch("/api/v1/user/" + path, {
@@ -38,45 +44,64 @@ async function api(path: string, payload?: Record<string, unknown>) {
             response.status === 401 ||
             (response.status === 403 && body.message === "未登录或登陆已过期")
         )
-            login();
+            onLogin();
         throw new Error(body.message || "请求未完成，请重试");
     }
     return body;
 }
-const request: ProxyRequest = async <T,>(
-    action: string,
-    payload: Record<string, unknown> = {},
-) => {
-    if (action === "index") return (await api("proxies")).data as T;
-    if (action === "detail")
-        return (await api("proxies/detail?id=" + Number(payload.id))).data as T;
-    if (action === "save" || action === "update")
-        return (await api("proxies/" + action, payload)).data as T;
-    if (action === "order")
-        return (
-            await api(
-                "order/detail?trade_no=" +
-                    encodeURIComponent(String(payload.trade_no)),
-            )
-        ).data as T;
-    if (action === "store")
-        return { methods: (await api("order/getPaymentMethod")).data } as T;
-    if (action === "cancel")
-        return (await api("order/cancel", payload)).data as T;
-    if (action === "checkout") {
-        const result = await api("order/checkout", payload);
-        return {
-            kind:
-                result.type === -1
-                    ? "submitted"
-                    : result.type === 0
-                      ? "qr"
-                      : "url",
-            data: result.data,
-        } as T;
-    }
-    throw new Error("不支持的操作");
-};
-createRoot(document.getElementById("proxy-root")!).render(
-    <Proxies request={request} loggedIn={!!token()} onLogin={login} />,
-);
+function createRequest(onLogin: () => void): ProxyRequest {
+    const call = (path: string, payload?: Record<string, unknown>) =>
+        api(path, payload, onLogin);
+    return async <T,>(
+        action: string,
+        payload: Record<string, unknown> = {},
+    ) => {
+        if (action === "index") return (await call("proxies")).data as T;
+        if (action === "detail")
+            return (await call("proxies/detail?id=" + Number(payload.id)))
+                .data as T;
+        if (action === "save" || action === "update")
+            return (await call("proxies/" + action, payload)).data as T;
+        if (action === "order")
+            return (
+                await call(
+                    "order/detail?trade_no=" +
+                        encodeURIComponent(String(payload.trade_no)),
+                )
+            ).data as T;
+        if (action === "store")
+            return {
+                methods: (await call("order/getPaymentMethod")).data,
+            } as T;
+        if (action === "cancel")
+            return (await call("order/cancel", payload)).data as T;
+        if (action === "checkout") {
+            const result = await call("order/checkout", payload);
+            return {
+                kind:
+                    result.type === -1
+                        ? "submitted"
+                        : result.type === 0
+                          ? "qr"
+                          : "url",
+                data: result.data,
+            } as T;
+        }
+        throw new Error("不支持的操作");
+    };
+}
+export function mount(
+    container: HTMLElement,
+    options: { onLogin?: () => void } = {},
+) {
+    const onLogin = options.onLogin || login;
+    const root = createRoot(container);
+    root.render(
+        <Proxies
+            request={createRequest(onLogin)}
+            loggedIn={!!token()}
+            onLogin={onLogin}
+        />,
+    );
+    return () => root.unmount();
+}
