@@ -211,4 +211,5 @@ python3 -m unittest discover -s tests/Operations -v
 ### 家宽代理正式业务（2026-11-18）
 
 官网用户菜单「我的代理」→ `/proxies`；[共用组件](../desktop/capybara/src/Proxies.tsx)通过用户 / 客户端认证 API 读取本人资产，复用既有订单收银台。[销售服务](../app/Services/ResidentialProxyService.php)与[迁移](../database/migrations/2026_11_18_000001_create_residential_proxies.php)提供独立库存、事务预留和订单类型，禁止覆盖 VPN 权益；[节点代理](../.docker/proxy-endpoints/agent.py)以短租约管理固定端口认证。[原生连接](../desktop/capybara/src-tauri/src/residential.rs)从可信 API 重新获取配置，不接受前端传入认证或任意地址。库存运维使用 `proxy:inventory` 和 [生产工作流](../.github/workflows/proxy-sales-production.yml)；[测试](../tests/Feature/ResidentialProxy)覆盖账务、归属及并发。生产发布状态见[进展](../progress-log.md#2026-11-18家宽代理正式接入)。
+生产已开放双机 20 个端点；客户端 0.1.15、官网购买和双协议连接共用同一资产。代理限 TCP，未承诺 UDP 或独享物理带宽；到期端点保留用户归属，不自动复售。
 <!-- proxy-sales-20261118:end -->
