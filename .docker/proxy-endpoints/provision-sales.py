@@ -26,10 +26,16 @@ def php(client,code):
 PREFIX="<?php require '/www/vendor/autoload.php';$a=require '/www/bootstrap/app.php';$a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();\n"
 def main():
  operation=sys.argv[1];expected=os.environ['EXPECTED_REVISION']
- if operation not in ['bootstrap','enable','disable','status','acceptance']:raise ValueError('invalid_operation')
+ if operation not in ['bootstrap','enable','disable','status','acceptance','recover-storage']:raise ValueError('invalid_operation')
  origin=connect('107.173.191.23',os.environ['XBOARD_PASSWORD'])
  actual=execute(origin,"cd /root/Xboard && docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' \"$(docker compose ps -q xboard)\"").decode().strip()
  if actual!=expected:raise RuntimeError('production_revision_mismatch')
+ if operation=='recover-storage':
+  print(execute(origin,'df -h /; df -i /; docker system df').decode())
+  print(execute(origin,'docker image prune -f --filter label=org.opencontainers.image.source=https://github.com/nanashiwang/Xboard').decode())
+  print(execute(origin,'df -h /; df -i /').decode())
+  execute(origin,'cd /root/Xboard && docker compose restart xboard')
+  origin.close(); return
  if operation=='acceptance':
   from verify_sales import verify
   verify(origin,php,PREFIX,connect,execute)
@@ -61,6 +67,7 @@ def main():
   logs=execute(origin,'cd /root/Xboard && docker compose logs --tail=120 xboard').decode(errors='replace')
   for line in logs.splitlines():
    if any(word in line.lower() for word in ['error','exception','fatal','spawn','exited','listening','started','permission','address already']):
+    line=line.split('{"request":')[0]
     line=re.sub(r'https?://\S+|[A-Za-z0-9_+/=-]{40,}', '[redacted]',line)
     print(line[:400])
  origin.close()

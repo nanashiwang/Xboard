@@ -5,7 +5,7 @@ on:
     inputs:
       operation:
         type: choice
-        options: [bootstrap, enable, disable, status, acceptance]
+        options: [bootstrap, enable, disable, status, acceptance, recover-storage]
         required: true
       image_revision:
         type: string
