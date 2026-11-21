@@ -249,3 +249,23 @@ it("配置刷新失败保留成功时间和测速错误，不显示连接恢复"
     expect(screen.getByText("订阅已更新")).toBeTruthy();
     expect(screen.getByText("连接待检查")).toBeTruthy();
 });
+
+it("家宽连接显示已购出口和中转线路并支持从首页复检", () => {
+    const { onAction, props, rerender } = setup({
+        proxy_id: 1,
+        proxy_relay: "香港测试",
+        proxy_address: "192.0.2.1",
+    });
+    expect(screen.getByRole("heading", { name: "家宽代理 PX-1" })).toBeTruthy();
+    expect(screen.getByText("香港测试 → 192.0.2.1")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /连接检测/ }));
+    expect(onAction).toHaveBeenCalledWith("check_connection");
+    rerender(
+        <Home
+            {...props}
+            view={{ ...props.view, connection_error: "出口检测超时" }}
+        />,
+    );
+    expect(screen.getByText("连接待检查")).toBeTruthy();
+    expect(screen.getByText("出口检测超时")).toBeTruthy();
+});

@@ -29,6 +29,8 @@ export type View = {
     connection: "connected" | "disconnected";
     connection_error: string | null;
     proxy_id?: number | null;
+    proxy_relay?: string | null;
+    proxy_address?: string | null;
     version: string;
     platform: string;
 };

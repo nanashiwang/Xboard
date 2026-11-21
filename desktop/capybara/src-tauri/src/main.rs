@@ -68,6 +68,8 @@ struct View {
     connection: String,
     connection_error: Option<String>,
     proxy_id: Option<u64>,
+    proxy_relay: Option<String>,
+    proxy_address: Option<String>,
     version: String,
     platform: String,
 }
@@ -84,6 +86,8 @@ impl Default for View {
             connection: "disconnected".into(),
             connection_error: None,
             proxy_id: None,
+            proxy_relay: None,
+            proxy_address: None,
             version: account::VERSION.into(),
             platform: account::platform().into(),
         }
@@ -251,7 +255,7 @@ impl Runtime {
                 self.view.synced_at = Some(now());
                 self.view.sync_error = None;
                 if !active {
-                    if self.proxy_engine.is_none() {
+                    if self.proxy_engine.is_none() || self.view.proxy_relay.is_some() {
                         self.shutdown().await?;
                     }
                     if force_config {
@@ -373,6 +377,8 @@ impl Runtime {
             .map(|mut engine| engine.stop())
             .unwrap_or(Ok(()));
         self.view.proxy_id = None;
+        self.view.proxy_relay = None;
+        self.view.proxy_address = None;
         self.proxy_expires = 0;
         let result = proxy::recover(&self.dir);
         self.view.connection = "disconnected".into();
@@ -385,6 +391,16 @@ impl Runtime {
         // Expired/revoked accounts cannot keep using a live core even if proxy restoration fails.
         recovery.and(stopped)
     }
+    async fn active_controller(&self) -> Option<engine::Controller> {
+        if self.view.connection != "connected" {
+            return None;
+        }
+        if let Some(engine) = &self.proxy_engine {
+            return Some((**engine).clone());
+        }
+        self.nodes.lock().await.engine.as_deref().cloned()
+    }
+
     async fn check_process(&mut self) {
         if let Some(engine) = self.proxy_engine.as_mut() {
             if self.proxy_expires <= now() || !engine.alive() {
@@ -660,21 +676,22 @@ async fn disconnect(state: State<'_, AppState>) -> Result<View, Fault> {
 }
 #[tauri::command]
 async fn check_connection(state: State<'_, AppState>) -> Result<View, Fault> {
-    let control = {
+    let (control, expected) = {
         let rt = state.0.lock().await;
-        if rt.view.connection != "connected" {
-            return Err(Fault::local("请先连接"));
-        }
-        let nodes = state.1.lock().await;
-        let engine = nodes
-            .engine
-            .as_ref()
-            .ok_or_else(|| Fault::local("请先连接"))?;
-        std::ops::Deref::deref(engine).clone()
+        (
+            rt.active_controller()
+                .await
+                .ok_or_else(|| Fault::local("请先连接"))?,
+            rt.view.proxy_address.clone(),
+        )
     };
-    let error = control.check().await.err();
+    let error = match expected {
+        Some(address) => residential::check_exit(&control, &address).await,
+        None => control.check().await,
+    }
+    .err();
     let mut rt = state.0.lock().await;
-    if rt.view.connection == "connected" {
+    if rt.active_controller().await.as_ref() == Some(&control) {
         rt.view.connection_error = error;
     }
     Ok(rt.view.clone())

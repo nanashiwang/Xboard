@@ -52,6 +52,7 @@ export default function Proxies({
     onLogin,
     native = false,
     connectedId = null,
+    connectionStatus,
     onConnection,
 }: {
     request: ProxyRequest;
@@ -59,6 +60,7 @@ export default function Proxies({
     onLogin: () => void;
     native?: boolean;
     connectedId?: number | null;
+    connectionStatus?: string;
     onConnection?: () => void;
 }) {
     const [data, setData] = useState<Index>({
@@ -104,7 +106,11 @@ export default function Proxies({
             const detail = await request<ProxyItem>("detail", {
                 id: selection.current,
             });
-            if (mounted.current && epoch === generation.current && detail.id === selection.current)
+            if (
+                mounted.current &&
+                epoch === generation.current &&
+                detail.id === selection.current
+            )
                 setSelected(detail);
         }
     }
@@ -141,6 +147,7 @@ export default function Proxies({
         try {
             await fn();
         } catch (e) {
+            setMessage("");
             setError(String((e as Error).message || e));
         } finally {
             pending.current = false;
@@ -166,7 +173,11 @@ export default function Proxies({
         setSelected(null);
         setReveal(false);
         const detail = await request<ProxyItem>("detail", { id: item.id });
-        if (selection.current === item.id && epoch === generation.current && mounted.current) {
+        if (
+            selection.current === item.id &&
+            epoch === generation.current &&
+            mounted.current
+        ) {
             setSelected(detail);
             setRename(detail.name);
         }
@@ -364,6 +375,13 @@ export default function Proxies({
                                                 }
                                                 onClick={() =>
                                                     void action(async () => {
+                                                        if (
+                                                            connectedId !==
+                                                            selected.id
+                                                        )
+                                                            setMessage(
+                                                                "正在验证线路与家宽出口…",
+                                                            );
                                                         await request(
                                                             connectedId ===
                                                                 selected.id
@@ -379,7 +397,7 @@ export default function Proxies({
                                                             connectedId ===
                                                                 selected.id
                                                                 ? "已断开代理"
-                                                                : "代理已连接",
+                                                                : "",
                                                         );
                                                     })
                                                 }
@@ -389,8 +407,10 @@ export default function Proxies({
                                                     : "连接此代理"}
                                             </button>
                                             <span>
-                                                连接会替换客户端当前连接；不影响原
-                                                VPN 套餐权益。
+                                                {connectedId === selected.id &&
+                                                connectionStatus
+                                                    ? connectionStatus
+                                                    : "有普通套餐时自动通过普通线路中转，按该线路计流量。仅购买家宽时尝试直连。连接会替换当前线路。"}
                                             </span>
                                         </div>
                                     )}

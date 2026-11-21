@@ -99,6 +99,7 @@ export default function Home({
     const nodeFeedback =
         nodes.error || (routes.length > 0 ? nodes.view.error : "");
     const selected = route?.selected;
+    const residential = view.proxy_id ? `家宽代理 PX-${view.proxy_id}` : "";
     const percent = quotaPercent(view.subscription);
     const choices = (route?.choices || []).filter(
         (name) =>
@@ -149,9 +150,10 @@ export default function Home({
                             </span>
                             <h2>
                                 {connected
-                                    ? direct
-                                        ? "直连模式"
-                                        : selected || "轻松连接"
+                                    ? residential ||
+                                      (direct
+                                          ? "直连模式"
+                                          : selected || "轻松连接")
                                     : "世界很大，\n一起出发。"}
                             </h2>
                             <p>慢下来，也能和世界靠得很近。</p>
@@ -203,22 +205,26 @@ export default function Home({
                         <NodeSymbol name={selected || ""} />
                         <span className="current-node-copy">
                             <strong>
-                                {direct
-                                    ? "直连模式"
-                                    : selected ||
-                                      (connected
-                                          ? "按规则自动分流"
-                                          : "登录后自动同步节点")}
+                                {residential ||
+                                    (direct
+                                        ? "直连模式"
+                                        : selected ||
+                                          (connected
+                                              ? "按规则自动分流"
+                                              : "登录后自动同步节点"))}
                             </strong>
                             <small>
                                 <Wifi size={14} />
-                                {direct
-                                    ? "流量不经过代理节点"
-                                    : connected
-                                      ? view.connection_error
-                                          ? "请检测当前连接"
-                                          : "系统代理已开启"
-                                      : "连接前自动检查套餐状态"}
+                                {residential
+                                    ? view.connection_error ||
+                                      `${view.proxy_relay || "直连"} → ${view.proxy_address}`
+                                    : direct
+                                      ? "流量不经过代理节点"
+                                      : connected
+                                        ? view.connection_error
+                                            ? "请检测当前连接"
+                                            : "系统代理已开启"
+                                        : "连接前自动检查套餐状态"}
                             </small>
                         </span>
                         <ChevronRight size={20} />

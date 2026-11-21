@@ -31,7 +31,7 @@ pub struct Engine {
     content: String,
     settings: RoutingSettings,
 }
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Controller {
     pub port: u16,
     api: u16,
@@ -392,6 +392,15 @@ impl Engine {
             }
         }
     }
+    pub async fn current_node(&self, selected: &str) -> Option<String> {
+        let data = self
+            .control
+            .call(reqwest::Method::GET, "/proxies", None)
+            .await
+            .ok()?;
+        resolved_node(&data, selected, &global_targets(&self.content).ok()?)
+    }
+
     pub async fn checkpoint(&self) -> Result<(String, RoutingSettings, Vec<Route>), String> {
         Ok((
             self.content.clone(),
@@ -711,17 +720,20 @@ impl Controller {
             .filter(|v| *v > 0)
             .ok_or_else(|| "不可达".into())
     }
-    pub async fn check(&self) -> Result<(), String> {
+    pub fn probe_client(&self) -> Result<reqwest::Client, String> {
         let proxy = reqwest::Proxy::all(format!("http://127.0.0.1:{}", self.port))
             .map_err(|_| "检测代理地址无效")?;
-        let client = reqwest::Client::builder()
+        reqwest::Client::builder()
             .no_proxy()
             .proxy(proxy)
             .redirect(reqwest::redirect::Policy::none())
             .timeout(Duration::from_secs(12))
             .build()
-            .map_err(|_| "无法初始化连接检测")?;
-        let response = client
+            .map_err(|_| "无法初始化连接检测".into())
+    }
+    pub async fn check(&self) -> Result<(), String> {
+        let response = self
+            .probe_client()?
             .get("https://www.gstatic.com/generate_204")
             .send()
             .await
@@ -1369,7 +1381,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod integration {
+pub(crate) mod integration {
     use super::*;
     #[test]
     fn mode_selection_resolves_groups_without_overwriting_unrelated_choices() {
@@ -1454,6 +1466,51 @@ mod integration {
             let _ = std::fs::remove_dir_all(&self.1);
         }
     }
+    pub(crate) async fn start_test_core(raw: &str) -> (impl Drop, Controller) {
+        let dir =
+            std::env::temp_dir().join(format!("capybara-routing-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let binary = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(format!(
+                "mihomo-{}{}",
+                crate::host_target(),
+                if cfg!(windows) { ".exe" } else { "" }
+            ));
+        let port = port().unwrap();
+        let api = port_fn(port).unwrap();
+        let secret = uuid::Uuid::new_v4().to_string();
+        let config = sanitize(raw, port, api, &secret).unwrap();
+        private_write(&dir.join("config.yaml"), config.as_bytes()).unwrap();
+        let mut core = Running(
+            cmd(binary)
+                .arg("-d")
+                .arg(&dir)
+                .arg("-f")
+                .arg(dir.join("config.yaml"))
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+            dir,
+        );
+        let controller = Controller { port, api, secret };
+        controller
+            .wait_ready(
+                &ExpectedConfig::from_yaml(&config).unwrap(),
+                Duration::from_secs(35),
+                || {
+                    if matches!(core.0.try_wait(), Ok(None)) {
+                        Ok(())
+                    } else {
+                        Err("test core exited".into())
+                    }
+                },
+            )
+            .await
+            .unwrap();
+        (core, controller)
+    }
     #[tokio::test]
     async fn bundled_core_routes_private_domains_locally_and_public_global_to_selected_proxy() {
         use std::sync::{
@@ -1508,50 +1565,11 @@ mod integration {
                 dns.send_to(&response, peer).await.unwrap();
             }
         });
-        let dir =
-            std::env::temp_dir().join(format!("capybara-private-test-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let binary = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("binaries")
-            .join(format!(
-                "mihomo-{}{}",
-                crate::host_target(),
-                if cfg!(windows) { ".exe" } else { "" }
-            ));
-        let port = port().unwrap();
-        let api = port_fn(port).unwrap();
-        let secret = uuid::Uuid::new_v4().to_string();
         let raw = format!("proxies: [{{name: selected, type: http, server: 127.0.0.1, port: {}}}]\nproxy-groups: [{{name: group, type: select, proxies: [selected]}}]\nrules: ['IP-CIDR,127.0.0.0/8,DIRECT,no-resolve', 'MATCH,group']\ndns: {{enable: true, ipv6: false, enhanced-mode: redir-host, nameserver: ['{dns_address}'], direct-nameserver: ['{dns_address}']}}\n", proxy.api);
         let mut settings = RoutingSettings::default();
-        let config = sanitize_routing(&raw, port, api, &secret, &settings).unwrap();
-        private_write(&dir.join("config.yaml"), config.as_bytes()).unwrap();
-        let mut core = Running(
-            cmd(binary)
-                .arg("-d")
-                .arg(&dir)
-                .arg("-f")
-                .arg(dir.join("config.yaml"))
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .unwrap(),
-            dir,
-        );
-        let controller = Controller { port, api, secret };
-        controller
-            .wait_ready(
-                &ExpectedConfig::from_yaml(&config).unwrap(),
-                Duration::from_secs(35),
-                || {
-                    if matches!(core.0.try_wait(), Ok(None)) {
-                        Ok(())
-                    } else {
-                        Err("test core exited".into())
-                    }
-                },
-            )
-            .await
-            .unwrap();
+        let (core, controller) = start_test_core(&raw).await;
+        let port = controller.port;
+        let api = controller.api;
         let client = reqwest::Client::builder()
             .no_proxy()
             .proxy(reqwest::Proxy::all(format!("http://127.0.0.1:{port}")).unwrap())

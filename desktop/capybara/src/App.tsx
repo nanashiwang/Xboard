@@ -342,7 +342,8 @@ export default function App() {
                 )}
                 {view.proxy_id && page !== "proxies" && (
                     <div className="preview-label">
-                        当前已连接家宽代理 PX-{view.proxy_id}。
+                        家宽代理 PX-{view.proxy_id} ·{" "}
+                        {view.proxy_relay || "直连"} → {view.proxy_address}
                         <button onClick={() => setPage("proxies")}>
                             管理代理连接
                         </button>
@@ -361,6 +362,10 @@ export default function App() {
                         onLogin={() => void act("begin_browser_login")}
                         native
                         connectedId={view.proxy_id}
+                        connectionStatus={
+                            view.connection_error ||
+                            `${view.proxy_relay || "直连"} → 家宽出口 ${view.proxy_address}`
+                        }
                         onConnection={() =>
                             void command<View>("snapshot").then(setView)
                         }

@@ -44,6 +44,7 @@ pub struct Nodes {
     pub routing: RoutingState,
     pub view: NodeView,
     generation: u64,
+    last_group: Option<String>,
     source: Option<String>,
     subscription_settings_error: Option<String>,
     dir: std::path::PathBuf,
@@ -212,6 +213,7 @@ impl Nodes {
                 engine.remember_global_target(name.clone());
             }
         }
+        self.last_group = Some(group.clone());
         for route in &mut self.view.routes {
             if route.group == group {
                 route.selected = name.clone();
@@ -220,6 +222,23 @@ impl Nodes {
         self.changed();
         Ok(self.view.clone())
     }
+    pub async fn preferred_relay(&self) -> Option<String> {
+        if let Some(engine) = &self.engine {
+            let route = self
+                .view
+                .routes
+                .iter()
+                .find(|r| Some(&r.group) == self.last_group.as_ref())
+                .or_else(|| self.view.routes.first());
+            if let Some(route) = route {
+                if let Some(name) = engine.current_node(&route.selected).await {
+                    return Some(name);
+                }
+            }
+        }
+        self.routing.settings.global_target.clone()
+    }
+
     pub fn changed(&mut self) {
         self.view.revision += 1;
     }
@@ -232,6 +251,7 @@ impl Nodes {
     pub fn stop(&mut self) -> Result<(), String> {
         self.invalidate();
         let result = self.engine.take().map(|mut e| e.stop()).unwrap_or(Ok(()));
+        self.last_group = None;
         self.view.routes.clear();
         self.routing.targets.clear();
         self.source = None;

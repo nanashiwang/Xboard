@@ -16,6 +16,8 @@ Status: implemented
 
 ## History audit
 
+- [家宽中转](../bug-fix/2026-11-22-residential-relay.md)接管客户端的拨号路径和出口验证，普通中转按普通套餐计量。
+
 - [用户中心整合](2026-11-18-proxy-panel-integration.md)接管页面宿主与导航生命周期，名称统一为「家宽代理」，资产和账务沿用本篇。
 
 - [原设计](../../implemented/feature/2026-11-18-residential-proxy-workspace.md)部分重叠，保留视觉及产品约束，正式数据接入由本篇负责。

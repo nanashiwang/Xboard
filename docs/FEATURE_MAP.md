@@ -1,3 +1,7 @@
+### 家宽代理一键中转（0.1.17）
+
+[原生入口](../desktop/capybara/src-tauri/src/residential.rs)读取本人资产和已校验的普通订阅，解析当前节点，最多验证三个完整双跳候选。[首页检测](../desktop/capybara/src-tauri/src/main.rs)读取活动内核，家宽时校验已购出口与 Google 204。独立家宽直连有相同的出口校验。[决定与验证](../.agents/notes/implemented/bug-fix/2026-11-22-residential-relay.md)
+
 # Xboard 能力地图
 
 [FriendHosting 三节点测速排查](../progress-log.md#friendhosting-20261122)记录客户端、独立入口健康页、出口隧道和生产代理验收的分段实测。
