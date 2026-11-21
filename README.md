@@ -8,7 +8,7 @@
 
 ### 桌面客户端 [0.1.19 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.19)
 
-首页分别显示入口 TCP 延迟和每条实际节点的 HTTPS 联网结果。共享入口只测一次，订阅未变化且本地配置有效时保留当前节点和测速记录。[验证和发布进度](./progress-log.md#desktop-release-019)
+首页分别显示入口 TCP 延迟和每条实际节点的 HTTPS 联网结果。共享入口只测一次，订阅未变化且本地配置有效时保留当前节点和测速记录。官网与 Hub 均已分发 0.1.19。[验证和发布进度](./progress-log.md#desktop-release-019)
 
 ### Mac 客户端订阅更新与测速（2026-11-22）
 

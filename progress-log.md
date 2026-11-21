@@ -34,7 +34,7 @@
 
 针对同一订阅在 Mac 上的首项反馈和整批耗时，入口 TCP 按地址端口合并，HTTPS 只测实际节点，两组各限六路并发。系统返回保留虚拟地址时显示“无真实地址”。已应用配置通过认证条件请求复核，摘要匹配且内核仍有效时跳过重载。旧版实测在下节，未把协议差异或旧版用时写成新版提速幅度。[决定与回归范围](./.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
-本地前端 82 项、发布与网页脚本 17 项、原生 70 项通过（另有 2 项默认忽略），生产前端构建与 Apple Silicon 应用打包通过。代码 `80e4688` 已推送 master。[四目标构建和发布](https://github.com/nanashiwang/Xboard/actions/runs/44931719772)成功，[0.1.19 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.19) 公开 21 个附件。官网与 Hub 分发核验待回填。
+本地前端 82 项、发布与网页脚本 17 项、原生 70 项通过（另有 2 项默认忽略），生产前端构建与 Apple Silicon 应用打包通过。代码 `80e4688` 已推送 master。[四目标构建和发布](https://github.com/nanashiwang/Xboard/actions/runs/44931719772)成功，[0.1.19 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.19) 公开 21 个附件。[官网同步](https://github.com/nanashiwang/Xboard/actions/runs/44932427531)和[独立分发验收](https://github.com/nanashiwang/Xboard/actions/runs/44932524807)通过。[官网下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/44932739810)完成，两个公开下载页均已列出新版五款安装包。已回读两个公开更新源并与 Release 摘要比对，核验主站五款安装包大小、21 个 Release 附件、Hub 七个完整包、两份恢复文件及四平台更新签名。官网下载页切换时观察到过 502/503，随后直连与本机系统代理各三次均返回 200。推送构建的 Apple Silicon 任务首次下载固定内核时收到 403，同提交的正式构建通过，推送任务重跑结果见[检查记录](https://github.com/nanashiwang/Xboard/actions/runs/44931717579)。
 
 <a id="desktop-latency-subscription-20261122"></a>
 
