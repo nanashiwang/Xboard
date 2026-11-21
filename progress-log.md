@@ -6,7 +6,11 @@
 
 0.1.17 改用本人普通订阅中转，优先当前节点，最多验证三条完整路径，查到已购 IP 并通过 Google HTTPS 204 后才启用系统代理。仅普通订阅明确不可用时尝试独立直连。取舍及验证见[家宽中转决定](./.agents/notes/implemented/bug-fix/2026-11-22-residential-relay.md)。
 
-本地原生 69 项通过、1 项手动测试忽略；包括固定内核的 HTTP、SOCKS5 双跳实测。前端 79 项和脚本 17 项通过，生产前端构建通过。用户本人 Windows 网络、已购账号的长期使用与实际 Google/ChatGPT 登录仍待复验。代码 ef40268 已推送 master。[四平台构建及发布](https://github.com/nanashiwang/Xboard/actions/runs/44924275942)全部成功，[0.1.17 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.17) 已公开，回读 21 个附件。本地 macOS 应用打包成功。官网下载专项首次 CI 有四项断言仍固定为历史 0.1.14，改为读取发布索引后本地 16 项通过。分发清单与 Hub 已按正式附件摘要生成。
+本地原生 69 项通过、1 项手动测试忽略；包括固定内核的 HTTP、SOCKS5 双跳实测。前端 79 项和脚本 17 项通过，生产前端构建通过。用户本人 Windows 网络、已购账号的长期使用与实际 Google/ChatGPT 登录仍待复验。代码 ef40268 已推送 master。[四平台构建及发布](https://github.com/nanashiwang/Xboard/actions/runs/44924275942)全部成功，[0.1.17 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.17) 已公开，回读 21 个附件。本地 macOS 应用打包成功。官网下载专项首次 CI 有四项断言仍固定为历史 0.1.14，改为读取发布索引后本地 16 项通过。[官网下载同步](https://github.com/nanashiwang/Xboard/actions/runs/44925076921)与[分发验收](https://github.com/nanashiwang/Xboard/actions/runs/44925173572)成功。主更新源和 Hub 均回读到 0.1.17 正确摘要，21 个 Release 附件、7 个 Hub 完整包、2 个恢复 JSON 及双路径签名通过。Hub 生产部署 737d6f63-5554-4c41-a400-5dc0d965f98b。下载清单 ae3547a 已推送 master，[官网下载 CI](https://github.com/nanashiwang/Xboard/actions/runs/44925032786)通过。主站旧 /clients HTML 实读仍链接 0.1.15，本次发布入口为应用内更新、Hub 或 GitHub Release。
+
+用户进一步询问第一阶段是否直接转发家宽。按已有主机密钥只读检查，入口机解析 node.lumavia.fyi 到 143.203.200.5，Nginx active、TCP 443 已监听，wg-vpn-stage1 存在。启用的 Nginx 配置中有 16 个不同的 10.79.0.x 隧道后端与 41 个扩展回环目标，包含保留配置，数量不能当作在售节点数。家宽端口 20001–20010 本机监听和 Nginx 上游均为零，未发现该端口的 DNAT/redirect。入口到 PX-1 公网地址走普通路由并收到了 SOCKS5 用户名密码协商响应。未使用客户凭据。
+
+0.1.17 的家宽下一跳取决于所选普通线路。经第一阶段的自建线路先到普通后端，再由后端拨家宽端点；单买家宽目前仍尝试直拨。若要让家宽用户固定经第一阶段直达已购端点，需要新增面向家宽资产的鉴权和受限映射。这是待决定的架构方案，本轮没有更改生产转发。
 
 <a id="friendhosting-20261122"></a>
 

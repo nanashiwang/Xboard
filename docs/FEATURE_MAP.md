@@ -1,6 +1,6 @@
 ### 家宽代理一键中转（0.1.17）
 
-[原生入口](../desktop/capybara/src-tauri/src/residential.rs)读取本人资产和已校验的普通订阅，解析当前节点，最多验证三个完整双跳候选。[首页检测](../desktop/capybara/src-tauri/src/main.rs)读取活动内核，家宽时校验已购出口与 Google 204。独立家宽直连有相同的出口校验。[决定与验证](../.agents/notes/implemented/bug-fix/2026-11-22-residential-relay.md)
+[原生入口](../desktop/capybara/src-tauri/src/residential.rs)读取本人资产和已校验的普通订阅，解析当前节点，最多验证三个完整双跳候选。[首页检测](../desktop/capybara/src-tauri/src/main.rs)读取活动内核，家宽时校验已购出口与 Google 204。独立家宽直连有相同的出口校验。普通线路的[第一阶段](./zh-CN/installation/vpn-stage1.md)按原路由转到普通后端，再拨家宽，本机未配置直转家宽端口。[决定与验证](../.agents/notes/implemented/bug-fix/2026-11-22-residential-relay.md)
 
 # Xboard 能力地图
 
