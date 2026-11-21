@@ -96,6 +96,8 @@ verify_running() {
         running_image=$(docker inspect --format '{{.Image}}' "$id")
         [[ "$running_image" = "$expected_image" ]] || fail '运行镜像与刚拉取的镜像不一致。'
     fi
+    # PHP evaluates these variables inside the container.
+    # shellcheck disable=SC2016
     compose exec -T "$SERVICE" php -r '
 $end = microtime(true) + 90;
 $context = stream_context_create(["http" => ["timeout" => 3]]);
