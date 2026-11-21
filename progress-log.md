@@ -4,7 +4,7 @@
 
 用户反馈两台线上家宽服务器各有十个端口，希望同一账号购买第二个代理时优先获得另一个公网 IP。原逻辑只按端点 ID 选取，可能在同一 IP 连续预留。新购在原商品锁内优先选择本人持有端口数最少的可售 IP，同数按端点 ID 分配。未持有的可售 IP 优先，其他 IP 缺货、停用或心跳过期时可复用当前 IP。过期保留归属的端口仍计入，续费使用原端点。见[销售决定](./.agents/notes/implemented/feature/2026-11-18-residential-proxy-sales.md)及[销售回归](./tests/Feature/ResidentialProxy/ResidentialProxyTest.php)。
 
-本地家宽、支付和独享资源回归通过 92 项、528 个断言，包括连续四单、其他买家的端口、库存预留、续费与六人并发抢三席。生产验收使用临时买家在同一数据库事务中执行两笔余额购买并验证续费，再整体回滚。镜像构建、生产部署、线上分配和网站 Release 待回填。
+本地家宽、支付和独享资源回归通过 92 项、528 个断言，包括连续四单、其他买家的端口、库存预留、续费与六人并发抢三席。生产验收使用临时买家在同一数据库事务中执行两笔余额购买并验证续费，再整体回滚。代码 5f57e3a 已推送 master。[家宽 CI](https://github.com/nanashiwang/Xboard/actions/runs/44930730874) 与[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/44930730919)构建成功。[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/44931105601)确认运行修订相同，账户健康接口返回预期协议。线上同一临时账号的两笔购买依次获得 216.36.108.173 和 192.204.56.29，再续费命中原端点，所有临时数据随事务回滚。[生产分配验收](https://github.com/nanashiwang/Xboard/actions/runs/44931287920)通过。[网站 Release 20261122-5f57e3a](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-5f57e3a) 已发布，镜像清单、验收记录和 SHA256SUMS 三个附件已下载并核对摘要。官网与既有客户端均使用这项服务端规则。
 
 <a id="residential-stage1-20261122"></a>
 

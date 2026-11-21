@@ -1,6 +1,6 @@
 ### 家宽代理新购分配
 
-同一账号再买家宽代理时，优先分配自己尚未持有、且有空闲端口的公网 IP。可售 IP 都已持有时，优先选本人持有端口数较少的 IP。续费保留原 IP 和端口。[分配规则与验收](./progress-log.md#residential-allocation-20261122)
+同一账号再买家宽代理时，优先分配自己尚未持有、且有空闲端口的公网 IP。可售 IP 都已持有时，优先选本人持有端口数较少的 IP。续费保留原 IP 和端口。已在生产验证同一账号连续两次购买得到不同 IP。[分配规则与验收](./progress-log.md#residential-allocation-20261122)
 
 ### 桌面客户端家宽第一阶段（[0.1.18 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.18)）
 
