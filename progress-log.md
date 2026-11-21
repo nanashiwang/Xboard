@@ -34,7 +34,7 @@
 
 针对同一订阅在 Mac 上的首项反馈和整批耗时，入口 TCP 按地址端口合并，HTTPS 只测实际节点，两组各限六路并发。系统返回保留虚拟地址时显示“无真实地址”。已应用配置通过认证条件请求复核，摘要匹配且内核仍有效时跳过重载。旧版实测在下节，未把协议差异或旧版用时写成新版提速幅度。[决定与回归范围](./.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
-本地前端 82 项、发布与网页脚本 17 项、原生 70 项通过（另有 2 项默认忽略），生产前端构建与 Apple Silicon 应用打包通过。四目标正式构建、Release 及官网更新源的验收待回填。
+本地前端 82 项、发布与网页脚本 17 项、原生 70 项通过（另有 2 项默认忽略），生产前端构建与 Apple Silicon 应用打包通过。代码 `80e4688` 已推送 master。[四目标构建和发布](https://github.com/nanashiwang/Xboard/actions/runs/44931719772)成功，[0.1.19 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.19) 公开 21 个附件。官网与 Hub 分发核验待回填。
 
 <a id="desktop-latency-subscription-20261122"></a>
 
