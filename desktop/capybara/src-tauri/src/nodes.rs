@@ -4,9 +4,14 @@ use crate::{
     routing::{RoutingSettings, RoutingState},
     AppState,
 };
+use futures_util::{stream, StreamExt};
 use serde::Serialize;
-use std::{collections::BTreeMap, sync::Arc};
-use tokio::{sync::Mutex, task::JoinSet};
+use std::collections::BTreeMap;
+use std::{
+    net::IpAddr,
+    time::{Duration, Instant},
+};
+use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize)]
 pub struct Delay {
@@ -23,6 +28,7 @@ pub struct NodeView {
     pub subscription_interval_seconds: u64,
     testing: bool,
     delays: BTreeMap<String, Delay>,
+    entries: BTreeMap<String, Delay>,
 }
 impl Default for NodeView {
     fn default() -> Self {
@@ -35,6 +41,7 @@ impl Default for NodeView {
             subscription_interval_seconds: crate::subscription::DEFAULT_INTERVAL_SECONDS,
             testing: false,
             delays: BTreeMap::new(),
+            entries: BTreeMap::new(),
         }
     }
 }
@@ -73,6 +80,18 @@ impl Nodes {
         self.view.subscription_interval_seconds = seconds;
         self.changed();
         Ok(())
+    }
+    pub fn reusable_config(&mut self) -> Option<&str> {
+        self.check_process();
+        let engine = self.engine.as_ref()?;
+        if self.routing.storage_invalid
+            || self.routing.error.is_some()
+            || self.view.error.is_some()
+            || self.source.as_deref() != Some(engine.content())
+        {
+            return None;
+        }
+        Some(engine.content())
     }
     pub async fn prepare(
         &mut self,
@@ -227,6 +246,7 @@ impl Nodes {
         self.generation += 1;
         self.view.testing = false;
         self.view.delays.clear();
+        self.view.entries.clear();
         self.changed();
     }
     pub fn stop(&mut self) -> Result<(), String> {
@@ -272,13 +292,105 @@ pub async fn select_route(
     nodes.select_route(group, name).await
 }
 
-fn names(view: &NodeView) -> Vec<String> {
-    view.routes
+// Only concrete choices have an end-to-end result. Group selectors stay selectable.
+#[derive(Default)]
+struct ProbeTargets {
+    names: Vec<String>,
+    entries: BTreeMap<(String, u16), Vec<String>>,
+}
+fn probe_targets(content: &str, view: &NodeView) -> Result<ProbeTargets, Fault> {
+    let config: serde_yaml::Value =
+        serde_yaml::from_str(content).map_err(|_| Fault::local("订阅配置格式无效"))?;
+    let choices: std::collections::BTreeSet<_> = view
+        .routes
         .iter()
-        .flat_map(|r| r.choices.iter().cloned())
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .collect()
+        .flat_map(|r| r.choices.iter().map(String::as_str))
+        .collect();
+    let mut targets = ProbeTargets::default();
+    for proxy in config["proxies"].as_sequence().into_iter().flatten() {
+        let (Some(name), Some(kind)) = (proxy["name"].as_str(), proxy["type"].as_str()) else {
+            continue;
+        };
+        if !choices.contains(name) || matches!(kind, "direct" | "reject" | "dns" | "pass") {
+            continue;
+        }
+        targets.names.push(name.into());
+        // TCP is meaningful only for transports that actually connect over it.
+        if !matches!(
+            kind,
+            "vless" | "vmess" | "trojan" | "ss" | "ssr" | "socks5" | "http" | "anytls" | "snell"
+        ) || proxy.get("dialer-proxy").is_some()
+            || !matches!(
+                proxy["network"].as_str(),
+                None | Some("tcp" | "ws" | "http" | "h2" | "grpc" | "httpupgrade" | "xhttp")
+            )
+            || proxy["plugin-opts"]["mode"].as_str() == Some("quic")
+        {
+            continue;
+        }
+        let port = proxy["port"]
+            .as_u64()
+            .and_then(|v| u16::try_from(v).ok())
+            .or_else(|| proxy["port"].as_str()?.parse::<u16>().ok());
+        if let (Some(host), Some(port)) = (proxy["server"].as_str(), port.filter(|p| *p != 0)) {
+            let host = host
+                .trim_start_matches('[')
+                .trim_end_matches(']')
+                .to_ascii_lowercase();
+            targets
+                .entries
+                .entry((host, port))
+                .or_default()
+                .push(name.into());
+        }
+    }
+    Ok(targets)
+}
+
+fn virtual_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(addr) => matches!(addr.octets(), [198, 18 | 19, _, _]),
+        IpAddr::V6(addr) => {
+            addr.to_ipv4_mapped().is_some_and(|v| virtual_ip(v.into()))
+                || addr.segments()[..3] == [0x2001, 2, 0]
+        }
+    }
+}
+async fn entry_delay((host, port): (String, u16)) -> Result<u64, String> {
+    tokio::time::timeout(Duration::from_millis(1800), async {
+        let started = Instant::now();
+        let addresses = tokio::net::lookup_host((host.as_str(), port))
+            .await
+            .map_err(|_| "解析失败")?;
+        let addresses: Vec<_> = addresses.filter(|a| !virtual_ip(a.ip())).collect();
+        if addresses.is_empty() {
+            return Err("无真实地址");
+        }
+        let _socket = tokio::net::TcpStream::connect(addresses.as_slice())
+            .await
+            .map_err(|_| "不可达")?;
+        Ok(started.elapsed().as_millis().max(1) as u64)
+    })
+    .await
+    .map_err(|_| "超时".to_owned())?
+    .map_err(str::to_owned)
+}
+impl Delay {
+    fn pending() -> Self {
+        Self {
+            status: "pending".into(),
+            ms: None,
+        }
+    }
+    fn measured(result: Result<u64, String>) -> Self {
+        match result {
+            Ok(ms) => Self {
+                status: "ok".into(),
+                ms: Some(ms),
+            },
+            Err(status) => Self { status, ms: None },
+        }
+    }
 }
 #[tauri::command]
 pub async fn test_nodes(state: tauri::State<'_, AppState>) -> Result<NodeView, Fault> {
@@ -287,100 +399,79 @@ pub async fn test_nodes(state: tauri::State<'_, AppState>) -> Result<NodeView, F
     if nodes.view.testing {
         return Ok(nodes.view.clone());
     }
-    let controller = std::ops::Deref::deref(
-        nodes
-            .engine
-            .as_ref()
-            .ok_or_else(|| Fault::local("节点尚未加载，请稍候"))?,
-    )
-    .clone();
-    let pending = names(&nodes.view);
-    if pending.is_empty() {
+    let engine = nodes
+        .engine
+        .as_ref()
+        .ok_or_else(|| Fault::local("节点尚未加载，请稍候"))?;
+    let controller = std::ops::Deref::deref(engine).clone();
+    let targets = probe_targets(engine.content(), &nodes.view)?;
+    if targets.names.is_empty() {
         return Err(Fault::local("当前没有可测速的节点"));
     }
     nodes.invalidate();
     let generation = nodes.generation;
     nodes.view.testing = true;
-    nodes.view.delays = pending
+    nodes.view.delays = targets
+        .names
         .iter()
-        .map(|name| {
-            (
-                name.clone(),
-                Delay {
-                    status: "pending".into(),
-                    ms: None,
-                },
-            )
-        })
+        .map(|n| (n.clone(), Delay::pending()))
+        .collect();
+    nodes.view.entries = targets
+        .entries
+        .values()
+        .flatten()
+        .map(|n| (n.clone(), Delay::pending()))
         .collect();
     let view = nodes.view.clone();
     drop(nodes);
-    tauri::async_runtime::spawn(run_tests(shared, controller, pending, generation));
+    tauri::async_runtime::spawn(async move {
+        let web = targets.names.into_iter().map(|name| {
+            let controller = controller.clone();
+            async move {
+                let result = controller.delay(&name).await;
+                (vec![name], result)
+            }
+        });
+        let tcp = targets
+            .entries
+            .into_iter()
+            .map(|(address, names)| async move { (names, entry_delay(address).await) });
+        tokio::join!(
+            run_probes(&shared, generation, web, false),
+            run_probes(&shared, generation, tcp, true)
+        );
+        let mut nodes = shared.lock().await;
+        if nodes.generation == generation {
+            nodes.view.testing = false;
+            nodes.changed();
+        }
+    });
     Ok(view)
 }
-async fn run_tests(
-    shared: Arc<Mutex<Nodes>>,
-    controller: crate::engine::Controller,
-    pending: Vec<String>,
+
+const PROBE_CONCURRENCY: usize = 6;
+
+async fn run_probes<F: std::future::Future<Output = (Vec<String>, Result<u64, String>)>>(
+    shared: &Mutex<Nodes>,
     generation: u64,
+    jobs: impl Iterator<Item = F>,
+    entry: bool,
 ) {
-    run_probes(shared, pending, generation, move |name| {
-        let controller = controller.clone();
-        async move { controller.delay(&name).await }
-    })
-    .await;
-}
-async fn run_probes<F, Fut>(
-    shared: Arc<Mutex<Nodes>>,
-    pending: Vec<String>,
-    generation: u64,
-    probe: F,
-) where
-    F: Fn(String) -> Fut + Clone + Send + 'static,
-    Fut: std::future::Future<Output = Result<u64, String>> + Send + 'static,
-{
-    let mut queue = pending.into_iter();
-    let mut jobs = JoinSet::new();
-    loop {
-        {
-            let nodes = shared.lock().await;
-            if nodes.generation != generation {
-                return;
-            } // Dropping JoinSet cancels old requests.
-        }
-        while jobs.len() < 4 {
-            let Some(name) = queue.next() else { break };
-            let probe = probe.clone();
-            jobs.spawn(async move {
-                let result = probe(name.clone()).await;
-                (name, result)
-            });
-        }
-        let Some(result) = jobs.join_next().await else {
-            break;
-        };
+    let mut pending = stream::iter(jobs).buffer_unordered(PROBE_CONCURRENCY);
+    while let Some((names, result)) = pending.next().await {
         let mut nodes = shared.lock().await;
         if nodes.generation != generation {
             return;
         }
-        if let Ok((name, result)) = result {
-            let delay = match result {
-                Ok(ms) => Delay {
-                    status: "ok".into(),
-                    ms: Some(ms),
-                },
-                Err(error) => Delay {
-                    status: error,
-                    ms: None,
-                },
-            };
-            nodes.view.delays.insert(name, delay);
+        let delays = if entry {
+            &mut nodes.view.entries
+        } else {
+            &mut nodes.view.delays
+        };
+        let delay = Delay::measured(result);
+        for name in names {
+            delays.insert(name, delay.clone());
         }
-        nodes.changed();
-    }
-    let mut nodes = shared.lock().await;
-    if nodes.generation == generation {
-        nodes.view.testing = false;
         nodes.changed();
     }
 }
@@ -388,6 +479,7 @@ async fn run_probes<F, Fut>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn stale_selection_cannot_replace_the_current_node_or_global_setting() {
@@ -545,7 +637,13 @@ mod tests {
             selected: "one".into(),
             choices: vec!["one".into(), "two".into(), "one".into()],
         }];
-        assert_eq!(names(&nodes.view), vec!["one", "two"]);
+        nodes.view.routes[0]
+            .choices
+            .extend(["DIRECT".into(), "fallback".into(), "udp".into()]);
+        let targets = probe_targets("proxies: [{name: one, type: vless, server: host, port: 443}, {name: two, type: trojan, server: HOST, port: '443'}, {name: udp, type: tuic, server: host, port: 443}]", &nodes.view).unwrap();
+        assert_eq!(targets.names, ["one", "two", "udp"]);
+        assert_eq!(targets.entries.len(), 1);
+        assert_eq!(targets.entries[&("host".into(), 443)], ["one", "two"]);
         nodes.view.testing = true;
         nodes.view.delays.insert(
             "one".into(),
@@ -561,6 +659,18 @@ mod tests {
         assert!(nodes.view.routes.is_empty() && nodes.view.delays.is_empty());
     }
     #[tokio::test]
+    async fn entry_probe_requires_real_address_and_successful_socket() {
+        let socket = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = socket.local_addr().unwrap().port();
+        assert!(entry_delay(("127.0.0.1".into(), port)).await.is_ok());
+        drop(socket);
+        assert!(entry_delay(("127.0.0.1".into(), port)).await.is_err());
+        assert_eq!(
+            entry_delay(("198.18.0.1".into(), port)).await.unwrap_err(),
+            "无真实地址"
+        );
+    }
+    #[tokio::test]
     async fn probes_are_bounded_incremental_and_ignore_results_after_logout() {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let nodes = Arc::new(Mutex::new(Nodes::default()));
@@ -569,43 +679,40 @@ mod tests {
         let peak = Arc::new(AtomicUsize::new(0));
         let starts = Arc::new(AtomicUsize::new(0));
         let permit = Arc::new(tokio::sync::Semaphore::new(0));
-        let task = tokio::spawn(run_probes(
-            nodes.clone(),
-            (0..20).map(|i| i.to_string()).collect(),
-            0,
-            {
-                let running = running.clone();
-                let peak = peak.clone();
-                let starts = starts.clone();
-                let permit = permit.clone();
-                move |name| {
-                    let running = running.clone();
-                    let peak = peak.clone();
-                    let starts = starts.clone();
-                    let permit = permit.clone();
+        let task = tokio::spawn({
+            let nodes = nodes.clone();
+            let running = running.clone();
+            let peak = peak.clone();
+            let starts = starts.clone();
+            let permit = permit.clone();
+            async move {
+                let jobs = (0..20).map(|i| {
+                    let (running, peak, starts, permit) = (
+                        running.clone(),
+                        peak.clone(),
+                        starts.clone(),
+                        permit.clone(),
+                    );
                     async move {
                         let count = running.fetch_add(1, Ordering::SeqCst) + 1;
                         peak.fetch_max(count, Ordering::SeqCst);
                         starts.fetch_add(1, Ordering::SeqCst);
                         permit.acquire().await.unwrap().forget();
                         running.fetch_sub(1, Ordering::SeqCst);
-                        if name == "0" {
-                            Err("超时".into())
-                        } else {
-                            Ok(38)
-                        }
+                        (vec![i.to_string()], Ok(38))
                     }
-                }
-            },
-        ));
+                });
+                run_probes(&nodes, 0, jobs, false).await;
+            }
+        });
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while starts.load(Ordering::SeqCst) < 4 {
+            while starts.load(Ordering::SeqCst) < PROBE_CONCURRENCY {
                 tokio::task::yield_now().await;
             }
         })
         .await
         .unwrap();
-        assert_eq!(starts.load(Ordering::SeqCst), 4);
+        assert_eq!(starts.load(Ordering::SeqCst), PROBE_CONCURRENCY);
         permit.add_permits(1);
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
             while nodes.lock().await.view.delays.is_empty() {
@@ -616,10 +723,10 @@ mod tests {
         .unwrap();
         assert!(nodes.lock().await.view.testing); // partial results while others are still running
         nodes.lock().await.stop().unwrap();
-        permit.add_permits(4);
+        permit.add_permits(PROBE_CONCURRENCY);
         task.await.unwrap();
-        assert!(peak.load(Ordering::SeqCst) <= 4);
-        assert!(starts.load(Ordering::SeqCst) <= 5); // no new work after invalidation
+        assert!(peak.load(Ordering::SeqCst) <= PROBE_CONCURRENCY);
+        assert!(starts.load(Ordering::SeqCst) <= PROBE_CONCURRENCY + 1); // no new work after invalidation
         assert!(nodes.lock().await.view.delays.is_empty());
     }
 }

@@ -11,6 +11,7 @@ export type NodeView = {
     error: string | null;
     testing: boolean;
     delays: Record<string, { status: string; ms: number | null }>;
+    entries?: Record<string, { status: string; ms: number | null }>;
     subscription_synced_at: number | null;
     subscription_interval_seconds: number;
 };
@@ -105,6 +106,12 @@ export function useNodes() {
     };
     useEffect(() => {
         alive.current = true;
+        return () => {
+            alive.current = false;
+            clearTimeout(messageTimer.current);
+        };
+    }, []);
+    useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
         let cancelled = false;
         const poll = async () => {
@@ -116,16 +123,14 @@ export function useNodes() {
             } catch (e) {
                 if (alive.current) setError(errorText(e));
             }
-            if (!cancelled) timer = setTimeout(poll, testing ? 300 : 1000);
+            if (!cancelled) timer = setTimeout(poll, testing ? 120 : 1000);
         };
         void poll();
         return () => {
             cancelled = true;
-            alive.current = false;
             clearTimeout(timer);
-            clearTimeout(messageTimer.current);
         };
-    }, []);
+    }, [view.testing]);
     const select = async (
         group: string,
         name: string,

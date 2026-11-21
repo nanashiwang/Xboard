@@ -540,6 +540,9 @@
     border-radius: 11px;
 }
 .node-delay {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
     flex-shrink: 0;
     font-size: 10px;
     color: var(--home-muted);

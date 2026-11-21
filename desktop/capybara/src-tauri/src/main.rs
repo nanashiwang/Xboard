@@ -324,23 +324,26 @@ impl Runtime {
         if !request.due() {
             return Ok(());
         }
-        {
+        let cached = {
             let mut nodes = self.nodes.lock().await;
+            let cached = nodes.reusable_config().map(str::to_owned);
             nodes.view.loading = true;
-            nodes.view.error = None;
             nodes.changed();
-        }
+            cached
+        };
         // Download outside the node lock: cached routes remain responsive during account requests.
         let shared = self.nodes.clone();
         let dir = self.dir.clone();
         let binary = self.binary.clone();
         let result = subscription::refresh(
             request,
-            || self.account.config(),
+            || self.account.config(cached),
             move |content| async move {
-                shared
-                    .lock()
-                    .await
+                let mut nodes = shared.lock().await;
+                if nodes.reusable_config() == Some(content.as_str()) {
+                    return Ok(());
+                }
+                nodes
                     .prepare(&dir, binary, &content)
                     .await
                     .map_err(Fault::from)

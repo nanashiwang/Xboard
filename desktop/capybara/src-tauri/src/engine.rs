@@ -452,6 +452,9 @@ impl Engine {
         self.settings = settings.clone();
         Ok(())
     }
+    pub fn content(&self) -> &str {
+        &self.content
+    }
     pub fn remember_global_target(&mut self, target: String) {
         self.settings.global_target = Some(target);
     }

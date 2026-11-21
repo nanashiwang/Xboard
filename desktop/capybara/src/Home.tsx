@@ -480,7 +480,25 @@ export default function Home({
                                                 : "")
                                         }
                                     >
-                                        {delayLabel(nodes.view.delays[name])}
+                                        {nodes.view.entries?.[name] && (
+                                            <span>
+                                                入口{" "}
+                                                {delayLabel(
+                                                    nodes.view.entries[name],
+                                                )}
+                                            </span>
+                                        )}
+                                        {nodes.view.delays[name] ? (
+                                            <span>
+                                                联网{" "}
+                                                {delayLabel(
+                                                    nodes.view.delays[name],
+                                                )}
+                                            </span>
+                                        ) : Object.keys(nodes.view.delays)
+                                              .length === 0 ? (
+                                            "未测速"
+                                        ) : null}
                                     </small>
                                     {nodes.pending?.group === route.group &&
                                     nodes.pending.name === name ? (

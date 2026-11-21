@@ -112,6 +112,7 @@ it("切换立即提示处理中，确认前保留当前节点；延迟逐项显�
                 view: {
                     ...props.nodes.view,
                     testing: true,
+                    entries: { "日本 02": { status: "ok", ms: 18 } },
                     delays: {
                         "新加坡 01": { status: "ok", ms: 42 },
                         "日本 02": { status: "pending", ms: null },
@@ -132,8 +133,10 @@ it("切换立即提示处理中，确认前保留当前节点；延迟逐项显�
             .getByRole("button", { name: "选择节点 日本 02" })
             .getAttribute("aria-pressed"),
     ).toBe("false");
-    expect(screen.getByText("42 ms")).toBeTruthy();
-    expect(screen.getByText("超时")).toBeTruthy();
+    expect(screen.getByText("联网 42 ms")).toBeTruthy();
+    expect(screen.getByText("入口 18 ms")).toBeTruthy();
+    expect(screen.getByText("联网 测速中")).toBeTruthy();
+    expect(screen.getByText("联网 超时")).toBeTruthy();
     expect(
         screen
             .getByRole("button", { name: "测速中 2/3" })
@@ -239,7 +242,7 @@ it("配置刷新失败保留成功时间和测速错误，不显示连接恢复"
         "尚未更新",
     );
     expect(screen.getByText("连接待检查")).toBeTruthy();
-    expect(screen.getByText("超时")).toBeTruthy();
+    expect(screen.getByText("联网 超时")).toBeTruthy();
     rerender(
         <Home
             {...props}

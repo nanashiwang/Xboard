@@ -8,6 +8,8 @@
 
 # Xboard 能力地图
 
+桌面首页调用原生 `test_nodes`，对当前配置中的真实节点发起最多六路 HTTPS 检测，支持 TCP 的共享入口独立计时。`refresh_subscription` 在账号与套餐检查后发送已应用配置的 ETag，验证 304 或新正文，再决定是否重载。[测速与条件更新决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
+
 [桌面测速与订阅更新实测](../progress-log.md#desktop-latency-subscription-20261122)记录首页操作耗时及 TCP 与完整代理请求的测量差异。
 
 [FriendHosting 三节点测速排查](../progress-log.md#friendhosting-20261122)记录客户端、独立入口健康页、出口隧道和生产代理验收的分段实测。

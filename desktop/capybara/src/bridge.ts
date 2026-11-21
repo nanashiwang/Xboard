@@ -224,6 +224,9 @@ export async function command<T = View>(
             demoNodes.delays = Object.fromEntries(
                 names.map((n) => [n, { status: "pending", ms: null }]),
             );
+            demoNodes.entries = Object.fromEntries(
+                names.map((n) => [n, { status: "ok", ms: 24 }]),
+            );
             names.forEach((n, i) =>
                 setTimeout(
                     () => {
@@ -280,6 +283,7 @@ export async function command<T = View>(
                 ...demoNodes,
                 revision: demoNodes.revision + 1,
                 routes: [],
+                entries: {},
                 delays: {},
                 testing: false,
                 subscription_synced_at: null,

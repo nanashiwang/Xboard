@@ -191,6 +191,7 @@ impl Account {
         &mut self,
         path: &str,
         authorized: bool,
+        etag: Option<&str>,
     ) -> Result<reqwest::Response, Fault> {
         self.select_origin(false).await?;
         for attempt in 0..2 {
@@ -198,16 +199,20 @@ impl Account {
             if authorized {
                 request = request.bearer_auth(&self.access);
             }
+            if let Some(tag) = etag {
+                request = request.header(reqwest::header::IF_NONE_MATCH, format!("\"{tag}\""));
+            }
             let result = request.send().await;
             let retry = match &result {
                 Err(_) => true,
                 Ok(response) => {
                     response.status().is_server_error()
-                        || response
-                            .headers()
-                            .get("content-type")
-                            .and_then(|v| v.to_str().ok())
-                            .is_some_and(|v| v.contains("text/html"))
+                        || (response.status() != StatusCode::NOT_MODIFIED
+                            && response
+                                .headers()
+                                .get("content-type")
+                                .and_then(|v| v.to_str().ok())
+                                .is_some_and(|v| v.contains("text/html")))
                 }
             };
             if retry && attempt == 0 {
@@ -347,10 +352,17 @@ impl Account {
         self.save_tokens(result?, Access::Background).await
     }
     async fn authorized(&mut self, path: &str) -> Result<reqwest::Response, Fault> {
+        self.authorized_with_etag(path, None).await
+    }
+    async fn authorized_with_etag(
+        &mut self,
+        path: &str,
+        etag: Option<&str>,
+    ) -> Result<reqwest::Response, Fault> {
         if self.access.is_empty() || Instant::now() >= self.expires {
             self.renew().await?;
         }
-        let mut response = self.get_response(path, true).await?;
+        let mut response = self.get_response(path, true, etag).await?;
         if response.status() == StatusCode::UNAUTHORIZED {
             // CDN/WAF HTML is never evidence that a refresh token is revoked.
             let fault = Self::decode(response).await;
@@ -361,7 +373,7 @@ impl Account {
                 return Err(fault.err().unwrap_or_else(|| Fault::local("账户响应异常")));
             }
             self.renew().await?;
-            response = self.get_response(path, true).await?;
+            response = self.get_response(path, true, etag).await?;
         }
         Ok(response)
     }
@@ -369,7 +381,7 @@ impl Account {
         Self::decode(self.authorized(path).await?).await
     }
     pub async fn public_get(&mut self, path: &str) -> Result<Value, Fault> {
-        Self::decode(self.get_response(path, false).await?).await
+        Self::decode(self.get_response(path, false, None).await?).await
     }
     pub async fn post(&mut self, path: &str, body: &Value) -> Result<Value, Fault> {
         if self.access.is_empty() || Instant::now() >= self.expires {
@@ -387,14 +399,17 @@ impl Account {
         )
         .await
     }
-    pub async fn config(&mut self) -> Result<String, Fault> {
+    pub async fn config(&mut self, cached: Option<String>) -> Result<String, Fault> {
+        use sha2::{Digest, Sha256};
+        let revision = cached
+            .as_ref()
+            .map(|s| format!("{:x}", Sha256::digest(s.as_bytes())));
         let response = self
-            .authorized("client/config?format=mihomo&delivery=inline")
+            .authorized_with_etag(
+                "client/config?format=mihomo&delivery=inline",
+                revision.as_deref(),
+            )
             .await?;
-        if !response.status().is_success() {
-            let _ = Self::decode(response).await?;
-            return Err(Fault::local("配置下载失败"));
-        }
         let etag = response
             .headers()
             .get("etag")
@@ -402,6 +417,15 @@ impl Account {
             .unwrap_or("")
             .trim_matches('"')
             .to_owned();
+        if response.status() == StatusCode::NOT_MODIFIED {
+            return cached
+                .filter(|_| revision.as_deref() == Some(etag.as_str()))
+                .ok_or_else(|| Fault::local("订阅复核摘要不匹配，请重试"));
+        }
+        if !response.status().is_success() {
+            let _ = Self::decode(response).await?;
+            return Err(Fault::local("配置下载失败"));
+        }
         if response.content_length().unwrap_or(0) > 4 * 1024 * 1024 {
             return Err(Fault::local("配置过大"));
         }
@@ -409,7 +433,6 @@ impl Account {
             .text()
             .await
             .map_err(|_| Fault::local("配置下载中断"))?;
-        use sha2::{Digest, Sha256};
         if content.len() > 4 * 1024 * 1024
             || etag != format!("{:x}", Sha256::digest(content.as_bytes()))
         {
@@ -717,7 +740,7 @@ mod tests {
                     interval_seconds: 3600,
                     now: 4600,
                 },
-                || account.config(),
+                || account.config(None),
                 move |_| async move {
                     observed.store(true, Ordering::SeqCst);
                     Ok(())
@@ -756,7 +779,7 @@ mod tests {
         let etag = format!("{:x}", Sha256::digest(content.as_bytes()));
         let server = std::thread::spawn(move || {
             let mut paths = vec![];
-            for valid in [true, false] {
+            for (status, valid) in [(200, true), (200, false), (304, true), (304, false)] {
                 let (mut connection, _) = listener.accept().unwrap();
                 connection
                     .set_read_timeout(Some(Duration::from_secs(5)))
@@ -770,6 +793,13 @@ mod tests {
                 }
                 paths.push(request.lines().next().unwrap().to_owned());
                 let digest = if valid { etag.as_str() } else { "invalid" };
+                if status == 304 {
+                    assert!(request
+                        .to_ascii_lowercase()
+                        .contains(&format!("if-none-match: \"{etag}\"")));
+                    write!(connection, "HTTP/1.1 304 Not Modified\r\nETag: \"{digest}\"\r\nConnection: close\r\n\r\n").unwrap();
+                    continue;
+                }
                 write!(connection, "HTTP/1.1 200 OK\r\nContent-Type: text/yaml\r\nETag: \"{digest}\"\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{content}", content.len()).unwrap();
             }
             paths
@@ -797,7 +827,7 @@ mod tests {
                         interval_seconds: 3600,
                         now: 1100,
                     },
-                    || account.config(),
+                    || account.config(None),
                     move |content| async move {
                         published.lock().unwrap().push(content);
                         Ok(())
@@ -807,16 +837,15 @@ mod tests {
                 .await,
             );
         }
+        assert_eq!(account.config(Some(content.into())).await.unwrap(), content);
+        assert!(account.config(Some(content.into())).await.is_err());
         assert_eq!(successes[0].as_ref().unwrap(), &None);
         assert_eq!(successes[1].as_ref().unwrap(), &Some(1101));
         assert!(successes[2].is_err());
         assert_eq!(*applied.lock().unwrap(), vec![content.to_owned()]);
         assert_eq!(
             server.join().unwrap(),
-            vec![
-                "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
-                "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1",
-            ]
+            vec!["GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1"; 4]
         );
         std::fs::remove_dir_all(dir).unwrap();
     }
