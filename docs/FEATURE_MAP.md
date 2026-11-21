@@ -1,5 +1,7 @@
 # Xboard 能力地图
 
+[FriendHosting 三节点测速排查](../progress-log.md#friendhosting-20261122)记录客户端、独立入口健康页、出口隧道和生产代理验收的分段实测。
+
 <!-- upload-only-20261107:start -->
 上传单向计费：[TrafficBilling](../app/Services/TrafficBilling.php)统一解释 upload_only/download_only/无标记双向快照；[UserService](../app/Services/UserService.php)新任务默认 upload_only，用户额度及日统计只计上传乘倍率，节点统计保留双向。[方向回归](../tests/Feature/Operations/DirectionalTrafficBillingTest.php)验证新入队、序列化、旧任务重试、三个计费模式与原始节点统计；[审计](../.docker/production/audit-traffic.php)按快照核对，不输出身份凭据。生产 1839948 已部署，七个运行源哈希及真实两笔任务对账通过：上行 60,279×2=120,558，下行 7,880 不扣。见[当前决定](../.agents/notes/implemented/feature/2026-11-07-upload-only-billing.md)。
 
