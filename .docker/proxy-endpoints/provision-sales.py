@@ -26,10 +26,13 @@ def php(client,code):
 PREFIX="<?php require '/www/vendor/autoload.php';$a=require '/www/bootstrap/app.php';$a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();\n"
 def main():
  operation=sys.argv[1];expected=os.environ['EXPECTED_REVISION']
- if operation not in ['bootstrap','enable','disable','status','acceptance','recover-storage']:raise ValueError('invalid_operation')
+ if operation not in ['bootstrap','enable','disable','status','acceptance','verify-allocation','recover-storage']:raise ValueError('invalid_operation')
  origin=connect('107.173.191.23',os.environ['XBOARD_PASSWORD'])
  actual=execute(origin,"cd /root/Xboard && docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' \"$(docker compose ps -q xboard)\"").decode().strip()
  if actual!=expected:raise RuntimeError('production_revision_mismatch')
+ if operation=='verify-allocation':
+  result=json.loads(php(origin,Path(__file__).with_name('verify-allocation.php').read_text()))
+  print(json.dumps(result));origin.close();return
  if operation=='recover-storage':
   print(execute(origin,'df -h /; df -i /; docker system df').decode())
   print(execute(origin,'docker image prune -f --filter label=org.opencontainers.image.source=https://github.com/nanashiwang/Xboard').decode())

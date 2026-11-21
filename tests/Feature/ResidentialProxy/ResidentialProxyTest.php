@@ -34,6 +34,60 @@ class ResidentialProxyTest extends TestCase {
         $this->assertStringNotContainsString($this->endpoint->fresh()->credentials['password'],$raw);
         $this->assertArrayNotHasKey('credentials',$this->service->index($this->buyer)['items'][0]);
     }
+
+    private function secondHost(): ResidentialProxyHost {
+        return ResidentialProxyHost::create([
+            'address' => '192.204.56.29', 'token_hash' => str_repeat('b', 64),
+            'enabled' => true, 'seen_at' => time(),
+        ]);
+    }
+
+    public function test_successive_purchases_use_distinct_ips_then_the_least_owned_available_ip(): void {
+        $this->buyer->update(['balance' => 5 * ResidentialProxyService::PRICE]);
+        $a2 = ResidentialProxyEndpoint::create(['host_id' => $this->host->id, 'port' => 20002]);
+        ResidentialProxyEndpoint::create(['host_id' => $this->host->id, 'port' => 20003]);
+        $otherHost = $this->secondHost();
+        $b1 = ResidentialProxyEndpoint::create(['host_id' => $otherHost->id, 'port' => 20001]);
+        $b2 = ResidentialProxyEndpoint::create(['host_id' => $otherHost->id, 'port' => 20002]);
+        ResidentialProxyEndpoint::create(['host_id' => $otherHost->id, 'port' => 20003, 'user_id' => 999]);
+
+        foreach ([$this->endpoint, $b1, $a2, $b2] as $expected) {
+            $order = $this->service->create($this->buyer);
+            $this->assertEquals($expected->id, $order->proxy_endpoint_id);
+            $this->assertEquals($order->id, $expected->fresh()->reserved_order_id);
+            $this->service->paid($order, 'test');
+        }
+    }
+
+    public function test_retained_expired_asset_counts_for_new_purchases_and_renewal_keeps_its_port(): void {
+        $this->endpoint->update(['user_id' => $this->buyer->id, 'expires_at' => time() - 1]);
+        ResidentialProxyEndpoint::create(['host_id' => $this->host->id, 'port' => 20002]);
+        $newIp = ResidentialProxyEndpoint::create(['host_id' => $this->secondHost()->id, 'port' => 20001]);
+        $order = $this->service->create($this->buyer);
+        $this->assertEquals($newIp->id, $order->proxy_endpoint_id);
+        $this->service->cancel($order);
+        $renew = $this->service->create($this->buyer, $this->endpoint->id);
+        $this->assertEquals($this->endpoint->id, $renew->proxy_endpoint_id);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unavailableInventory')]
+    public function test_new_purchase_reuses_owned_ip_if_other_ip_has_no_sellable_port(array $hostState, array $portState): void {
+        $this->endpoint->update(['user_id' => $this->buyer->id]);
+        $otherHost = $this->secondHost();
+        $otherHost->update($hostState);
+        ResidentialProxyEndpoint::create($portState + ['host_id' => $otherHost->id, 'port' => 20001]);
+        $available = ResidentialProxyEndpoint::create(['host_id' => $this->host->id, 'port' => 20002]);
+        $this->assertEquals($available->id, $this->service->create($this->buyer)->proxy_endpoint_id);
+    }
+
+    public static function unavailableInventory(): array {
+        return [
+            'disabled host' => [['enabled' => false], []],
+            'stale heartbeat' => [['seen_at' => 1], []],
+            'reserved port' => [[], ['reserved_order_id' => 999]],
+            'owned by another user' => [[], ['user_id' => 999]],
+        ];
+    }
     public function test_reservation_prevents_oversell_and_cancel_refunds_once(): void {
         $order=$this->service->create($this->buyer);
         $other=$this->buyer->replicate();$other->email='other@example.test';$other->uuid=Helper::guid();$other->token=Helper::guid();$other->save();

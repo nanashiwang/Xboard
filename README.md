@@ -1,3 +1,7 @@
+### 家宽代理新购分配
+
+同一账号再买家宽代理时，优先分配自己尚未持有、且有空闲端口的公网 IP。可售 IP 都已持有时，优先选本人持有端口数较少的 IP。续费保留原 IP 和端口。[分配规则与验收](./progress-log.md#residential-allocation-20261122)
+
 ### 桌面客户端家宽第一阶段（[0.1.18 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.18)）
 
 点击「家宽代理 → 连接此代理」后，客户端经第一阶段到达已购 PX 端口，网站看到已购固定 IP。只购买家宽即可使用，原端口继续执行认证、限速和到期控制。客户端验证公网出口与 Google 连通性后才开启系统代理。两台 PX 的生产映射已启用，无普通套餐账号已通过双协议出口和 Google 实测。官网、应用内更新和 Hub 已发布 0.1.18。详见[验收记录](./progress-log.md#residential-stage1-20261122)。

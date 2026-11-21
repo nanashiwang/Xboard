@@ -1,3 +1,7 @@
+### 家宽代理按买家分配 IP
+
+官网和客户端新购使用[同一销售服务](../app/Services/ResidentialProxyService.php)。在商品锁内对在线可售空位按「本人在该 IP 的持有端口数、端点 ID」升序分配。已到期且仍归属本人的端口计入，续费按指定端点办理。[库存与支付规则](../.agents/notes/implemented/feature/2026-11-18-residential-proxy-sales.md)
+
 ### 家宽代理固定第一阶段（0.1.18）
 
 [原生连接](../desktop/capybara/src-tauri/src/residential.rs)从本人资产取地址和凭据，[桥接器](../desktop/capybara/src-tauri/src/residential_bridge.rs)将 HTTP/SOCKS5 送至第一阶段 443 的固定路径。[入口映射](../.docker/proxy-endpoints/stage1.py)验证下一跳证书并转到原 PX 端口，普通套餐独立。首页与首次连接均校验固定出口及 Google 204。[决定与验证](../.agents/notes/implemented/architecture/2026-11-22-residential-stage1.md)

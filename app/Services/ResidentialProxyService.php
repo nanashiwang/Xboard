@@ -27,9 +27,18 @@ class ResidentialProxyService
             if ($user->banned) throw new ApiException('账号不可购买');
             if (app(UserService::class)->isNotCompleteOrderByUserId($user->id)) throw new ApiException('请先处理未完成订单');
             $query=ResidentialProxyEndpoint::whereHas('host',fn($q)=>$q->where('enabled',true)->where('seen_at','>=',time()-60));
-            $endpoint=$endpointId
-                ? $query->where('user_id',$user->id)->whereKey($endpointId)->lockForUpdate()->first()
-                : $query->whereNull('user_id')->whereNull('reserved_order_id')->orderBy('id')->lockForUpdate()->first();
+            if ($endpointId) {
+                $query->where('user_id', $user->id)->whereKey($endpointId);
+            } else {
+                // Host addresses are unique. A retained (expired) port still belongs to its buyer.
+                $ownedOnHost = DB::table('residential_proxy_endpoints as owned')
+                    ->selectRaw('COUNT(*)')
+                    ->where('owned.user_id', $user->id)
+                    ->whereColumn('owned.host_id', 'residential_proxy_endpoints.host_id');
+                $query->whereNull('user_id')->whereNull('reserved_order_id')
+                    ->orderBy($ownedOnHost)->orderBy('id');
+            }
+            $endpoint = $query->lockForUpdate()->first();
             if (!$endpoint || $endpoint->reserved_order_id) throw new ApiException('代理暂无可用库存，或该代理暂不可续费');
             $balance=min(max(0,(int)$user->balance),self::PRICE);
             $order=Order::create(['user_id'=>$user->id,'plan_id'=>$plan->id,'product_type'=>'proxy',
