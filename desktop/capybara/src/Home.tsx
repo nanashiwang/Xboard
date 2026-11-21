@@ -217,7 +217,7 @@ export default function Home({
                                 <Wifi size={14} />
                                 {residential
                                     ? view.connection_error ||
-                                      `${view.proxy_relay || "直连"} → ${view.proxy_address}`
+                                      `${view.proxy_relay || "第一阶段"} → ${view.proxy_address}`
                                     : direct
                                       ? "流量不经过代理节点"
                                       : connected

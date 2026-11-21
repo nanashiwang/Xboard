@@ -392,15 +392,6 @@ impl Engine {
             }
         }
     }
-    pub async fn current_node(&self, selected: &str) -> Option<String> {
-        let data = self
-            .control
-            .call(reqwest::Method::GET, "/proxies", None)
-            .await
-            .ok()?;
-        resolved_node(&data, selected, &global_targets(&self.content).ok()?)
-    }
-
     pub async fn checkpoint(&self) -> Result<(String, RoutingSettings, Vec<Route>), String> {
         Ok((
             self.content.clone(),

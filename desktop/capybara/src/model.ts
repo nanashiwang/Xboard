@@ -105,6 +105,18 @@ export function statusMessage(view: View) {
             title: "暂时无法同步账号",
             text: "当前流量可能已过期，暂时无法确认套餐状态。网络恢复后会自动重试。",
         };
+    if (view.proxy_id && view.connection === "connected")
+        return view.connection_error
+            ? {
+                  tone: "warning",
+                  title: "家宽连接需要检查",
+                  text: view.connection_error,
+              }
+            : {
+                  tone: "good",
+                  title: "家宽代理已连接",
+                  text: `第一阶段 → 家宽出口 ${view.proxy_address}`,
+              };
     if (!view.subscription)
         return {
             tone: "neutral",

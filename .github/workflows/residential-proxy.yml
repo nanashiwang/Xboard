@@ -18,7 +18,7 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: vendor/bin/phpunit tests/Feature/ResidentialProxy tests/Feature/Payments tests/Feature/Dedicated
-      - run: python3 -m unittest discover -s tests/ProxyEndpoints -p test_agent.py
+      - run: python3 -m unittest discover -s tests/ProxyEndpoints -p 'test_*.py'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

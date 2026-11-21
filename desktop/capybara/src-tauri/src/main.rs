@@ -8,6 +8,7 @@ mod nodes;
 mod notices;
 mod proxy;
 mod residential;
+mod residential_bridge;
 mod routing;
 mod subscription;
 mod updates;
@@ -117,6 +118,7 @@ where
 
 struct Runtime {
     proxy_engine: Option<engine::Engine>,
+    proxy_bridge: Option<residential_bridge::Bridge>,
     proxy_expires: u64,
     proxy_revision: u64,
     account: Account,
@@ -234,7 +236,7 @@ impl Runtime {
                     .subscription
                     .as_ref()
                     .is_some_and(|s| s["status"] == "active");
-                if previous_active && !active {
+                if previous_active && !active && self.proxy_engine.is_none() {
                     use tauri_plugin_notification::NotificationExt;
                     let message = match subscription["status"].as_str() {
                         Some("traffic_exhausted") => {
@@ -255,7 +257,13 @@ impl Runtime {
                 self.view.synced_at = Some(now());
                 self.view.sync_error = None;
                 if !active {
-                    if self.proxy_engine.is_none() || self.view.proxy_relay.is_some() {
+                    if self.proxy_engine.is_none()
+                        || self
+                            .view
+                            .subscription
+                            .as_ref()
+                            .is_some_and(|s| s["status"] == "banned")
+                    {
                         self.shutdown().await?;
                     }
                     if force_config {
@@ -376,6 +384,7 @@ impl Runtime {
             .take()
             .map(|mut engine| engine.stop())
             .unwrap_or(Ok(()));
+        self.proxy_bridge.take();
         self.view.proxy_id = None;
         self.view.proxy_relay = None;
         self.view.proxy_address = None;
@@ -807,6 +816,7 @@ fn main() {
             let nodes = Arc::new(Mutex::new(nodes::Nodes::new(&dir)));
             let state = Arc::new(Mutex::new(Runtime {
                 proxy_engine: None,
+                proxy_bridge: None,
                 proxy_expires: 0,
                 proxy_revision: 0,
                 account,

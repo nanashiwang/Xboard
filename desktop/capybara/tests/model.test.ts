@@ -30,6 +30,23 @@ describe("套餐提示优先级", () => {
             }).title,
         ).toBe("本期流量已用完");
     });
+    it.each(["no_plan", "expired", "traffic_exhausted"] as const)(
+        "家宽连接独立于普通套餐 %s",
+        (status) => {
+            const active: View = {
+                ...v,
+                proxy_id: 1,
+                proxy_address: "216.36.108.173",
+                connection: "connected",
+                subscription: { ...s, status },
+            };
+            expect(statusMessage(active).title).toBe("家宽代理已连接");
+            expect(
+                statusMessage({ ...active, connection_error: "出口检测超时" })
+                    .text,
+            ).toBe("出口检测超时");
+        },
+    );
     it("离线时不把缓存流量当成当前可用资格", () => {
         expect(statusMessage({ ...v, sync_error: "offline" }).title).toBe(
             "暂时无法同步账号",

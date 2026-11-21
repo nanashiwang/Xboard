@@ -24,6 +24,7 @@ on:
           - verify-web-session
           - inspect-browser-login
           - inspect-dedicated
+          - verify-residential-stage1
           - inspect-residential-capacity
           - preview-owned-dedicated
           - attach-owned-dedicated
@@ -71,6 +72,13 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [[ "$OPERATION" == verify-residential-stage1 ]]; then
+            python3 -m venv "$RUNNER_TEMP/px-smoke"
+            "$RUNNER_TEMP/px-smoke/bin/pip" install --quiet websockets==15.0.1
+            "$RUNNER_TEMP/px-smoke/bin/python" .docker/proxy-endpoints/verify_stage1.py \
+              sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'cd /root/Xboard && docker compose exec -T xboard php'
+            exit 0
+          fi
           if [[ "$OPERATION" == registration-proxy-* ]]; then
             remote_dir=/root/xboard-registration-tools-20261103
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "install -d -m 700 '$remote_dir'"

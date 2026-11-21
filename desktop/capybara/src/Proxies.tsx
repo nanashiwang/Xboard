@@ -410,7 +410,7 @@ export default function Proxies({
                                                 {connectedId === selected.id &&
                                                 connectionStatus
                                                     ? connectionStatus
-                                                    : "有普通套餐时自动通过普通线路中转，按该线路计流量。仅购买家宽时尝试直连。连接会替换当前线路。"}
+                                                    : "通过第一阶段连接已购家宽，无需普通套餐。连接会替换当前线路。"}
                                             </span>
                                         </div>
                                     )}

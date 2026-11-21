@@ -2,14 +2,19 @@ use crate::{account::Fault, engine::Engine, routing::RoutingSettings, AppState};
 use serde_json::{json, Value};
 use tauri::State;
 
-fn endpoint(data: &Value, protocol: &str) -> Result<Value, Fault> {
+fn endpoint(data: &Value, protocol: &str) -> Result<(String, Value), Fault> {
     if !matches!(protocol, "SOCKS5" | "HTTP") || data["status"] != "active" {
         return Err(Fault::local("代理尚未就绪或已到期"));
     }
     let address = data["address"].as_str().unwrap_or("");
     let port = data["port"].as_u64().unwrap_or(0);
-    if !matches!(address, "216.36.108.173" | "192.204.56.29") || !(20001..=20010).contains(&port) {
-        return Err(Fault::local("代理地址不在受支持的固定端点中"));
+    let host = match address {
+        "216.36.108.173" => "a",
+        "192.204.56.29" => "b",
+        _ => return Err(Fault::local("代理地址不在受支持的固定端点中")),
+    };
+    if !(20001..=20010).contains(&port) {
+        return Err(Fault::local("代理端口不在受支持的固定端点中"));
     }
     for key in ["username", "password"] {
         let value = data["credentials"][key].as_str().unwrap_or("");
@@ -22,84 +27,20 @@ fn endpoint(data: &Value, protocol: &str) -> Result<Value, Fault> {
             return Err(Fault::local("代理认证信息无效"));
         }
     }
-    Ok(json!({
-        "name": "Residential", "type": if protocol == "HTTP" { "http" } else { "socks5" },
-        "server": address, "port": port, "username": data["credentials"]["username"],
-        "password": data["credentials"]["password"], "udp": false
-    }))
+    Ok((
+        format!("wss://node.lumavia.fyi/residential/v1/{host}/{port}"),
+        json!({
+            "name": "Residential", "type": if protocol == "HTTP" { "http" } else { "socks5" },
+            "server": "127.0.0.1", "username": data["credentials"]["username"],
+            "password": data["credentials"]["password"], "udp": false
+        }),
+    ))
 }
 
-struct Configuration {
-    content: String,
-    relays: Vec<String>,
-}
-
-// Each choice is a complete path ending at the purchased endpoint. Subscription
-// rules, user overrides and DIRECT must never become public egress choices here.
-fn configuration(
-    exit: Value,
-    source: Option<&str>,
-    preferred: Option<&str>,
-) -> Result<Configuration, Fault> {
-    let mut proxies = Vec::new();
-    let mut choices = Vec::new();
-    let mut relays = Vec::new();
-    if let Some(source) = source {
-        let subscription: Value =
-            serde_yaml::from_str(source).map_err(|_| Fault::local("订阅配置格式无效"))?;
-        let mut nodes: Vec<_> = subscription["proxies"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter(|p| {
-                p["name"].as_str().is_some_and(|n| !n.is_empty())
-                    && p["server"].is_string()
-                    && p.get("dialer-proxy").is_none()
-                    && matches!(
-                        p["type"].as_str(),
-                        Some(
-                            "ss" | "vmess"
-                                | "vless"
-                                | "trojan"
-                                | "hysteria"
-                                | "hysteria2"
-                                | "tuic"
-                                | "anytls"
-                                | "mieru"
-                                | "socks5"
-                                | "http"
-                        )
-                    )
-            })
-            .collect();
-        nodes.sort_by_key(|p| p["name"].as_str() != preferred);
-        for (i, node) in nodes.into_iter().take(3).enumerate() {
-            let mut relay = node.clone();
-            relays.push(relay["name"].as_str().unwrap().to_owned());
-            relay["name"] = json!(format!("Relay-{i}"));
-            let mut path = exit.clone();
-            path["dialer-proxy"] = relay["name"].clone();
-            path["name"] = json!(format!("Residential-{i}"));
-            choices.push(path["name"].clone());
-            proxies.push(path);
-            proxies.push(relay);
-        }
-        if choices.is_empty() {
-            return Err(Fault::local(
-                "订阅里没有可用的中转线路，请更新普通线路后重试",
-            ));
-        }
-    } else {
-        choices.push(exit["name"].clone());
-        proxies.push(exit);
-    }
-    Ok(Configuration {
-        content: json!({
-            "proxies": proxies, "proxy-groups": [{"name":"Proxy", "type":"select", "proxies":choices}],
-            "rules":["MATCH,Proxy"]
-        }).to_string(),
-        relays,
-    })
+fn configuration(mut exit: Value, bridge_port: u16) -> String {
+    exit["port"] = json!(bridge_port);
+    json!({"proxies":[exit], "proxy-groups":[{"name":"Proxy","type":"select","proxies":["Residential"]}],
+           "rules":["MATCH,Proxy"]}).to_string()
 }
 
 pub async fn check_exit(control: &crate::engine::Controller, expected: &str) -> Result<(), String> {
@@ -111,7 +52,7 @@ pub async fn check_exit(control: &crate::engine::Controller, expected: &str) -> 
     ] {
         let Ok(response) = client
             .get(url)
-            .timeout(std::time::Duration::from_secs(6))
+            .timeout(std::time::Duration::from_secs(12))
             .send()
             .await
         else {
@@ -135,31 +76,6 @@ pub async fn check_exit(control: &crate::engine::Controller, expected: &str) -> 
         }
     }
     Err("家宽出口检测超时或不可用".into())
-}
-
-impl Configuration {
-    async fn verify(&self, engine: &Engine, address: &str) -> Result<Option<String>, Fault> {
-        if self.relays.is_empty() {
-            check_exit(engine, address).await.map_err(|e| {
-                Fault::local(&format!("{e}。当前套餐没有中转线路，直连家宽入口失败"))
-            })?;
-            return Ok(None);
-        }
-        let mut last_error = String::new();
-        for (i, relay) in self.relays.iter().enumerate() {
-            if i > 0 {
-                engine.select("Proxy", &format!("Residential-{i}")).await?;
-            }
-            match check_exit(engine, address).await {
-                Ok(()) => return Ok(Some(relay.clone())),
-                Err(error) => last_error = error,
-            }
-        }
-        Err(Fault::local(&format!(
-            "{last_error}。已尝试 {} 条普通线路，请在首页选择其他线路后重试",
-            self.relays.len()
-        )))
-    }
 }
 
 #[tauri::command]
@@ -203,48 +119,40 @@ pub async fn residential_request(
                 .account
                 .get(&format!("client/proxies/detail?id={id}"))
                 .await?;
-            let exit = endpoint(&data, protocol)?;
-            let address = exit["server"].as_str().unwrap().to_owned();
+            let (url, exit) = endpoint(&data, protocol)?;
+            let address = data["address"].as_str().unwrap().to_owned();
             let expires = data["expires_at"]
                 .as_u64()
                 .filter(|v| *v > crate::now())
                 .ok_or_else(|| Fault::local("代理已到期"))?;
-            let source = match rt.account.config().await {
-                Ok(content) => Some(content),
-                Err(error) if error.code == "SUBSCRIPTION_UNAVAILABLE" => None,
-                Err(error) => return Err(error),
-            };
-            let preferred = if let Some(name) = &rt.view.proxy_relay {
-                Some(name.clone())
-            } else {
-                rt.nodes.lock().await.preferred_relay().await
-            };
-            let config = configuration(exit, source.as_deref(), preferred.as_deref())?;
             rt.shutdown().await?;
+            let bridge = crate::residential_bridge::Bridge::start(url).await?;
+            let config = configuration(exit, bridge.port);
             let mut engine = Engine::start(
                 &rt.dir,
                 rt.binary.clone(),
-                &config.content,
+                &config,
                 &RoutingSettings::default(),
             )
             .await?;
             let activation = async {
-                let relay = config.verify(&engine, &address).await?;
+                check_exit(&engine, &address).await.map_err(|error| {
+                    Fault::local(&format!("第一阶段到家宽出口未通过检测：{error}"))
+                })?;
                 if expires <= crate::now() {
                     return Err(Fault::local("代理已到期"));
                 }
                 crate::proxy::enable(&rt.dir, engine.port)?;
-                Ok(relay)
+                Ok(())
             }
             .await;
-            rt.view.proxy_relay = match activation {
-                Ok(relay) => relay,
-                Err(error) => {
-                    engine.stop()?;
-                    rt.view.connection_error = Some(error.message.clone());
-                    return Err(error);
-                }
-            };
+            if let Err(error) = activation {
+                engine.stop()?;
+                rt.view.connection_error = Some(error.message.clone());
+                return Err(error);
+            }
+            rt.proxy_bridge = Some(bridge);
+            rt.view.proxy_relay = Some("第一阶段".into());
             rt.view.proxy_address = Some(address);
             rt.proxy_engine = Some(engine);
             rt.proxy_expires = expires;
@@ -265,7 +173,9 @@ mod tests {
     fn config_uses_authenticated_fixed_endpoint_and_selected_protocol() {
         let mut data = json!({"status":"active","address":"216.36.108.173","port":20001,"credentials":{"username":"cp_12345678","password":"0123456789abcdef"}});
         for protocol in ["HTTP", "SOCKS5"] {
-            let cfg: Value = endpoint(&data, protocol).unwrap();
+            let (url, cfg) = endpoint(&data, protocol).unwrap();
+            assert_eq!(url, "wss://node.lumavia.fyi/residential/v1/a/20001");
+            assert_eq!(cfg["server"], "127.0.0.1");
             assert_eq!(
                 cfg["type"],
                 if protocol == "HTTP" { "http" } else { "socks5" }
@@ -279,32 +189,22 @@ mod tests {
         assert!(endpoint(&data, "SOCKS5").is_err());
     }
     #[test]
-    fn relay_choices_all_end_at_the_same_asset_and_prefer_the_selected_node() {
-        let exit = json!({"name":"Residential","type":"http","server":"192.0.2.1","port":20001});
-        let source = json!({"proxies": [
-            {"name":"bypass", "type":"direct","server":"invalid"},
-            {"name":"one","type":"ss","server":"one.test"},
-            {"name":"two","type":"vmess","server":"two.test"},
-            {"name":"three","type":"trojan","server":"three.test"},
-            {"name":"Proxy","type":"http","server":"four.test"}
-        ], "rules":["MATCH,DIRECT"]});
-        let cfg = configuration(exit.clone(), Some(&source.to_string()), Some("Proxy")).unwrap();
-        assert_eq!(cfg.relays, ["Proxy", "one", "two"]);
-        let config: Value = serde_json::from_str(&cfg.content).unwrap();
-        assert_eq!(config["rules"], json!(["MATCH,Proxy"]));
-        let choices = config["proxy-groups"][0]["proxies"].as_array().unwrap();
-        assert_eq!(choices.len(), 3);
-        for (i, choice) in choices.iter().enumerate() {
-            let path = &config["proxies"][2 * i];
-            assert_eq!(choice, &path["name"]);
-            assert_eq!(path["server"], exit["server"]);
-            assert_eq!(path["port"], exit["port"]);
-            assert_eq!(path["dialer-proxy"], config["proxies"][2 * i + 1]["name"]);
+    fn only_inventory_ports_have_fixed_ingress_routes() {
+        for (address, host) in [("216.36.108.173", "a"), ("192.204.56.29", "b")] {
+            for port in 20000..=20011 {
+                let data = json!({"status":"active","address":address,"port":port,
+                    "credentials":{"username":"cp_12345678","password":"0123456789abcdef"}});
+                let result = endpoint(&data, "HTTP");
+                if (20001..=20010).contains(&port) {
+                    assert_eq!(
+                        result.unwrap().0,
+                        format!("wss://node.lumavia.fyi/residential/v1/{host}/{port}")
+                    );
+                } else {
+                    assert!(result.is_err());
+                }
+            }
         }
-        assert!(configuration(exit.clone(), Some("proxies: []"), None).is_err());
-        let direct = configuration(exit, None, None).unwrap();
-        assert!(direct.relays.is_empty());
-        assert!(!direct.content.contains("dialer-proxy"));
     }
 
     #[tokio::test]
@@ -321,18 +221,28 @@ mod tests {
 
         for protocol in ["http", "socks5"] {
             let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let source = json!({"proxies":[{"name":"first","type":"http","server":"127.0.0.1","port":listener.local_addr().unwrap().port()}]});
-            let exit = json!({"name":"Residential","type":protocol,"server":"192.0.2.10","port":20001,"username":"user","password":"pass"});
-            let cfg = configuration(exit, Some(&source.to_string()), None).unwrap();
+            let stage1 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let bridge = crate::residential_bridge::Bridge::start(format!(
+                "ws://{}/residential/v1/a/20001",
+                stage1.local_addr().unwrap()
+            ))
+            .await
+            .unwrap();
+            let exit_addr = listener.local_addr().unwrap();
+            let ingress = tokio::spawn(async move {
+                // The first TLS/WebSocket handshake was reset before sending proxy bytes.
+                drop(stage1.accept().await.unwrap().0);
+                let tcp = stage1.accept().await.unwrap().0;
+                let ws = tokio_tungstenite::accept_async(tcp).await.unwrap();
+                let paid = tokio::net::TcpStream::connect(exit_addr).await.unwrap();
+                crate::residential_bridge::forward(paid, ws).await;
+            });
+            let exit = json!({"name":"Residential","type":protocol,"server":"127.0.0.1","username":"user","password":"pass"});
             let (_core, controller) =
-                crate::engine::integration::start_test_core(&cfg.content).await;
+                crate::engine::integration::start_test_core(&configuration(exit, bridge.port))
+                    .await;
             let hops = tokio::spawn(async move {
                 let mut stream = BufReader::new(listener.accept().await.unwrap().0);
-                assert!(headers(&mut stream)
-                    .await
-                    .starts_with("CONNECT 192.0.2.10:20001 "));
-                stream.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await.unwrap();
-                // The fixture now acts as the residential server inside the first tunnel.
                 if protocol == "http" {
                     let request = headers(&mut stream).await;
                     assert!(request.starts_with("CONNECT 203.0.113.20:80 "));
@@ -375,6 +285,8 @@ mod tests {
                 .unwrap()
                 .unwrap();
             assert_eq!(outcome.unwrap().status(), 204);
+            drop(bridge);
+            ingress.await.unwrap();
         }
     }
 }

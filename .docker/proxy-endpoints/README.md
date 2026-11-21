@@ -56,3 +56,13 @@ python3 manage.py stop
 节点每 20 秒拉取授权，最长 120 秒租约；到期或租约耗尽停止认证进程及现有连接。同步请求最多 10 秒，异常请求可能使停止比截止时间晚约 10 秒；代理进程退出时 systemd 绑定停止端口服务。过期端点不自动释放给新客户，保留原用户续费。`disable` 会停止该机代理授权，不能当作只暂停新购的操作。
 
 每个端口的认证配置位于 `/etc/xboard-proxy-endpoints/port-PORT.json`，主令牌配置为 `agent.json`，备份目录为 `/root/xboard-proxy-agent-backup-*`。安装脚本不修改原 Xboard 节点、Nginx 或 WireGuard 配置。回退旧认证服务可能恢复历史手工凭据，回退前必须停用公网端点，核对有效订单后再恢复；不得直接恢复旧认证文件继续销售。
+
+### 桌面家宽第一阶段
+
+桌面端连接 `wss://node.lumavia.fyi/residential/v1/{a或b}/{已购端口}`。入口逐端口转发到家宽机器 23001–23010 的 WSS 服务，验证各机公钥证书，再由 GOST 接回原 20001–20010 的限速、认证监听。客户端始终校验入口 TLS，两个域名身份分别由各自的信任根验证。
+
+1. 两台已有 GOST 3.3.3 的 PX 机器分别以 root 执行 `python3 stage1.py exit a` 和 `python3 stage1.py exit b`。UFW 规则仅允许第一阶段源地址，服务也执行同一来源白名单。
+2. 通过已验证主机密钥的 SSH 将每台的 `/etc/xboard-px-transport/server.crt` 拷至入口管理目录，分别命名为 `a.crt` 和 `b.crt`。私钥留在对应 PX 上。
+3. 入口执行 `python3 stage1.py entry /path/to/public-certs`。安装器检查证书身份、固定 vhost 和 nginx 配置，再平滑 reload。原路由继续使用原 include。
+4. 在已有 Production Deploy 流程运行 `verify-residential-stage1`。它用临时账户和一席空闲端口检查真实租约、出口和两种协议，随后清理测试记录。生产验证需要至少一席可售库存。
+5. 回退时从该 vhost 移除 `include /etc/nginx/snippets/xboard-px-stage1.conf;`，执行 `nginx -t && systemctl reload nginx`，再在两台 PX 上停用 `xboard-px-transport` 和对应的 23001:23010 防火墙规则。续证时先在入口预置信任新旧证书的组合，再逐台更换服务端证书并重启此独立服务，验证后移除旧证书。首次生成证书有效期 1095 天。
