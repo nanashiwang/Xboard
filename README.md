@@ -1,4 +1,4 @@
-### 桌面客户端家宽代理中转（0.1.17）
+### 桌面客户端家宽代理中转（[0.1.17 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.17)）
 
 有可用普通套餐时，点击「家宽代理 → 连接此代理」会自动选择普通线路中转，最终出口仍是已购固定 IP。客户端先核对公网出口并检测 Google 连通性，再开启系统代理。中转按普通套餐计量，仅购买家宽时仍可从可达网络直连。[验证与发布进展](./progress-log.md#residential-relay-20261122)
 

@@ -14,6 +14,15 @@ class ClientDownloadTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function publishedVersion(): string
+    {
+        $manifest = json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true, 512, JSON_THROW_ON_ERROR);
+        $index = collect($manifest)->firstWhere('name', 'capybara-current.json');
+        $tag = basename(dirname($index['url']));
+        $this->assertStringStartsWith('capybara-v', $tag);
+        return substr($tag, strlen('capybara-v'));
+    }
+
     public function test_guest_can_download_but_cannot_get_a_personal_subscription(): void
     {
         $user = $this->user();
@@ -26,6 +35,7 @@ class ClientDownloadTest extends TestCase
     public function test_own_desktop_clients_use_account_login_and_never_offer_subscription_import(): void
     {
         $catalog = app(ClientDownloadService::class)->catalog();
+        $version = $this->publishedVersion();
         $html = $this->get('/clients')->assertOk()->getContent();
         $dom = new \DOMDocument();
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
@@ -34,15 +44,15 @@ class ClientDownloadTest extends TestCase
             $client = $catalog[$platform];
             $this->assertSame('capybara', $client['id']);
             $this->assertSame('account', $client['flow']);
-            $this->assertSame('0.1.14', $client['version']);
+            $this->assertSame($version, $client['version']);
             $this->assertCount($count, $client['packages']);
             $section = $xpath->query('//section[@id="' . $platform . '"]')->item(0);
             $this->assertStringContainsString('无需复制订阅地址', $section->textContent);
             $this->assertStringContainsString('正式版', $section->textContent);
             $this->assertSame(0, $xpath->query('.//*[contains(@class,"import-controls")]', $section)->length);
             foreach ($client['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.14_', $package['url']);
-                $this->assertStringStartsWith('https://github.com/nanashiwang/Xboard/releases/download/capybara-v0.1.14/', $package['official_url']);
+                $this->assertStringStartsWith("/downloads/Capybara_{$version}_", $package['url']);
+                $this->assertStringStartsWith("https://github.com/nanashiwang/Xboard/releases/download/capybara-v{$version}/", $package['official_url']);
             }
         }
         $this->assertStringContainsString('macOS 12', $catalog['macos']['requirement']);
@@ -78,8 +88,9 @@ class ClientDownloadTest extends TestCase
         $manifest = collect(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true))->keyBy('name');
         $packages = collect(app(ClientDownloadService::class)->catalog())->pluck('packages')->flatten(1);
         $local = $packages->filter(fn ($package) => isset($package['sha256']));
+        $version = $this->publishedVersion();
         $this->assertCount(11, $local);
-        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], 'Capybara_0.1.14_')));
+        $this->assertCount(5, $local->filter(fn ($package) => str_contains($package['url'], "Capybara_{$version}_")));
         $this->assertFalse($local->contains(fn ($package) => str_contains($package['url'], 'Capybara_0.1.8_')));
         foreach ($local as $package) {
             $asset = $manifest->get(rawurldecode(basename($package['url'])));
@@ -92,26 +103,27 @@ class ClientDownloadTest extends TestCase
     public function test_catalog_tracks_the_selected_index_version_without_selecting_historical_installers(): void
     {
         $assets = json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true);
-        $assets = json_decode(str_replace('0.1.14', '0.1.42', json_encode($assets)), true);
+        $assets = json_decode(str_replace($this->publishedVersion(), '99.0.42', json_encode($assets)), true);
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }
         };
         $catalog = $service->catalog();
         foreach (['windows', 'macos', 'linux'] as $platform) {
-            $this->assertSame('0.1.42', $catalog[$platform]['version']);
-            $this->assertStringContainsString('capybara-v0.1.42', $catalog[$platform]['releases']);
+            $this->assertSame('99.0.42', $catalog[$platform]['version']);
+            $this->assertStringContainsString('capybara-v99.0.42', $catalog[$platform]['releases']);
             foreach ($catalog[$platform]['packages'] as $package) {
-                $this->assertStringStartsWith('/downloads/Capybara_0.1.42_', $package['url']);
-                $this->assertStringContainsString('capybara-v0.1.42/', $package['official_url']);
+                $this->assertStringStartsWith('/downloads/Capybara_99.0.42_', $package['url']);
+                $this->assertStringContainsString('capybara-v99.0.42/', $package['official_url']);
             }
         }
     }
 
     public function test_incomplete_selected_release_is_rejected_instead_of_mixing_old_packages(): void
     {
+        $version = $this->publishedVersion();
         $assets = array_values(array_filter(json_decode(file_get_contents(base_path('.docker/downloads/manifest.json')), true),
-            fn ($asset) => $asset['name'] !== 'Capybara_0.1.14_x86_64-pc-windows-msvc.exe'));
+            fn ($asset) => $asset['name'] !== "Capybara_{$version}_x86_64-pc-windows-msvc.exe"));
         $service = new class($assets) extends ClientDownloadService {
             public function __construct(private array $assets) {}
             protected function manifest(): array { return $this->assets; }

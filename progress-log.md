@@ -2,11 +2,11 @@
 
 ## 2026-11-22 家宽代理经普通线路中转
 
-用户反馈 Windows 0.1.16 在 11 月 21 日晚直拨 PX-1 时 HTTP 重置、SOCKS5 间歇可用；经普通线路后 Google 正常，出口与已购 IP 相同。代码确认旧版停止普通线路再直拨，首次 204 后显示成功，首页复检却只取普通内核。当前开发机的三轮无凭据握手均收到 HTTP 407 / SOCKS5 用户名密码协商，无法定位用户网络上的重置点。
+用户反馈 Windows 0.1.16 在 11 月 21 日晚直拨 PX-1 时 HTTP 重置、SOCKS5 间歇可用；经普通线路后 Google 正常，出口与已购 IP 相同。代码确认旧版停止普通线路再直拨，首次 204 后显示成功，首页复检却只取普通内核。开发机默认路由与单独绑定物理 Wi-Fi（绕过本机 TUN）各做三轮无凭据握手，均收到 HTTP 407 / SOCKS5 用户名密码协商，无法定位用户网络上的重置点。
 
 0.1.17 改用本人普通订阅中转，优先当前节点，最多验证三条完整路径，查到已购 IP 并通过 Google HTTPS 204 后才启用系统代理。仅普通订阅明确不可用时尝试独立直连。取舍及验证见[家宽中转决定](./.agents/notes/implemented/bug-fix/2026-11-22-residential-relay.md)。
 
-本地原生 69 项通过、1 项手动测试忽略；包括固定内核的 HTTP、SOCKS5 双跳实测。前端 79 项和脚本 17 项通过，生产前端构建通过。用户本人 Windows 网络、已购账号的长期使用与实际 Google/ChatGPT 登录仍待复验。GitHub 构建和 Release 状态将在验收后更新。
+本地原生 69 项通过、1 项手动测试忽略；包括固定内核的 HTTP、SOCKS5 双跳实测。前端 79 项和脚本 17 项通过，生产前端构建通过。用户本人 Windows 网络、已购账号的长期使用与实际 Google/ChatGPT 登录仍待复验。代码 ef40268 已推送 master。[四平台构建及发布](https://github.com/nanashiwang/Xboard/actions/runs/44924275942)全部成功，[0.1.17 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.17) 已公开，回读 21 个附件。本地 macOS 应用打包成功。官网下载专项首次 CI 有四项断言仍固定为历史 0.1.14，改为读取发布索引后本地 16 项通过。分发清单与 Hub 已按正式附件摘要生成。
 
 <a id="friendhosting-20261122"></a>
 
