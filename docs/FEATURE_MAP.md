@@ -4,6 +4,8 @@
 
 # Xboard 能力地图
 
+[桌面测速与订阅更新实测](../progress-log.md#desktop-latency-subscription-20261122)记录首页操作耗时及 TCP 与完整代理请求的测量差异。
+
 [FriendHosting 三节点测速排查](../progress-log.md#friendhosting-20261122)记录客户端、独立入口健康页、出口隧道和生产代理验收的分段实测。
 
 <!-- upload-only-20261107:start -->

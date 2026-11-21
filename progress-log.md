@@ -20,6 +20,25 @@
 
 0.1.17 的家宽下一跳取决于所选普通线路。经第一阶段的自建线路先到普通后端，再由后端拨家宽端点；单买家宽目前仍尝试直拨。若要让家宽用户固定经第一阶段直达已购端点，需要新增面向家宽资产的鉴权和受限映射。这是待决定的架构方案，本轮没有更改生产转发。
 
+<a id="desktop-latency-subscription-20261122"></a>
+
+## 2026-11-22 Mac 上的 Shadowrocket 与 Capybara 耗时对照
+
+用户反馈同一订阅在 Shadowrocket 上很快出现延迟，Capybara 更新与测速均有迟滞。通过 macOS 辅助功能实际操作已安装的 Shadowrocket 2.2.93 和 Capybara 0.1.16。只比较该订阅的六条真实节点；Shadowrocket 的数字取自这些行的可见更新，Capybara 的首项为进度计数首次增长，整批为恢复“一键测速”。保留原网络环境，当时 Shadowrocket VPN 已连接，系统路由经过 TUN。以下是三轮观测值，单位为秒。
+
+| 操作 | 第 1 轮 | 第 2 轮 | 第 3 轮 |
+| --- | ---: | ---: | ---: |
+| Shadowrocket TCP 首条新延迟 / 六条更新完成 | 0.42 / 0.53 | 0.37 / 0.87 | 0.28 / 0.49 |
+| Capybara HTTPS 首项进度 / 九项完成 | 2.24 / 10.05 | 1.73 / 10.21 | 1.93 / 10.04 |
+| Shadowrocket 单独更新该订阅，至该组更新时间写回 | 1.69 | 0.48 | 0.39 |
+| Capybara 手动更新，至首页显示“订阅已更新” | 1.22 | 0.95 | 3.08 |
+
+- Shadowrocket 首页当前明确选中 TCP。六条节点都使用同一入口域名和 443 端口。物理网卡直连入口 10 次，TCP 建连 191–201 毫秒，与界面常见约 190–200 毫秒相近。临时改为 CONNECT 后，使用该应用已有的 HTTP gstatic 204 地址，设置界面显示超时 3 秒。首轮 1.72 秒出现第一条结果，4.57 秒六条全部有结果，包含一个超时。第二轮部分旧值未变，无法确认整组完成时刻，未纳入比较。已回读确认测试方式恢复 TCP。
+- Capybara 的[测速实现](./desktop/capybara/src-tauri/src/engine.rs)要求通过所选代理访问 HTTPS gstatic 并返回 204。当前六条实际代理，加上自动选择、故障转移及 DIRECT 共九项。[调度器](./desktop/capybara/src-tauri/src/nodes.rs)按名称去重、排序、最多四路并发，每项内核限时 5 秒。[首页](./desktop/capybara/src/nodes.ts)空闲每秒轮询节点状态，检测到测速后每 300 毫秒刷新。
+- 使用同一个运行中的 Mihomo 控制器和原 HTTPS 目标，复现现行九项/四并发的三轮整批耗时 12.74、11.06、12.14 秒。改为只测六台真实代理、六路同时开始，三轮均约 5.00–5.04 秒，各轮仍有 2–3 条超时。另用六路并发对齐 Shadowrocket CONNECT 的 HTTP URL 与 3 秒预算，三轮约 3.00 秒结束，每轮仅 2–3 条成功。两种协议栈的成功率仍需分别看待；更快结束可以来自超时。
+- 手动订阅更新在[原生运行时](./desktop/capybara/src-tauri/src/main.rs)先获取套餐资格，再下载配置，已过期的入口健康状态或清单会额外触发[选路](./desktop/capybara/src-tauri/src/entries.rs)。[服务端](./app/Http/Controllers/V1/Desktop/ClientController.php)支持条件请求；[客户端](./desktop/capybara/src-tauri/src/account.rs)校验 SHA-256，但未发送上次配置的 ETag。资格有效时即使内容相同，也会请求本地内核重新加载。隔离内核复测同内容热加载及代表性回读，五轮 6–16 毫秒，未包含完整 Rust 调用或锁等待。此次未逐请求归因订阅更新的网络耗时，两款应用的更新结束信号也略有不同。
+- 优化优先级：先区分“入口延迟”和“实际可用性”，限制测速队列为真实节点并及时显示每条结果。订阅更新继续核对账号资格，可在已验证的相同配置下使用条件请求并跳过重载。相关[节点交互决定](./.agents/notes/implemented/feature/2026-10-26-capybara-ready-nodes.md)保留。本轮只记录实测；未发布客户端、修改系统代理或部署服务。
+
 <a id="friendhosting-20261122"></a>
 
 ## 2026-11-22 FriendHosting 三条线路测速超时
