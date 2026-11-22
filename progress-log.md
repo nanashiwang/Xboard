@@ -132,7 +132,7 @@
 
 ## 2026-11-23 卡皮巴拉 0.1.23 钱包与跨端余额抵扣
 
-用户希望桌面钱包与官网联动。钱包显示本人消费余额及近 10 笔使用余额的套餐订单，从网页创建或取消订单后，返回桌面钱包可读到同一余额。余额足够时确认开通，不足时补差额。隔离账户已验证网页与桌面双向下单、取消、余额抵扣和返还。[购买与钱包决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。商店接口 10 项/99 个断言，Desktop API 共 89 项/995 个断言（1 项跳过）。浏览器 1180×780 与 760×620 已验证余额与取消退回。前端 91 项、脚本 17 项与原生 72 项通过，原生 2 项忽略。本机 Mac 完成应用打包。代码 `edb9d42` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45046264603)通过，[0.1.23 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.23) 共 21 项附件。分发待核验。
+用户希望桌面钱包与官网联动。钱包显示本人消费余额及近 10 笔使用余额的套餐订单，从网页创建或取消订单后，返回桌面钱包可读到同一余额。余额足够时确认开通，不足时补差额。隔离账户已验证网页与桌面双向下单、取消、余额抵扣和返还。[购买与钱包决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。商店接口 10 项/99 个断言，Desktop API 共 89 项/995 个断言（1 项跳过）。浏览器 1180×780 与 760×620 已验证余额与取消退回。前端 91 项、脚本 17 项与原生 72 项通过，原生 2 项忽略。本机 Mac 完成应用打包。代码 `edb9d42` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45046264603)通过，[0.1.23 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.23) 共 21 项附件。[主站同步](https://github.com/nanashiwang/Xboard/actions/runs/45046927064)、[分发验签](https://github.com/nanashiwang/Xboard/actions/runs/45047059404)与[下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/45047380131)均已通过，官网及 Hub 的五款安装包链接、两个更新索引的版本与摘要均已回读。生产主备钱包接口均向匿名请求返回 401。扣款与退回经隔离测试账号验证，生产验收未发起付费订单。
 
 <a id="desktop-release-022"></a>
 

@@ -16,10 +16,10 @@ python3 .docker/hub/build.py /absolute/output/dist
 
 邀请链接使用 `https://capybarahub.fyi/?invite=邀请码`，只接收8位字母数字邀请码。导航保持停留，点击应用入口时转到对应应用域的注册页；下载页与返回导航保留邀请码，不向安装包/GitHub链接附加参数。无效参数忽略，目标只允许Go、备用应用域和旧taige，未将订阅token放进导航。旧站入口及兼容索引继续保留；旧客户端设置no_proxy，系统HTTP代理不保证覆盖其更新请求，须确认目标实际经代理可达或从导航覆盖安装。
 
-## 恢复分发（当前 0.1.22）
+## 恢复分发（当前 0.1.23）
 
 `build.py OUTPUT --release-directory VERIFIED_RELEASE_FILES`核对发布清单摘要后复制`capybara-hub.json`和`capybara-entrypoints.json`，并生成`_worker.js`与`_routes.json`。Cloudflare Pages控制台Direct Upload支持此单文件Worker；恢复JSON走静态存储、no-store，安装包由Worker限制到既有清单中的GitHub固定版本来源，禁止Go依赖、任意代理及用户凭据转发。上传ZIP必须包含所有静态文件、Worker、路由和恢复JSON。
 
-2026-11-22 已发布 0.1.22；生产部署编号和构建清单提交见 `hosting.json`。官网与 Hub 指向同一已验签 Release，旧版本文件保留以兼容已经取得旧索引的客户端。完整分发验收见 [45044595836](https://github.com/nanashiwang/Xboard/actions/runs/45044595836)。
+2026-11-23 已发布 0.1.23；生产部署编号和构建清单提交见 `hosting.json`。官网与 Hub 指向同一已验签 Release，旧版本文件保留以兼容已经取得旧索引的客户端。完整分发验收见 [45047059404](https://github.com/nanashiwang/Xboard/actions/runs/45047059404)。
 
 备用官网为`https://app.capybarahub.fyi/`，源站部署由Configure Hub Domain流程管理。更新入口清单时先部署并验收新服务域，修改`desktop/capybara/service-entrypoints.json`的origins、递增sequence、调整签发/到期时间，再通过已有签名流水线发布和同步；客户端拒绝未签名、过期及回退内容。发行私钥不进入Hub或应用服务器。见[恢复决定](../../.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)。

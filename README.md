@@ -22,7 +22,7 @@
 
 ### 桌面客户端 [0.1.23 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.23)
 
-侧栏「钱包」显示与网页共用的消费余额及最近套餐抵扣记录。下单时自动使用余额，取消待支付订单会退回。[发布记录](./progress-log.md#desktop-release-023)
+侧栏「钱包」显示与网页共用的消费余额及最近套餐抵扣记录。下单时自动使用余额，取消待支付订单会退回。官网和备用下载页均已提供 0.1.23。[发布记录](./progress-log.md#desktop-release-023)
 
 ### 桌面客户端 [0.1.22 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.22)
 
