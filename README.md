@@ -20,7 +20,7 @@
 
 ### 桌面客户端 [0.1.22 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.22)
 
-桌面「套餐」提前读取目录，切页保留列表与所选周期。回到页面时，超过一分钟的目录在后台更新。[发布记录](./progress-log.md#desktop-release-022)
+桌面「套餐」提前读取目录，切页保留列表与所选周期。回到页面时，超过一分钟的目录在后台更新。官网和备用下载页均已提供 0.1.22。[发布记录](./progress-log.md#desktop-release-022)
 
 ### 桌面客户端 [0.1.21 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.21)
 

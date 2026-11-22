@@ -122,7 +122,7 @@
 
 ## 2026-11-22 卡皮巴拉 0.1.22 套餐页预取与切页保留
 
-用户反馈每次进入套餐页都要重新加载。取得会话状态后使用原有公开目录或本人商店接口预取，返回时直接显示已有卡片；超过一分钟后在后台核对，读取失败在页面可见时每 15 秒重试。账号切换清理私人数据，迟到的目录不会覆盖新订单。主导航往返、慢响应、下架、换号、重试及订单并发已覆盖。89 项前端、17 项脚本、72 项原生测试及生产前端构建通过，原生有 2 项忽略。[购买决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。本机 Mac 完成应用打包。线上主备公开目录均返回相同的 4 档套餐。代码 `f0a6d13` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45043927720)通过，[0.1.22 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.22) 共 21 项附件。分发待核验。
+用户反馈每次进入套餐页都要重新加载。取得会话状态后使用原有公开目录或本人商店接口预取，返回时直接显示已有卡片；超过一分钟后在后台核对，读取失败在页面可见时每 15 秒重试。账号切换清理私人数据，迟到的目录不会覆盖新订单。主导航往返、慢响应、下架、换号、重试及订单并发已覆盖。89 项前端、17 项脚本、72 项原生测试及生产前端构建通过，原生有 2 项忽略。[购买决定](./.agents/notes/implemented/feature/2026-10-25-capybara-store.md)。本机 Mac 完成应用打包。线上主备公开目录均返回相同的 4 档套餐。代码 `f0a6d13` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45043927720)通过，[0.1.22 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.22) 共 21 项附件。[主站同步](https://github.com/nanashiwang/Xboard/actions/runs/45044511568)、[分发验签](https://github.com/nanashiwang/Xboard/actions/runs/45044595836)与[下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/45044868934)均已通过，官网及 Hub 的五款安装包链接、两个更新索引的版本与摘要均已回读。
 
 <a id="desktop-release-021"></a>
 
