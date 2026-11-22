@@ -18,7 +18,7 @@
 
 ### 桌面客户端 [0.1.21 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.21)
 
-账号同步遇到短暂超时时，首页保留最近一次确认的套餐状态并在后台重试。[发布记录](./progress-log.md#desktop-release-021)
+账号同步遇到短暂超时时，首页保留最近一次确认的套餐状态并在后台重试。官网和备用下载页均已提供 0.1.21。[发布记录](./progress-log.md#desktop-release-021)
 
 ### 桌面客户端 [0.1.20 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.20)
 

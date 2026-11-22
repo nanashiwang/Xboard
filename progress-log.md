@@ -98,7 +98,7 @@
 
 ## 2026-11-22 卡皮巴拉 0.1.21 账号同步提示
 
-用户反馈偶发同步横幅频繁打断首页。已验证入口由 30 秒改为复用 120 秒，单入口探测由 3 秒延长至 6 秒。最近成功读取套餐后，90 秒内的暂时网络失败沿用已有状态；首次失败、明确拒绝及已越过套餐有效期立即提示。新建连接仍需在线核验。84 项前端、17 项发布脚本、72 项原生测试及前端生产构建通过，原生套件有 2 项忽略。[入口与提示决定](./.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)。同一模拟入口延迟 4 秒响应，0.1.20 的原生探测在 3 秒时失败，0.1.21 在 4 秒时通过。本机 macOS 应用打包成功。代码 `da88d03` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45042114887)通过，[0.1.21 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.21) 共 21 项附件。分发待核验。
+用户反馈偶发同步横幅频繁打断首页。已验证入口由 30 秒改为复用 120 秒，单入口探测由 3 秒延长至 6 秒。最近成功读取套餐后，90 秒内的暂时网络失败沿用已有状态；首次失败、明确拒绝及已越过套餐有效期立即提示。新建连接仍需在线核验。84 项前端、17 项发布脚本、72 项原生测试及前端生产构建通过，原生套件有 2 项忽略。[入口与提示决定](./.agents/notes/implemented/architecture/2026-11-03-client-hub-recovery.md)。同一模拟入口延迟 4 秒响应，0.1.20 的原生探测在 3 秒时失败，0.1.21 在 4 秒时通过。本机 macOS 应用打包成功。代码 `da88d03` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45042114887)通过，[0.1.21 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.21) 共 21 项附件。[主站同步](https://github.com/nanashiwang/Xboard/actions/runs/45042935085)、[分发验签](https://github.com/nanashiwang/Xboard/actions/runs/45043096211)与[下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/45043321189)均已通过，官网及 Hub 的五款安装包链接、两个更新索引的版本与摘要均已回读。
 
 <a id="desktop-release-020"></a>
 
