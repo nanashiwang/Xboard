@@ -4,7 +4,9 @@
 
 用户反馈已售家宽代理在管理员看板缺失。原接口只查独享分配和共享授权；现从主机、端点及持有人状态读取独立代理库存，按 IP 对账，并沿用现有侧栏、管理员权限和刷新周期。多端口买家跨 IP 去重，续费沿用原占用，到期保留、受限账号、不可售空位分别显示。[统计决定](./.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md) · [后端回归](./tests/Feature/Dedicated/ResidentialCapacityTest.php) · [前端回归](./tests/Frontend/residential-capacity.test.cjs)
 
-本地 PHP 回归 128 项、757 个断言通过，前端 7 项通过。Playwright 使用隔离数据库的测试管理员，在 1366px 和 390px 的真实管理页面刷新，均显示 1 位买家、2 个有效端口、18 个可售端口；手机表格可横向滚动，页面无横向溢出。本地部署检查验证匿名 403、HTTP 静态资源摘要和逐 IP 库存对账。镜像、生产与 Release 状态待发布后回填。
+本地 PHP 回归 128 项、757 个断言通过，前端 7 项通过。Playwright 使用隔离数据库的测试管理员，在 1366px 和 390px 的真实管理页面刷新，均显示 1 位买家、2 个有效端口、18 个可售端口；手机表格可横向滚动，页面无横向溢出。本地部署检查验证匿名 403、HTTP 静态资源摘要和逐 IP 库存对账。
+
+代码 `21a3868` 已推送 master，[家宽回归](https://github.com/nanashiwang/Xboard/actions/runs/45019033338)、[看板与订单回归](https://github.com/nanashiwang/Xboard/actions/runs/45019033394)及同提交其余检查通过。[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/45019033297)构建成功，[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/45019423539)核对运行修订且容器 Healthy。[生产只读验收](https://github.com/nanashiwang/Xboard/actions/runs/45019589983)于北京时间 2026-11-22 19:54 核对 2 个出口、20 个端口，2 位有效买家持有 2 个有效端口，新购预留 0，当前可售 18。每个出口的状态分项之和等于总端口，匿名请求返回 403，公开域名 JS/CSS 的 SHA-256 与提交一致。[网站 Release 20261122-21a3868](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-21a3868) 的镜像清单、验收文件和摘要清单已下载并核验。生产验收使用只读服务与 HTTP 资源检查，登录后页面交互在本地隔离管理员环境验证。
 
 <a id="residential-allocation-20261122"></a>
 
