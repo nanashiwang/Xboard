@@ -13,6 +13,8 @@ if (substr_count($source, $before) === 1 && substr_count($source, $after) === 0)
 } elseif (substr_count($source, $before) !== 0 || substr_count($source, $after) !== 1) {
     throw new RuntimeException('Admin login storage changed; review the pinned distribution before publishing.');
 }
+require_once __DIR__ . '/patch-admin-node-lines.php';
+$source = patchAdminNodeLines($source);
 $newEntry = 'assets/index-session-' . substr(hash('sha256', $source), 0, 16) . '.js';
 $index = file_get_contents($root . '/index.html');
 if (substr_count($index, './' . $entry) !== 1) {

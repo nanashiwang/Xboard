@@ -77,3 +77,33 @@ test('verified account installs routes, missing token redirects',async()=>{
   const f=guardFixture();await f.run();assert.equal(f.routes.length,2);assert.equal(f.next[0].replace,true);
   const empty=guardFixture(null,false);await empty.run();assert.equal(empty.next[0].path,'/login');assert.equal(empty.routes.length,0);
 });
+
+const lineSource = fs.readFileSync('scripts/frontend/admin-node-lines.js', 'utf8');
+const groupLines = vm.runInNewContext(lineSource + '\ngroupAdminNodeLines');
+const node = (id, parent_id, show = 1, dedicated_exit_id = null) => ({id, parent_id, show, dedicated_exit_id});
+
+test('the admin entry ships the line view and groups only by backend identity', () => {
+  assert.ok(adminBundle.includes(lineSource));
+  const backend = node(353, null, 0);
+  const alias = node(348, 353, 1, 14);
+  const entry = node(354, '353');
+  const single = node(400, null);
+  const otherBackend = node(403, null, 0);
+  const otherEntry = node(404, 403);
+  const groups = groupLines([alias, single, backend, entry, otherBackend, otherEntry]);
+  assert.deepEqual(Array.from(groups.rows), [single, entry, otherEntry]);
+  assert.equal(groups.details.get(354).backend, backend);
+  assert.deepEqual(Array.from(groups.details.get(354).others), [alias]);
+  assert.equal(groups.details.get(404).backend, otherBackend);
+});
+
+test('unpaired nodes, visible parents, cycles and deeper topologies stay editable', () => {
+  const rows = [
+    node(1, null, 0), node(2, 99), node(3, null), node(4, 3),
+    node(5, null, 0), node(6, 5, 0), node(7, 6), node(8, 5),
+    node(9, 10, 0), node(10, 9, 0), node(11, 11, 0),
+  ];
+  const groups = groupLines(rows);
+  assert.deepEqual(Array.from(groups.rows), rows);
+  assert.equal(groups.details.size, 0);
+});
