@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import {
     ArrowRight,
     CheckCircle2,
@@ -23,12 +29,18 @@ import {
 } from "./store-model";
 import "./store.css";
 
+const request = <T,>(action: string, payload?: Record<string, unknown>) =>
+    command<T>("store_request", { action, payload });
+const catalogLifetime = 60_000;
+
 export default function Plans({
     view,
+    active = true,
     onLogin,
     onRefresh,
 }: {
     view: View;
+    active?: boolean;
     onLogin: () => void;
     onRefresh: () => void;
 }) {
@@ -49,19 +61,24 @@ export default function Plans({
     const [message, setMessage] = useState("");
     const generation = useRef(0),
         pending = useRef(false),
+        fetching = useRef(false),
+        orderVersion = useRef(0),
+        loadedAt = useRef<number | null>(null),
         refreshed = useRef("");
+    const [loadFailed, setLoadFailed] = useState(false);
     const refreshAccount = useRef(onRefresh);
     refreshAccount.current = onRefresh;
     const checkoutRef = useRef<HTMLElement>(null);
-    const request = <T,>(action: string, payload?: Record<string, unknown>) =>
-        command<T>("store_request", { action, payload });
     const plan = store.plans.find((p) => p.id === selected);
     const cycle = plan?.periods.find((p) => p.id === period);
     const order = store.order;
     const payment = store.methods.find((m) => m.id === method);
 
-    async function load() {
+    const load = useCallback(async () => {
+        if (fetching.current || pending.current) return;
+        fetching.current = true;
         const run = generation.current;
+        const version = orderVersion.current;
         setLoading(true);
         setError("");
         try {
@@ -73,7 +90,12 @@ export default function Plans({
                       methods: [],
                       order: null,
                   };
-            if (run !== generation.current) return;
+            if (run !== generation.current || version !== orderVersion.current)
+                return;
+            if (!Array.isArray(data?.plans) || !Array.isArray(data.methods))
+                throw new Error("未能读取套餐列表，稍后将自动重试。");
+            loadedAt.current = Date.now();
+            setLoadFailed(false);
             setStore(data);
             setMethod((old) =>
                 data.methods.some((m) => m.id === old)
@@ -81,23 +103,64 @@ export default function Plans({
                     : data.methods[0]?.id || 0,
             );
         } catch (e) {
-            if (run === generation.current) setError(errorText(e));
+            if (
+                run === generation.current &&
+                version === orderVersion.current
+            ) {
+                setLoadFailed(true);
+                setError(errorText(e));
+            }
         } finally {
-            if (run === generation.current) setLoading(false);
+            if (run === generation.current) {
+                fetching.current = false;
+                setLoading(false);
+            }
         }
-    }
-    useEffect(() => {
+    }, [view.logged_in]);
+    useLayoutEffect(() => {
         generation.current++;
+        fetching.current = false;
+        loadedAt.current = null;
+        refreshed.current = "";
         pending.current = false;
         setBusy(false);
+        setLoadFailed(false);
         setStore({ plans: [], balance: 0, methods: [], order: null });
+        setCoupon("");
+        setMethod(0);
         setQr("");
         setMessage("");
         void load();
         return () => {
             generation.current++;
         };
-    }, [view.logged_in, view.profile?.email]);
+    }, [load, view.profile?.email]);
+
+    useEffect(() => {
+        if (!active) return;
+        const maybeRefresh = () => {
+            const age =
+                loadedAt.current === null
+                    ? Infinity
+                    : Date.now() - loadedAt.current;
+            if (!document.hidden && (age < 0 || age >= catalogLifetime))
+                void load();
+        };
+        maybeRefresh();
+        document.addEventListener("visibilitychange", maybeRefresh);
+        window.addEventListener("online", maybeRefresh);
+        return () => {
+            document.removeEventListener("visibilitychange", maybeRefresh);
+            window.removeEventListener("online", maybeRefresh);
+        };
+    }, [active, load, view.profile?.email]);
+    useEffect(() => {
+        if (!active || !loadFailed || loading || busy) return;
+        const timer = setInterval(() => {
+            if (!document.hidden) void load();
+        }, 15_000);
+        return () => clearInterval(timer);
+    }, [active, loadFailed, loading, busy, load]);
 
     function acceptOrder(next: Order) {
         setStore((old) => ({
@@ -115,6 +178,7 @@ export default function Plans({
         if (!order || pending.current) return;
         const run = generation.current;
         pending.current = true;
+        orderVersion.current++;
         try {
             const next = await request<Order>("order", {
                 trade_no: order.trade_no,
@@ -130,16 +194,17 @@ export default function Plans({
         }
     }
     useEffect(() => {
-        if (!order || ![0, 1].includes(order.status)) return;
+        if (!active || !order || ![0, 1].includes(order.status)) return;
         const timer = setInterval(() => {
-            if (!document.hidden) void checkOrder();
+            if (!document.hidden && !fetching.current) void checkOrder();
         }, 5000);
         return () => clearInterval(timer);
-    }, [order?.trade_no, order?.status]);
+    }, [active, order?.trade_no, order?.status]);
 
     async function mutate(action: "save" | "checkout" | "cancel") {
         if (pending.current || busy) return;
         pending.current = true;
+        orderVersion.current++;
         setBusy(true);
         setError("");
         setMessage("");
@@ -201,6 +266,7 @@ export default function Plans({
             }
         }
     }
+    if (!active) return null;
     const activeOrder = order && [0, 1].includes(order.status);
     return (
         <section className="card page-card store-page">
@@ -218,7 +284,7 @@ export default function Plans({
                         <>
                             当前套餐：
                             {view.subscription?.plan_name || "暂无套餐"}
-                            {!loading && !error && (
+                            {loadedAt.current !== null && !error && (
                                 <span className="store-balance">
                                     账户余额 {money(store.balance)}
                                 </span>
@@ -252,7 +318,7 @@ export default function Plans({
                     </button>
                 </div>
             )}
-            {loading ? (
+            {loading && loadedAt.current === null ? (
                 <p className="store-empty" role="status">
                     正在获取套餐与订单…
                 </p>

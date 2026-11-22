@@ -58,8 +58,11 @@ describe("钥匙串授权由用户发起", () => {
         expect(
             vi
                 .mocked(command)
-                .mock.calls.every(([name]) =>
-                    ["snapshot", "nodes_snapshot"].includes(name),
+                .mock.calls.every(
+                    ([name, args]) =>
+                        ["snapshot", "nodes_snapshot"].includes(name) ||
+                        (name === "store_request" &&
+                            args?.action === "catalog"),
                 ),
         ).toBe(true);
         expect(
@@ -292,4 +295,42 @@ describe("钥匙串授权由用户发起", () => {
                 ),
         ).toBe(true);
     });
+});
+
+it("首页预先读取公开目录，点套餐和切回时直接看到卡片", async () => {
+    vi.mocked(command).mockImplementation(async (name, args) => {
+        if (name === "store_request" && args?.action === "catalog")
+            return [
+                {
+                    id: 1,
+                    name: "已预取套餐",
+                    description: "",
+                    transfer_gb: 30,
+                    speed_mbps: null,
+                    device_limit: 2,
+                    current: false,
+                    purchasable: true,
+                    periods: [{ id: "month_price", amount: 990 }],
+                },
+            ] as never;
+        return structuredClone(state) as never;
+    });
+    render(<App />);
+    await waitFor(() =>
+        expect(command).toHaveBeenCalledWith("store_request", {
+            action: "catalog",
+            payload: undefined,
+        }),
+    );
+    expect(screen.queryByText("已预取套餐")).toBeNull();
+    for (const name of ["套餐", "首页", "套餐"]) {
+        fireEvent.click(screen.getByRole("button", { name, exact: true }));
+        if (name === "套餐")
+            expect(screen.getByText("已预取套餐")).toBeTruthy();
+    }
+    expect(
+        vi
+            .mocked(command)
+            .mock.calls.filter(([name]) => name === "store_request"),
+    ).toHaveLength(1);
 });

@@ -231,3 +231,135 @@ it("账号状态变化后丢弃迟到订单，并恢复新会话的购买按钮"
     expect(screen.queryByText("订单号 123456")).toBeNull();
     expect((loginButton as HTMLButtonElement).disabled).toBe(false);
 });
+
+it("后台预取与首次进入共用请求，重复切页直接显示已读套餐", async () => {
+    let complete!: (value: Store) => void;
+    vi.mocked(command).mockImplementation(
+        () =>
+            new Promise((resolve) => {
+                complete = resolve;
+            }) as never,
+    );
+    const page = (active: boolean) => (
+        <Plans
+            view={loggedIn}
+            active={active}
+            onLogin={login}
+            onRefresh={refresh}
+        />
+    );
+    const ui = render(page(false));
+    expect(screen.queryByRole("heading", { name: "套餐" })).toBeNull();
+    ui.rerender(page(true));
+    await act(async () => complete(data));
+    fireEvent.click(screen.getByRole("button", { name: "选择套餐" }));
+    fireEvent.click(screen.getByRole("radio", { name: /年付/ }));
+    ui.rerender(page(false));
+    ui.rerender(page(true));
+    expect(screen.getByRole("heading", { name: plan.name })).toBeTruthy();
+    expect(
+        (screen.getByRole("radio", { name: /年付/ }) as HTMLInputElement)
+            .checked,
+    ).toBe(true);
+    expect(screen.queryByText("正在获取套餐与订单…")).toBeNull();
+    expect(command).toHaveBeenCalledTimes(1);
+});
+
+it("目录过期后先显示原列表，后台更新价格和已下架套餐", async () => {
+    vi.useFakeTimers();
+    const page = (active: boolean) => (
+        <Plans
+            view={loggedIn}
+            active={active}
+            onLogin={login}
+            onRefresh={refresh}
+        />
+    );
+    const ui = render(page(false));
+    await act(async () => {});
+    await act(async () => vi.advanceTimersByTimeAsync(61_000));
+    let complete!: (value: Store) => void;
+    vi.mocked(command).mockImplementation(
+        () =>
+            new Promise((resolve) => {
+                complete = resolve;
+            }) as never,
+    );
+    ui.rerender(page(true));
+    expect(screen.getByRole("heading", { name: plan.name })).toBeTruthy();
+    expect(screen.queryByText("正在获取套餐与订单…")).toBeNull();
+    await act(async () =>
+        complete({
+            ...data,
+            plans: [
+                {
+                    ...plan,
+                    id: 2,
+                    name: "新套餐",
+                    periods: [{ id: "month_price", amount: 2200 }],
+                },
+            ],
+        }),
+    );
+    expect(screen.queryByRole("heading", { name: plan.name })).toBeNull();
+    expect(screen.getByText("¥22.00")).toBeTruthy();
+    expect(command).toHaveBeenCalledTimes(2);
+});
+
+it("首次加载失败会自行重试，离开套餐页暂停订单轮询", async () => {
+    vi.useFakeTimers();
+    vi.mocked(command).mockRejectedValueOnce(new Error("暂时超时"));
+    data.order = order;
+    const page = (active: boolean) => (
+        <Plans
+            view={loggedIn}
+            active={active}
+            onLogin={login}
+            onRefresh={refresh}
+        />
+    );
+    const ui = render(page(true));
+    await act(async () => {});
+    expect(screen.getByRole("alert").textContent).toContain("暂时超时");
+    await act(async () => vi.advanceTimersByTimeAsync(15_000));
+    expect(screen.getByText("订单号 123456")).toBeTruthy();
+    ui.rerender(page(false));
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(command).toHaveBeenCalledTimes(2);
+});
+
+it("换号期间丢弃上一账号预取结果，迟到的目录不能覆盖新建订单", async () => {
+    let finishFirst!: (value: Store) => void;
+    vi.mocked(command).mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                finishFirst = resolve;
+            }) as never,
+    );
+    const page = (email: string) => (
+        <Plans
+            view={{ ...loggedIn, profile: { ...loggedIn.profile, email } }}
+            onLogin={login}
+            onRefresh={refresh}
+        />
+    );
+    const ui = render(page("a@example.invalid"));
+    ui.rerender(page("b@example.invalid"));
+    await act(async () =>
+        finishFirst({ ...data, order: { ...order, trade_no: "old-account" } }),
+    );
+    expect(screen.queryByText(/old-account/)).toBeNull();
+    let finishRefresh!: (value: Store) => void;
+    vi.mocked(command).mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                finishRefresh = resolve;
+            }) as never,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "刷新套餐" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择套餐" }));
+    fireEvent.click(screen.getByRole("button", { name: "创建订单" }));
+    await screen.findByText("订单号 123456");
+    await act(async () => finishRefresh({ ...data, order: null }));
+    expect(screen.getByText("订单号 123456")).toBeTruthy();
+});

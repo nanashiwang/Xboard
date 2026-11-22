@@ -386,9 +386,10 @@ export default function App() {
                         notice={attention ? statusCard : null}
                     />
                 )}
-                {page === "plans" && (
+                {(view !== emptyView || page === "plans") && (
                     <Plans
                         view={view}
+                        active={page === "plans"}
                         onLogin={() => void act("begin_browser_login")}
                         onRefresh={() => void act("refresh")}
                     />
