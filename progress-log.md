@@ -1,3 +1,15 @@
+<a id="retire-qiyun-hk-20261123"></a>
+
+## 2026-11-23 退役七云香港机器与香港01
+
+用户确认移除上一轮保留的香港机器和对应节点。[退役决定](./.agents/notes/implemented/simplification/2026-11-23-retire-qiyun-hk.md)限定七云香港 SID 3、公开节点 #325「香港01｜1×」、后端 #338，以及面板的探针和入口监控映射。跳板主机与服务商实例不在此次面板操作范围内。
+
+北京时间 00:34:54，[生产运维](https://github.com/nanashiwang/Xboard/actions/runs/45044552451)完成 SQLite 私有备份与完整性检查。00:34:55 删除三个登记并从只读连接回查，剩 11 台机器、13 条节点记录。[独立生产清单](https://github.com/nanashiwang/Xboard/actions/runs/45044764804)确认其余 13 条节点配置与退役前逐项一致，四档普通权限组各有 5 条公开线路，NAS 探针 1 的 6 个剩余节点及预期出口一致，原独享绑定仍有 1 个。旧客户端在刷新订阅后移除香港选项。
+
+[生产代理验收](https://github.com/nanashiwang/Xboard/actions/runs/45044714155)用现有监控身份分别通过 #322、323、324、354、356、358 访问 HTTPS 并核对出口 IP，六条线路的 UDP DNS 查询也均通过。客户端订阅界面未另行操作。
+
+运维提交 `0953817` 已进入 master，生产执行修订为其后继 `8d08ae7`。本地 79 项运维测试及工作流校验通过；[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45044508818)、[笔记 CI](https://github.com/nanashiwang/Xboard/actions/runs/45044508794)、[双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45044508846)成功。面板数据清理沿用现有应用版本，无新 Release。
+
 <a id="prune-machines-20261123"></a>
 
 ## 2026-11-23 清理七云退役机器登记

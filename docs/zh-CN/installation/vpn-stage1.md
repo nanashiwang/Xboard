@@ -1,5 +1,7 @@
 # VPN 第一阶段入口运维
 
+2026-11-23 已从面板退役原香港出口，第一阶段继续承载其余线路。下文保留初次部署拓扑。[香港退役记录](../../../progress-log.md#retire-qiyun-hk-20261123)
+
 本页记录第一阶段迁移后的职责和维护边界；验证证据见 [progress-log](../../../progress-log.md)，方案取舍见[架构笔记](../../../.agents/notes/implemented/architecture/2026-10-17-stage1-replacement.md)。不保存私钥、用户 UUID、订阅 token 或实际 WebSocket 路径。
 
 ## 拓扑与客户端
