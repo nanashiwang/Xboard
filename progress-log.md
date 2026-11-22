@@ -4,7 +4,9 @@
 
 用户再次反馈“配置完整性校验失败，请重试”。本机已登录的 macOS 0.1.23 在首页手动更新后显示“订阅已更新”，节点列表可读。原失败响应未留存。复现了旧版对弱 ETag 的误报；缺头时旧版也无法核对摘要。
 
-0.1.25 在下载和条件刷新两条路径支持弱 ETag。缺头时向同一账号服务请求配置元数据，仅接受 SHA-256 与收到的正文或本地原文相符的配置。下载按块执行 4 MiB 限制，保留原始 UTF-8 字节。回归覆盖错误摘要、无缓存 304、含 BOM 与 CRLF 的配置。本地原生测试 74 项通过、2 项忽略，前端 91 项与发行脚本 17 项通过，前端生产构建和笔记检查通过。提交前未完成四平台构建与 Release。[订阅复核决定](./.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
+0.1.25 在下载和条件刷新两条路径支持弱 ETag。缺头时向同一账号服务请求配置元数据，仅接受 SHA-256 与收到的正文或本地原文相符的配置。下载按块执行 4 MiB 限制，保留原始 UTF-8 字节。回归覆盖错误摘要、无缓存 304、含 BOM 与 CRLF 的配置。本地原生测试 74 项通过、2 项忽略，前端 91 项与发行脚本 17 项通过，前端生产构建和笔记检查通过。服务端配置回归 3 项 / 25 个断言通过。
+
+修复 `30888fd` 与下载清单 `2055ab7` 均已推送 master。首次发布任务和失败重跑均在 Windows 家宽内核集成测试启动时超时；同一提交的常规构建和[新的四目标发布任务](https://github.com/nanashiwang/Xboard/actions/runs/45055951930)完整通过。[0.1.25 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.25) 的 21 项附件、[主站同步](https://github.com/nanashiwang/Xboard/actions/runs/45056764665)、[官网部署](https://github.com/nanashiwang/Xboard/actions/runs/45057203872)和[双源整包及更新签名验收](https://github.com/nanashiwang/Xboard/actions/runs/45057114586)均已核实。已回读两个更新源与五款安装包链接。按用户选择，本机保留 0.1.23 登录，修复版的本机升级及重新登录未执行。[订阅复核决定](./.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
 <a id="proxy-enroll-live-20261123"></a>
 
