@@ -25,6 +25,7 @@ on:
           - inspect-browser-login
           - inspect-dedicated
           - verify-residential-stage1
+          - prune-retired-nodes
           - retire-extension-probe
           - retire-us-dedicated-plan
           - inspect-residential-capacity
@@ -74,6 +75,14 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [[ "$OPERATION" == prune-retired-nodes ]]; then
+            [[ "$GITHUB_REF" == refs/heads/master ]]
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/prune-retired-nodes' \
+              < .docker/production/backup-database.py
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'python3 -' < .docker/production/prune-retired-nodes.py
+            exit 0
+          fi
           if [[ "$OPERATION" == retire-extension-probe ]]; then
             [[ "$GITHUB_REF" == refs/heads/master ]]
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
