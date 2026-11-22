@@ -32,7 +32,7 @@
 
 ## 2026-11-22 卡皮巴拉 0.1.20 分流面板文案
 
-按用户反馈移除规则模式说明和系统代理适用范围提示，规则模式下省去空段落。已运行前端、发布脚本和原生测试，生产前端构建中已核对两句文案均未出现。代码 `6a5c382` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45001614118)通过，[0.1.20 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.20) 共 21 项附件。分发待核验。
+按用户反馈移除规则模式说明和系统代理适用范围提示，规则模式下省去空段落。已运行前端、发布脚本和原生测试，生产前端构建中已核对两句文案均未出现。代码 `6a5c382` 已推送 master。[四目标发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45001614118)通过，[0.1.20 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.20) 共 21 项附件。[主站同步](https://github.com/nanashiwang/Xboard/actions/runs/45002125280)、[分发验签](https://github.com/nanashiwang/Xboard/actions/runs/45002270817)与[下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/45002546739)均已通过，官网及 Hub 的五款安装包链接、两个更新索引的版本与摘要均已回读。
 
 <a id="desktop-account-check-20261122"></a>
 

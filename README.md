@@ -8,7 +8,7 @@
 
 ### 桌面客户端 [0.1.20 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.20)
 
-分流面板已移除规则模式说明与系统代理范围提示。[发布记录](./progress-log.md#desktop-release-020)
+分流面板已移除规则模式说明与系统代理范围提示。官网和备用下载页均已提供 0.1.20。[发布记录](./progress-log.md#desktop-release-020)
 
 ### 桌面客户端 [0.1.19 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.19)
 
