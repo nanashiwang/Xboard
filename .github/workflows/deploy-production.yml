@@ -25,6 +25,7 @@ on:
           - inspect-browser-login
           - inspect-dedicated
           - verify-residential-stage1
+          - retire-upstream-nodes
           - prune-retired-nodes
           - retire-extension-probe
           - retire-us-dedicated-plan
@@ -75,6 +76,19 @@ jobs:
           # Same verified host key as configure-primary-domain.yml.
           echo '107.173.191.23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC' > ~/.ssh/xboard_known_hosts
           ssh_opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/xboard_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          if [[ "$OPERATION" == retire-upstream-nodes ]]; then
+            [[ "$GITHUB_REF" == refs/heads/master ]]
+            panel=root@107.173.191.23
+            sshpass -e ssh "${ssh_opts[@]}" "$panel" \
+              'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/retire-upstream-nodes' \
+              < .docker/production/backup-database.py
+            remote_dir=$(sshpass -e ssh "${ssh_opts[@]}" "$panel" 'umask 077; mktemp -d /tmp/retire-upstream.XXXXXX')
+            [[ "$remote_dir" =~ ^/tmp/retire-upstream\.[A-Za-z0-9]+$ ]]
+            trap 'sshpass -e ssh "${ssh_opts[@]}" "$panel" "rm -f -- $remote_dir/retire-upstream-nodes.py $remote_dir/allocation.json; rmdir -- $remote_dir"' EXIT
+            sshpass -e scp "${ssh_opts[@]}" .docker/production/retire-upstream-nodes.py .docker/upstream/allocation.json "$panel:$remote_dir/"
+            sshpass -e ssh "${ssh_opts[@]}" "$panel" "python3 '$remote_dir/retire-upstream-nodes.py'"
+            exit 0
+          fi
           if [[ "$OPERATION" == prune-retired-nodes ]]; then
             [[ "$GITHUB_REF" == refs/heads/master ]]
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \

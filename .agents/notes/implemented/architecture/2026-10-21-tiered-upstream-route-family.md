@@ -8,6 +8,8 @@ Status: implemented
 
 ## Decision
 
+2026-11-22 [整组退役](../simplification/2026-11-22-retire-third-party-routes.md)取代下述线上配置。以下记录保留接入时的设计与验收依据。
+
 2026-10-22 在现有第一阶段服务器运行独立机器 21 / xboard-extension 服务，通过 Nginx TLS → 回环 VLESS 后端 → 指定第三方出站转发。复用 ServerService 的 custom_outbounds/custom_routes、原 UUID 鉴权和 TrafficFetchJob，单进程管理 41 个后端，不在低内存 FriendHosting 节点叠加进程。41 个公开节点与 41 个隐藏后端一一对应，后端端口 37001–37041 仅回环可达；公开/隐藏 ID 与配置边界见[分配清单](../../../../.docker/upstream/allocation.json)及[运维](../../../../docs/zh-CN/installation/upstream-extension.md)。
 
 轻量/标准/进阶/旗舰累计新增 8/16/28/41 条，叠加每档 6 条自建，实际订阅为 14/22/34/47 条。权限组分别累计 1–4、2–4、3–4、4，并允许内部监控组 6；独享组 5 不加入，原 11 个美国固定出口池不变。原售价、额度、限速、设备限制、身份与订单保持。本次接入时保留自建名称，并用地区、U 编号和倍率区分拓展；这一命名决定已由[统一节点名称与家宽倍率](../../implemented/simplification/2026-10-22-node-names-and-residential-rate.md)部分取代。当前客户端名称为“国家或地区＋两位编号｜倍率×｜可选家宽/原生IP”，不再通过自建、拓展或 U 编号区分来源；后台 ID、标签、权限和客户端默认策略组边界继续保留。

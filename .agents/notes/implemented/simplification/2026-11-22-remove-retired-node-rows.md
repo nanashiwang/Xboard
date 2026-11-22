@@ -20,4 +20,4 @@ Status: implemented
 
 ## Existing decision audit
 
-本决定取代[普通与独享套餐拆分](../architecture/2026-10-21-owned-us-package-split.md)和[美国出口退租](../architecture/2026-10-28-owned-us-retirement.md)中保留这些撤权节点供回退的选择。[第三方线路](../architecture/2026-10-21-tiered-upstream-route-family.md)的 41 对节点由保护器按清单管理。
+本决定取代[普通与独享套餐拆分](../architecture/2026-10-21-owned-us-package-split.md)和[美国出口退租](../architecture/2026-10-28-owned-us-retirement.md)中保留这些撤权节点供回退的选择。[第三方线路](../architecture/2026-10-21-tiered-upstream-route-family.md)的 41 对节点在这一轮保留。其后用户明确要求[整组退役](./2026-11-22-retire-third-party-routes.md)。

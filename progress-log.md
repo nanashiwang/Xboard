@@ -1,3 +1,11 @@
+<a id="retire-third-party-routes-20261122"></a>
+
+## 2026-11-22 退役全部第三方线路
+
+[生产清单](https://github.com/nanashiwang/Xboard/actions/runs/45030792263)有 97 条记录，其中 82 条属于机器 21 的 41 对拓展节点。入口机复核有 9 个拓展监听，四档订阅按组可见 6/6/8/15 条。用户要求移除整个拓展组。[退役决定](./.agents/notes/implemented/simplification/2026-11-22-retire-third-party-routes.md)
+
+按生产元数据预演删除 82 条并保留 15 条。生产操作及独立复核见后续回执。
+
 <a id="prune-retired-nodes-20261122"></a>
 
 ## 2026-11-22 清理节点管理中的退役记录
