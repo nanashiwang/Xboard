@@ -112,6 +112,9 @@ class OrderService
             app(ResidentialProxyService::class)->paid($order, $order->callback_no ?: $order->trade_no);
             return;
         }
+        if ($order->product_type === Order::WALLET_TOPUP) {
+            throw new ApiException('钱包充值需要确认支付到账');
+        }
         $plan = Plan::find($order->plan_id);
         if ($plan?->is_proxy) throw new ApiException('代理商品必须通过代理订单开通');
 
@@ -323,6 +326,7 @@ class OrderService
     public function paid(string $callbackNo)
     {
         $order = $this->order;
+        if ($order->product_type === Order::WALLET_TOPUP) return false;
         if ($order->product_type === 'proxy') return app(ResidentialProxyService::class)->paid($order, $callbackNo);
         if ($order->status !== Order::STATUS_PENDING)
             return true;
@@ -343,6 +347,10 @@ class OrderService
     public function cancel(): bool
     {
         $order = $this->order;
+        if ($order->product_type === Order::WALLET_TOPUP) {
+            return Order::whereKey($order->id)->where('status', Order::STATUS_PENDING)
+                ->update(['status' => Order::STATUS_CANCELLED]) === 1;
+        }
         if ($order->product_type === 'proxy') return app(ResidentialProxyService::class)->cancel($order);
         HookManager::call('order.cancel.before', $order);
         try {

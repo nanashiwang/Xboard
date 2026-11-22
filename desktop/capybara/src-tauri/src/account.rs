@@ -116,6 +116,7 @@ pub struct Account {
     origin: String,
     directory: crate::entries::Directory,
     credential: Option<keyring::Entry>,
+    migration_marker: Option<std::path::PathBuf>,
     device_id: String,
     access: String,
     refresh: String,
@@ -134,10 +135,12 @@ impl Account {
             origin: ORIGIN.into(),
             directory: crate::entries::Directory::new(dir),
             credential: keyring::Entry::new(
-                "us.taige.capybara",
-                &crate::credentials::account_name()?,
+                crate::credentials::SERVICE,
+                &crate::credentials::account_name(&device_id)?,
             )
             .ok(),
+            migration_marker: crate::credentials::publisher_signed()
+                .then(|| dir.join("session-migrated-v3")),
             device_id,
             access: String::new(),
             refresh: String::new(),
@@ -156,24 +159,72 @@ impl Account {
         if self.logged_in() {
             return Ok(true);
         }
+        let migration = self.migration_state()?;
+        if migration.as_deref() == Some("signed-out") {
+            return Ok(false);
+        }
         match access(mode, || self.entry_raw()?.get_password()) {
             Ok(raw) => {
-                let saved: Saved = serde_json::from_str(&raw)
-                    .map_err(|_| Fault::local("登录记录损坏，请重新登录"))?;
-                if saved.device_id != self.device_id {
-                    return Err(Fault::local("设备登录记录不匹配，请重新登录"));
-                }
-                self.refresh = saved.refresh_token;
+                self.refresh = self.saved_token(&raw)?;
                 Ok(true)
             }
-            Err(keyring::Error::NoEntry) => Ok(false),
-            Err(_) => Err(Fault {
-                code: "CREDENTIALS_LOCKED".into(),
-                message:
-                    "登录记录暂时无法读取。点击“恢复登录”允许访问系统凭据库，或通过浏览器重新登录。"
-                        .into(),
-            }),
+            Err(keyring::Error::NoEntry) => {
+                if self.migration_marker.is_some() && migration.is_none() {
+                    if let Some(account) =
+                        crate::credentials::previous_account().map_err(|_| Self::locked())?
+                    {
+                        if mode == Access::Background {
+                            return Err(Self::locked());
+                        }
+                        let old = keyring::Entry::new(crate::credentials::SERVICE, &account)
+                            .map_err(|_| Self::locked())?;
+                        return self.import_previous(&old);
+                    }
+                }
+                Ok(false)
+            }
+            Err(_) => Err(Self::locked()),
         }
+    }
+    fn locked() -> Fault {
+        Fault {
+            code: "CREDENTIALS_LOCKED".into(),
+            message: "点击“恢复登录”授权访问系统凭据库中的已有账号。".into(),
+        }
+    }
+    fn saved_token(&self, raw: &str) -> Result<String, Fault> {
+        let saved: Saved =
+            serde_json::from_str(raw).map_err(|_| Fault::local("登录记录损坏，请重新登录"))?;
+        if saved.device_id != self.device_id || saved.refresh_token.is_empty() {
+            return Err(Fault::local("设备登录记录不匹配，请重新登录"));
+        }
+        Ok(saved.refresh_token)
+    }
+    fn migration_state(&self) -> Result<Option<String>, Fault> {
+        let Some(path) = &self.migration_marker else {
+            return Ok(None);
+        };
+        match std::fs::read_to_string(path) {
+            Ok(state) if matches!(state.as_str(), "active" | "signed-out") => Ok(Some(state)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            _ => Err(Fault::local("无法读取登录迁移记录，请重新登录")),
+        }
+    }
+    fn mark_session(&self, state: &str) -> Result<(), Fault> {
+        if let Some(path) = &self.migration_marker {
+            crate::private_write(path, state.as_bytes())?;
+        }
+        Ok(())
+    }
+    fn import_previous(&mut self, old: &keyring::Entry) -> Result<bool, Fault> {
+        let raw =
+            access(Access::UserInitiated, || old.get_password()).map_err(|_| Self::locked())?;
+        let refresh = self.saved_token(&raw)?;
+        access(Access::Background, || self.entry_raw()?.set_password(&raw))
+            .map_err(|_| Self::locked())?;
+        self.mark_session("active")?;
+        self.refresh = refresh;
+        Ok(true)
     }
     fn entry_raw(&self) -> keyring::Result<&keyring::Entry> {
         self.credential
@@ -272,6 +323,7 @@ impl Account {
             "STORE_ORDER_REJECTED" => "下单未完成，请检查周期、优惠码或换购规则",
             "STORE_ORDER_CHANGED" => "订单状态已变化，请刷新",
             "STORE_PAYMENT_FAILED" => "支付请求未完成，请刷新订单后重试",
+            "STORE_PAYMENT_UNAVAILABLE" => "此充值方式暂不可用，请刷新钱包",
             "STORE_PAYMENT_UNSUPPORTED" => "此支付方式请在网站订单中心继续",
             "STORE_ORDER_NOT_FOUND" => "找不到订单，请刷新列表",
             "STORE_INVALID_INPUT" => "请选择有效套餐、周期和订单",
@@ -296,7 +348,9 @@ impl Account {
             device_id: self.device_id.clone(),
         })
         .map_err(|_| Fault::local("无法保存登录"))?;
-        if access(mode, || self.entry_raw()?.set_password(&saved)).is_err() {
+        if access(mode, || self.entry_raw()?.set_password(&saved)).is_err()
+            || self.mark_session("active").is_err()
+        {
             let _ = self
                 .request(Method::POST, "auth/logout")
                 .json(&json!({"refresh_token":tokens.refresh_token}))
@@ -304,6 +358,7 @@ impl Account {
                 .await;
             self.access.clear();
             self.refresh.clear();
+            let _ = self.mark_session("signed-out");
             let _ = access(Access::Background, || self.entry_raw()?.delete_credential());
             return Err(Fault::local("无法安全保存登录，请解锁系统凭据库后重新登录"));
         }
@@ -473,6 +528,7 @@ impl Account {
     fn clear(&mut self, mode: Access) -> Result<(), Fault> {
         self.access.clear();
         self.refresh.clear();
+        self.mark_session("signed-out")?;
         match access(mode, || self.entry_raw()?.delete_credential()) {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(_) => Err(Fault::local("无法清除系统登录记录，请解锁凭据库后重试")),
@@ -1107,6 +1163,50 @@ mod tests {
         assert!(a.resume(Access::Background).unwrap());
         std::fs::remove_dir_all(dir).unwrap();
     }
+    #[test]
+    fn legacy_import_requires_the_same_device_and_logout_closes_migration() {
+        let dir = std::env::temp_dir().join(format!("capybara-migration-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut account = Account::new(&dir).unwrap();
+        let entry = || {
+            keyring::Entry::new_with_credential(Box::new(keyring::mock::MockCredential::default()))
+        };
+        let old = entry();
+        account.credential = Some(entry());
+        let marker = dir.join("session-migrated-v3");
+        account.migration_marker = Some(marker.clone());
+        old.set_password(&json!({"device_id":"another","refresh_token":"sample"}).to_string())
+            .unwrap();
+        assert!(account.import_previous(&old).is_err());
+        assert!(!marker.exists());
+        let record = json!({"device_id": account.device_id,"refresh_token":"sample"}).to_string();
+        old.set_password(&record).unwrap();
+        let mock: &keyring::mock::MockCredential = old.get_credential().downcast_ref().unwrap();
+        mock.set_error(keyring::Error::Invalid("acl".into(), "denied".into()));
+        assert_eq!(
+            account.import_previous(&old).unwrap_err().code,
+            "CREDENTIALS_LOCKED"
+        );
+        assert!(!account.logged_in());
+        assert!(account.import_previous(&old).unwrap());
+        assert_eq!(account.entry().unwrap().get_password().unwrap(), record);
+        assert_eq!(std::fs::read(&marker).unwrap(), b"active");
+        account.refresh.clear();
+        assert!(account.resume(Access::Background).unwrap());
+        let current: &keyring::mock::MockCredential = account
+            .entry()
+            .unwrap()
+            .get_credential()
+            .downcast_ref()
+            .unwrap();
+        current.set_error(keyring::Error::Invalid("acl".into(), "denied".into()));
+        assert!(account.clear(Access::UserInitiated).is_err());
+        assert_eq!(std::fs::read(&marker).unwrap(), b"signed-out");
+        assert!(!account.resume(Access::Background).unwrap());
+        assert!(old.get_password().is_ok());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
     #[test]
     fn errors_never_echo_server_credentials() {
         let f = Account::fault(

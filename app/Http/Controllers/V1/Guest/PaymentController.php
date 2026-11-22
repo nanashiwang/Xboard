@@ -28,7 +28,7 @@ class PaymentController extends Controller
                 return $verify['custom_result'] ?? 'success';
             }
             HookManager::call('payment.notify.verified', $verify);
-            if (!$this->handle($verify['trade_no'], $verify['callback_no'])) {
+            if (!$this->handle($verify['trade_no'], $verify['callback_no'], $verify, $method, $uuid)) {
                 return $this->fail([400, 'handle error']);
             }
             return (isset($verify['custom_result']) ? $verify['custom_result'] : 'success');
@@ -38,17 +38,20 @@ class PaymentController extends Controller
         }
     }
 
-    private function handle($tradeNo, $callbackNo)
+    private function handle($tradeNo, $callbackNo, array $event = [], string $method = '', string $uuid = '')
     {
         $proxyOrder = Order::where('trade_no', $tradeNo)->where('product_type', 'proxy')->first();
         if ($proxyOrder) {
             // Proxy inventory always locks plan -> order, including cancelled late payments.
             return app(\App\Services\ResidentialProxyService::class)->paid($proxyOrder, $callbackNo);
         }
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($tradeNo, $callbackNo) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($tradeNo, $callbackNo, $event, $method, $uuid) {
             $order = Order::where('trade_no', $tradeNo)->lockForUpdate()->first();
             if (!$order) {
                 return false;
+            }
+            if ($order->product_type === Order::WALLET_TOPUP) {
+                return \App\Services\WalletTopUpService::settle($order, $event, $method, $uuid);
             }
             if ($order->status !== Order::STATUS_PENDING) {
                 return true;

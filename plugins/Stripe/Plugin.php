@@ -84,7 +84,7 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             $metadata['plan_id'] = (string) $dbOrder->plan_id;
             $metadata['period'] = (string) $dbOrder->period;
             $period = Plan::getAvailablePeriods()[$dbOrder->period]['name'] ?? $dbOrder->period;
-            $productData = ['name' => ($dbOrder->plan?->name ?? 'taige 套餐') . ' · ' . $period,
+            $productData = ['name' => $dbOrder->product_type === Order::WALLET_TOPUP ? '钱包充值' : ($dbOrder->plan?->name ?? 'taige 套餐') . ' · ' . $period,
                 'description' => sprintf('人民币参考金额 ¥%.2f；结算汇率 1 USD = %s CNY。美元售价含 %s%% + $%s 的支付成本预算。发卡行可能另收换汇费。',
                     $quote->cny_amount / 100, $quote->exchange_rate, $quote->cost_percent, $quote->cost_fixed_usd)];
         }
@@ -197,6 +197,10 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         } elseif ((int) $session->amount_total !== $baseAmount || isset($session->metadata->quote_id)) {
             return false;
         }
-        return ['trade_no' => $tradeNo, 'callback_no' => $session->payment_intent];
+        $verified = ['trade_no' => $tradeNo, 'callback_no' => $session->payment_intent];
+        if ($order->product_type === Order::WALLET_TOPUP) {
+            $verified['paid_cents'] = $baseAmount;
+        }
+        return $verified;
     }
 }

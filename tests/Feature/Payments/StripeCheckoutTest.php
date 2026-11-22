@@ -125,6 +125,14 @@ class StripeCheckoutTest extends TestCase
         $this->assertSame(['trade_no' => 'test-order', 'callback_no' => 'pi_example'], $this->notify($this->gateway(), $this->event()));
     }
 
+    public function test_wallet_event_exposes_only_verified_settlement_amount(): void
+    {
+        $this->order()->update(['product_type' => Order::WALLET_TOPUP]);
+        $event = $this->notify($this->gateway(), $this->event());
+        $this->assertSame(1050, $event['paid_cents']);
+        $this->assertFalse($this->notify($this->gateway(), $this->event(['amount_total' => 1000])));
+    }
+
     public function test_wrong_signature_and_expired_signature_are_rejected(): void
     {
         $plugin = $this->gateway();

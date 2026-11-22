@@ -48,7 +48,7 @@ class DesktopRoute
                 $router->post('/client/invite/generate', [InviteController::class, 'generate'])->middleware('throttle:10,1');
                 $router->get('/client/store', [StoreController::class, 'index'])->middleware('throttle:60,1');
                 $router->get('/client/store/order', [StoreController::class, 'detail'])->middleware('throttle:60,1');
-                foreach (['save', 'checkout', 'cancel'] as $action) {
+                foreach (['save', 'checkout', 'cancel', 'topup'] as $action) {
                     $router->post('/client/store/' . $action, [StoreController::class, $action])->middleware('throttle:15,1');
                 }
                 $router->get('/user/profile', [UserController::class, 'profile']);

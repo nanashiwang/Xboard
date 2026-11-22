@@ -8,15 +8,89 @@ pub enum Access {
 /// Ad-hoc signed macOS builds have different Keychain identities. Do not read
 /// or overwrite an older build's item when the user signs in again: even a
 /// password update in keyring first reads that old item and requests its ACL.
-pub fn account_name() -> Result<String, String> {
+pub fn account_name(_device: &str) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
+        if publisher_signed() {
+            return Ok(format!("desktop-session-v3-{_device}"));
+        }
         account_for_binary(&std::env::current_exe().map_err(|_| "无法识别当前应用")?)
     }
     #[cfg(not(target_os = "macos"))]
     {
         Ok("desktop-session".into())
     }
+}
+
+#[cfg(not(test))]
+pub const SERVICE: &str = "us.taige.capybara";
+#[cfg(test)]
+pub const SERVICE: &str = "us.taige.capybara.unit-test";
+
+pub fn publisher_signed() -> bool {
+    cfg!(target_os = "macos") && option_env!("CAPYBARA_DEVELOPER_ID_BUILD") == Some("1")
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn legacy_account(account: &str) -> bool {
+    account
+        .strip_prefix("desktop-session-v2-")
+        .is_some_and(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+#[cfg(all(target_os = "macos", not(test)))]
+pub fn previous_account() -> keyring::Result<Option<String>> {
+    use core_foundation::{
+        base::{CFType, TCFType},
+        date::CFDate,
+        dictionary::CFDictionary,
+        string::CFString,
+    };
+    use security_framework::item::{ItemClass, ItemSearchOptions, Limit, SearchResult};
+    // Query public attributes only. Reading the selected secret is a separate,
+    // user-initiated operation. Never try older accounts on authorization failure.
+    access(Access::Background, || {
+        let results = match ItemSearchOptions::new()
+            .class(ItemClass::generic_password())
+            .service(SERVICE)
+            .load_attributes(true)
+            .limit(Limit::All)
+            .search()
+        {
+            Ok(items) => items,
+            Err(e) if e.code() == -25300 => return Ok(None),
+            Err(e) => return Err(keyring::Error::PlatformFailure(Box::new(e))),
+        };
+        let newest = results
+            .into_iter()
+            .filter_map(|item| {
+                let SearchResult::Dict(dict) = item else {
+                    return None;
+                };
+                // SecItemCopyMatching returns a CFString-keyed attribute dictionary.
+                let attrs: CFDictionary<CFString, CFType> =
+                    unsafe { CFDictionary::wrap_under_get_rule(dict.as_concrete_TypeRef()) };
+                let account = attrs
+                    .find(&CFString::new("acct"))?
+                    .downcast::<CFString>()?
+                    .to_string();
+                if !legacy_account(&account) {
+                    return None;
+                }
+                let modified = attrs
+                    .find(&CFString::new("mdat"))?
+                    .downcast::<CFDate>()?
+                    .abs_time();
+                Some((modified, account))
+            })
+            .max_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+        Ok(newest.map(|(_, account)| account))
+    })
+}
+
+#[cfg(any(not(target_os = "macos"), test))]
+pub fn previous_account() -> keyring::Result<Option<String>> {
+    Ok(None)
 }
 
 #[cfg(any(target_os = "macos", test))]
@@ -50,6 +124,8 @@ mod identity_tests {
         std::fs::write(&original, b"same-version-build-a").unwrap();
         std::fs::copy(&original, &moved).unwrap();
         let account = account_for_binary(&original).unwrap();
+        assert!(legacy_account(&account));
+        assert!(!legacy_account("desktop-session-v3-example"));
         assert_eq!(account, account_for_binary(&moved).unwrap());
         std::fs::write(&moved, b"same-version-build-b").unwrap();
         assert_ne!(account, account_for_binary(&moved).unwrap());

@@ -79,7 +79,10 @@ export default function Plans({
     const plan = store.plans.find((p) => p.id === selected);
     const cycle = plan?.periods.find((p) => p.id === period);
     const order = store.order;
-    const payment = store.methods.find((m) => m.id === method);
+    const isTopup = order?.product_type === "wallet_topup";
+    const payment = store.methods.find(
+        (m) => m.id === (isTopup ? order.payment_id : method),
+    );
 
     const load = useCallback(async (): Promise<void> => {
         if (fetching.current || pending.current) return;
@@ -106,6 +109,17 @@ export default function Plans({
             setLoadFailed(false);
             setStore((old) => ({
                 ...data,
+                order:
+                    data.order ||
+                    (readWallet &&
+                    old.order?.product_type === "wallet_topup" &&
+                    [2, 3].includes(old.order.status)
+                        ? old.order
+                        : null),
+                topups: readWallet ? data.topups : old.topups,
+                topup_methods: readWallet
+                    ? data.topup_methods
+                    : old.topup_methods,
                 wallet_orders: readWallet
                     ? data.wallet_orders
                     : old.wallet_orders,
@@ -222,15 +236,23 @@ export default function Plans({
         }
     }
     useEffect(() => {
-        if (!active || wallet || !order || ![0, 1].includes(order.status))
+        if (
+            !active ||
+            (wallet && !isTopup) ||
+            !order ||
+            ![0, 1].includes(order.status)
+        )
             return;
         const timer = setInterval(() => {
             if (!document.hidden && !fetching.current) void checkOrder();
         }, 5000);
         return () => clearInterval(timer);
-    }, [active, wallet, order?.trade_no, order?.status]);
+    }, [active, wallet, isTopup, order?.trade_no, order?.status]);
 
-    async function mutate(action: "save" | "checkout" | "cancel") {
+    async function mutate(
+        action: "save" | "checkout" | "cancel" | "topup",
+        topup?: { amount: number; method: number },
+    ) {
         if (pending.current || busy) return;
         pending.current = true;
         orderVersion.current++;
@@ -243,7 +265,7 @@ export default function Plans({
             if (action === "checkout" && order) {
                 const result = await request<Checkout>(action, {
                     trade_no: order.trade_no,
-                    method: method || null,
+                    method: payment?.id || null,
                 });
                 if (run !== generation.current) return;
                 acceptOrder(result.order);
@@ -261,27 +283,39 @@ export default function Plans({
                     setMessage(
                         result.kind === "url"
                             ? "支付页面已在浏览器打开，付款后这里会自动更新。"
-                            : "付款已提交，正在确认开通结果。",
+                            : isTopup
+                              ? "付款已提交，正在确认到账。"
+                              : "付款已提交，正在确认开通结果。",
                     );
             } else {
                 const next = await request<Order>(
                     action,
-                    action === "save"
-                        ? {
-                              plan_id: selected,
-                              period,
-                              coupon_code: coupon.trim() || null,
-                          }
-                        : { trade_no: order?.trade_no },
+                    action === "topup"
+                        ? topup
+                        : action === "save"
+                          ? {
+                                plan_id: selected,
+                                period,
+                                coupon_code: coupon.trim() || null,
+                            }
+                          : { trade_no: order?.trade_no },
                 );
-                if (run === generation.current) acceptOrder(next);
+                if (run === generation.current) {
+                    acceptOrder(next);
+                    if (action === "topup")
+                        requestAnimationFrame(() =>
+                            checkoutRef.current?.focus(),
+                        );
+                }
             }
         } catch (e) {
             if (run !== generation.current) return;
             // Recover an order created before a lost response; never repeat the mutation automatically.
-            if (action === "save") {
+            if (action === "save" || action === "topup") {
                 try {
-                    const latest = await request<Store>("index");
+                    const latest = await request<Store>(
+                        walletVisible.current ? "wallet" : "index",
+                    );
                     if (run === generation.current) setStore(latest);
                 } catch {
                     /* Keep the original actionable error. */
@@ -296,187 +330,218 @@ export default function Plans({
         }
     }
     if (!active) return null;
-    if (wallet)
-        return (
-            <Wallet
-                loggedIn={view.logged_in}
-                balance={loadedAt.current === null ? null : store.balance}
-                orders={store.wallet_orders}
-                loading={loading}
-                error={error}
-                onRefresh={() => void load()}
-                onLogin={onLogin}
-                onPlans={onPlans}
-                onWeb={() =>
-                    void command("open_link", { target: "wallet" }).catch((e) =>
-                        setError(errorText(e)),
-                    )
-                }
-            />
-        );
+    const walletPanel = (
+        <Wallet
+            key={view.profile?.email || "guest"}
+            loggedIn={view.logged_in}
+            busy={busy}
+            pendingOrder={!!order && [0, 1].includes(order.status)}
+            methods={store.topup_methods}
+            topups={store.topups}
+            onTopUp={(amount, method) =>
+                void mutate("topup", { amount, method })
+            }
+            balance={loadedAt.current === null ? null : store.balance}
+            orders={store.wallet_orders}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
+            onLogin={onLogin}
+            onPlans={onPlans}
+            onWeb={() =>
+                void command("open_link", { target: "wallet" }).catch((e) =>
+                    setError(errorText(e)),
+                )
+            }
+        />
+    );
     const activeOrder = order && [0, 1].includes(order.status);
     return (
-        <section className="card page-card store-page">
-            <div className="section-heading">
-                <div>
-                    <span className="eyebrow">A LITTLE MORE FREEDOM</span>
-                    <h2>套餐</h2>
-                    <p>选一个适合你的套餐，轻松连接更大的世界。</p>
-                </div>
-                <ShoppingBag size={35} />
-            </div>
-            <div className="store-toolbar">
-                <span>
-                    {view.logged_in ? (
-                        <>
-                            当前套餐：
-                            {view.subscription?.plan_name || "暂无套餐"}
-                            {loadedAt.current !== null && !error && (
-                                <span className="store-balance">
-                                    账户余额 {money(store.balance)}
-                                </span>
-                            )}
-                        </>
-                    ) : (
-                        "先看看套餐，登录后即可购买。"
-                    )}
-                </span>
-                <button
-                    className="text-button"
-                    disabled={busy || loading}
-                    onClick={() => void load()}
-                >
-                    <RefreshCw size={16} className={loading ? "spin" : ""} />
-                    刷新套餐
-                </button>
-            </div>
-            {error && (
-                <div className="store-alert" role="alert">
-                    <p>{error}</p>
-                    <button
-                        className="text-button"
-                        onClick={() =>
-                            void command("open_link", {
-                                target: "plans",
-                            }).catch((e) => setError(errorText(e)))
-                        }
-                    >
-                        前往网站购买或管理订单 <Globe2 size={16} />
-                    </button>
-                </div>
-            )}
-            {loading && loadedAt.current === null ? (
-                <p className="store-empty" role="status">
-                    正在获取套餐与订单…
-                </p>
+        <section
+            className={`card page-card store-page${wallet ? " wallet-page" : ""}`}
+        >
+            {wallet ? (
+                walletPanel
             ) : (
                 <>
-                    {store.plans.length === 0 && !error && (
-                        <p className="store-empty">
-                            暂无可购买套餐，请稍后再来看看。
-                        </p>
-                    )}
-                    <div className="plan-grid">
-                        {store.plans.map((item) => (
-                            <article
-                                className={
-                                    "plan-card" +
-                                    (item.id === selected ? " selected" : "")
-                                }
-                                key={item.id}
-                            >
-                                <div className="plan-name">
-                                    <Package size={22} />
-                                    <h3>{item.name}</h3>
-                                    {item.current && <span>当前套餐</span>}
-                                </div>
-                                <div className="plan-price">
-                                    {item.periods.length ? (
-                                        <>
-                                            <strong>
-                                                {money(
-                                                    Math.min(
-                                                        ...item.periods.map(
-                                                            (p) => p.amount,
-                                                        ),
-                                                    ),
-                                                )}
-                                            </strong>
-                                            <span>起</span>
-                                        </>
-                                    ) : (
-                                        <strong>暂不可购买</strong>
-                                    )}
-                                </div>
-                                <ul className="plan-facts">
-                                    <li>
-                                        <CheckCircle2 size={16} />
-                                        {item.transfer_gb} GB 套餐流量
-                                    </li>
-                                    <li>
-                                        <CheckCircle2 size={16} />
-                                        {item.speed_mbps
-                                            ? `${item.speed_mbps} Mbps 速率上限`
-                                            : "不限速率"}
-                                    </li>
-                                    <li>
-                                        <CheckCircle2 size={16} />
-                                        {item.device_limit
-                                            ? `${item.device_limit} 个 IP 同时在线`
-                                            : "不限同时在线 IP"}
-                                    </li>
-                                </ul>
-                                {item.description && (
-                                    <p className="plan-description">
-                                        {planDescription(item.description)}
-                                    </p>
-                                )}
-                                <button
-                                    className="primary-button"
-                                    disabled={
-                                        !!activeOrder ||
-                                        busy ||
-                                        !item.purchasable ||
-                                        !item.periods.length
-                                    }
-                                    onClick={() => {
-                                        setSelected(item.id);
-                                        setPeriod(item.periods[0]?.id || "");
-                                        setCoupon("");
-                                        setStore((old) => ({
-                                            ...old,
-                                            order: null,
-                                        }));
-                                        setMessage("");
-                                        setTimeout(
-                                            () =>
-                                                checkoutRef.current?.scrollIntoView(
-                                                    {
-                                                        behavior: "smooth",
-                                                        block: "nearest",
-                                                    },
-                                                ),
-                                            0,
-                                        );
-                                    }}
-                                >
-                                    {!item.purchasable
-                                        ? "暂不可续费"
-                                        : item.current
-                                          ? "续费套餐"
-                                          : "选择套餐"}
-                                    <ArrowRight size={17} />
-                                </button>
-                            </article>
-                        ))}
+                    <div className="section-heading">
+                        <div>
+                            <span className="eyebrow">
+                                A LITTLE MORE FREEDOM
+                            </span>
+                            <h2>套餐</h2>
+                            <p>选一个适合你的套餐，轻松连接更大的世界。</p>
+                        </div>
+                        <ShoppingBag size={35} />
                     </div>
+                    <div className="store-toolbar">
+                        <span>
+                            {view.logged_in ? (
+                                <>
+                                    当前套餐：
+                                    {view.subscription?.plan_name || "暂无套餐"}
+                                    {loadedAt.current !== null && !error && (
+                                        <span className="store-balance">
+                                            账户余额 {money(store.balance)}
+                                        </span>
+                                    )}
+                                </>
+                            ) : (
+                                "先看看套餐，登录后即可购买。"
+                            )}
+                        </span>
+                        <button
+                            className="text-button"
+                            disabled={busy || loading}
+                            onClick={() => void load()}
+                        >
+                            <RefreshCw
+                                size={16}
+                                className={loading ? "spin" : ""}
+                            />
+                            刷新套餐
+                        </button>
+                    </div>
+                    {error && (
+                        <div className="store-alert" role="alert">
+                            <p>{error}</p>
+                            <button
+                                className="text-button"
+                                onClick={() =>
+                                    void command("open_link", {
+                                        target: "plans",
+                                    }).catch((e) => setError(errorText(e)))
+                                }
+                            >
+                                前往网站购买或管理订单 <Globe2 size={16} />
+                            </button>
+                        </div>
+                    )}
+                    {loading && loadedAt.current === null ? (
+                        <p className="store-empty" role="status">
+                            正在获取套餐与订单…
+                        </p>
+                    ) : (
+                        <>
+                            {store.plans.length === 0 && !error && (
+                                <p className="store-empty">
+                                    暂无可购买套餐，请稍后再来看看。
+                                </p>
+                            )}
+                            <div className="plan-grid">
+                                {store.plans.map((item) => (
+                                    <article
+                                        className={
+                                            "plan-card" +
+                                            (item.id === selected
+                                                ? " selected"
+                                                : "")
+                                        }
+                                        key={item.id}
+                                    >
+                                        <div className="plan-name">
+                                            <Package size={22} />
+                                            <h3>{item.name}</h3>
+                                            {item.current && (
+                                                <span>当前套餐</span>
+                                            )}
+                                        </div>
+                                        <div className="plan-price">
+                                            {item.periods.length ? (
+                                                <>
+                                                    <strong>
+                                                        {money(
+                                                            Math.min(
+                                                                ...item.periods.map(
+                                                                    (p) =>
+                                                                        p.amount,
+                                                                ),
+                                                            ),
+                                                        )}
+                                                    </strong>
+                                                    <span>起</span>
+                                                </>
+                                            ) : (
+                                                <strong>暂不可购买</strong>
+                                            )}
+                                        </div>
+                                        <ul className="plan-facts">
+                                            <li>
+                                                <CheckCircle2 size={16} />
+                                                {item.transfer_gb} GB 套餐流量
+                                            </li>
+                                            <li>
+                                                <CheckCircle2 size={16} />
+                                                {item.speed_mbps
+                                                    ? `${item.speed_mbps} Mbps 速率上限`
+                                                    : "不限速率"}
+                                            </li>
+                                            <li>
+                                                <CheckCircle2 size={16} />
+                                                {item.device_limit
+                                                    ? `${item.device_limit} 个 IP 同时在线`
+                                                    : "不限同时在线 IP"}
+                                            </li>
+                                        </ul>
+                                        {item.description && (
+                                            <p className="plan-description">
+                                                {planDescription(
+                                                    item.description,
+                                                )}
+                                            </p>
+                                        )}
+                                        <button
+                                            className="primary-button"
+                                            disabled={
+                                                !!activeOrder ||
+                                                busy ||
+                                                !item.purchasable ||
+                                                !item.periods.length
+                                            }
+                                            onClick={() => {
+                                                setSelected(item.id);
+                                                setPeriod(
+                                                    item.periods[0]?.id || "",
+                                                );
+                                                setCoupon("");
+                                                setStore((old) => ({
+                                                    ...old,
+                                                    order: null,
+                                                }));
+                                                setMessage("");
+                                                setTimeout(
+                                                    () =>
+                                                        checkoutRef.current?.scrollIntoView(
+                                                            {
+                                                                behavior:
+                                                                    "smooth",
+                                                                block: "nearest",
+                                                            },
+                                                        ),
+                                                    0,
+                                                );
+                                            }}
+                                        >
+                                            {!item.purchasable
+                                                ? "暂不可续费"
+                                                : item.current
+                                                  ? "续费套餐"
+                                                  : "选择套餐"}
+                                            <ArrowRight size={17} />
+                                        </button>
+                                    </article>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </>
             )}
-            {(order || plan) && (
+            {(wallet ? isTopup : order || plan) && (
                 <section
                     className="store-checkout"
                     ref={checkoutRef}
-                    aria-label="套餐订单"
+                    tabIndex={-1}
+                    aria-label={isTopup ? "充值订单" : "套餐订单"}
                 >
                     {order ? (
                         <>
@@ -484,8 +549,9 @@ export default function Plans({
                                 <div>
                                     <span className="eyebrow">YOUR ORDER</span>
                                     <h3>
-                                        {order.plan_name} ·{" "}
-                                        {periods[order.period] || order.period}
+                                        {order.plan_name}
+                                        {!isTopup &&
+                                            ` · ${periods[order.period] || order.period}`}
                                     </h3>
                                     <p className="fine-print">
                                         订单号 {order.trade_no}
@@ -498,7 +564,9 @@ export default function Plans({
                                             : ""
                                     }
                                 >
-                                    {orderStatuses[order.status] ||
+                                    {(isTopup && order.status === 3
+                                        ? "已到账"
+                                        : orderStatuses[order.status]) ||
                                         "订单状态更新中"}
                                 </b>
                             </div>
@@ -546,7 +614,7 @@ export default function Plans({
                                     支付手续费{" "}
                                     <span>
                                         {money(
-                                            order.status === 0
+                                            order.status === 0 && !isTopup
                                                 ? fee(
                                                       order.total_amount,
                                                       payment,
@@ -560,7 +628,7 @@ export default function Plans({
                                     <strong>
                                         {money(
                                             order.total_amount +
-                                                (order.status === 0
+                                                (order.status === 0 && !isTopup
                                                     ? fee(
                                                           order.total_amount,
                                                           payment,
@@ -572,7 +640,7 @@ export default function Plans({
                             </div>
                             {order.status === 0 && (
                                 <>
-                                    {order.total_amount > 0 && (
+                                    {order.total_amount > 0 && !isTopup && (
                                         <fieldset className="store-options">
                                             <legend>支付方式</legend>
                                             {store.methods.length ? (
@@ -601,6 +669,12 @@ export default function Plans({
                                                 </p>
                                             )}
                                         </fieldset>
+                                    )}
+                                    {isTopup && (
+                                        <p>
+                                            支付方式：
+                                            {payment?.name || "当前通道不可用"}
+                                        </p>
                                     )}
                                     {qr && (
                                         <img
@@ -660,7 +734,9 @@ export default function Plans({
                             )}
                             {order.status === 3 && (
                                 <p role="status">
-                                    套餐已开通，账户权益正在同步。
+                                    {isTopup
+                                        ? "充值已到账，可用余额已更新。"
+                                        : "套餐已开通，账户权益正在同步。"}
                                 </p>
                             )}
                             {[2, 3, 4].includes(order.status) && (
@@ -676,7 +752,7 @@ export default function Plans({
                                         void load();
                                     }}
                                 >
-                                    返回套餐列表
+                                    {wallet ? "返回钱包" : "返回套餐列表"}
                                 </button>
                             )}
                         </>

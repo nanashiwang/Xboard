@@ -62,6 +62,12 @@ jobs:
       - name: Verify native behavior
         run: cargo fmt --check && cargo test --locked
         working-directory: desktop/capybara/src-tauri
+      - name: Prepare Developer ID and verify cross-build Keychain access
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.publish
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: bash scripts/prepare-macos-signing.sh
       - name: Build installers and signed updates
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.CAPYBARA_UPDATER_PRIVATE_KEY || '' }}
@@ -69,7 +75,14 @@ jobs:
           PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
         run: |
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+            extra=()
+            if [[ -n "${CAPYBARA_SIGNING_CONFIG:-}" ]]; then extra+=(--config "$CAPYBARA_SIGNING_CONFIG"); fi
+            npm run desktop:build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} "${extra[@]}"
+            if [[ -n "${CAPYBARA_SIGNING_CONFIG:-}" ]]; then
+              app="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Capybara.app"
+              codesign --verify --deep --strict "$app"
+              codesign --verify -R='anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and identifier "us.taige.capybara"' "$app"
+            fi
             node scripts/collect-artifacts.mjs ${{ matrix.target }} --signed
           else
             if [ "$PUBLISH" = true ]; then echo '发布必须配置更新签名密钥'; exit 1; fi

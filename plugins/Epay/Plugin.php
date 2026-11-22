@@ -90,6 +90,9 @@ class Plugin extends AbstractPlugin implements PaymentInterface
 
         return [
             'trade_no' => $params['out_trade_no'],
+            'paid_cents' => ($params['trade_status'] ?? '') === 'TRADE_SUCCESS'
+                && (string) ($params['pid'] ?? '') === (string) $this->getConfig('pid')
+                ? \App\Services\WalletTopUpService::cents($params['money'] ?? null) : null,
             'callback_no' => $params['trade_no']
         ];
     }

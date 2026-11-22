@@ -776,6 +776,8 @@ Issues and Pull Requests are welcome to help improve the project.
 
 ### 客户端配置完整性排查（2026-11-16）
 
+桌面 0.1.26 源码支持 Mac 正式版沿用有效登录，钱包「可用余额 → 充值」可单独付款增加余额。[版本及上线记录](./progress-log.md#desktop-session-wallet-026)
+
 [桌面 0.1.25](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.25) 已发布至官网和备用站。更新订阅支持含弱标记的 ETag。响应缺少 ETag 时，客户端会从已登录账号的配置接口另取 SHA-256，匹配后才采用配置。本机 0.1.23 手动更新已成功，原故障响应未留存。[修复与复测](./progress-log.md#config-integrity-20261123)
 
 Mac 补充核对：本机 Applications 副本为 0.1.13，运行中的项目构建副本为 0.1.14；现场窗口未登录，未复现报错。两版配置摘要校验逻辑相同，不能据版本差异断定原因，详见上述排查记录。

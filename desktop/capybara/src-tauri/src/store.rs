@@ -49,7 +49,7 @@ pub async fn store_request(
         "index" => rt.account.get("client/store").await?,
         "wallet" => rt.account.get("client/store?wallet=1").await?,
         "order" => rt.account.get(&order_path(&payload)?).await?,
-        "save" | "checkout" | "cancel" => {
+        "save" | "checkout" | "cancel" | "topup" => {
             rt.account
                 .post(&format!("client/store/{action}"), &payload)
                 .await?

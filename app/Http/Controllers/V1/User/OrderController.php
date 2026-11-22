@@ -49,7 +49,7 @@ class OrderController extends Controller
             return $this->fail([400, __('Order does not exist or has been paid')]);
         }
         $order['try_out_plan_id'] = (int) admin_setting('try_out_plan_id');
-        if (!$order->plan) {
+        if (!$order->plan && $order->product_type !== Order::WALLET_TOPUP) {
             return $this->fail([400, __('Subscription plan does not exist')]);
         }
         if ($order->surplus_order_ids) {
@@ -125,6 +125,17 @@ class OrderController extends Controller
             ->first();
         if (!$order) {
             return $this->fail([400, __('Order does not exist or has been paid')]);
+        }
+        if ($order->product_type === Order::WALLET_TOPUP) {
+            $payment = $order->payment;
+            if (!$payment?->enable || (int) $method !== (int) $payment->id || $order->total_amount <= 0) {
+                return $this->fail([400, '充值支付方式不可用，请重新下单']);
+            }
+            $result = (new PaymentService($payment->payment, $payment->id))->pay([
+                'trade_no' => $tradeNo, 'total_amount' => $order->total_amount + $order->handling_amount,
+                'user_id' => $order->user_id,
+            ]);
+            return response(['type' => $result['type'], 'data' => $result['data']]);
         }
         // free process
         if ($order->total_amount <= 0) {

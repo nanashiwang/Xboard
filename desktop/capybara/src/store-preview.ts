@@ -1,4 +1,4 @@
-import type { Order, Store } from "./store-model";
+import { fee, type Order, type Store } from "./store-model";
 const demo: Store = {
     balance: 500,
     order: null,
@@ -77,6 +77,7 @@ const sample: Order = {
 };
 let order: Order | null = null;
 let initialized = false;
+const topups: NonNullable<Store["topups"]> = [];
 const walletOrders: NonNullable<Store["wallet_orders"]> = [];
 export async function storePreview(
     mode: string,
@@ -105,10 +106,38 @@ export async function storePreview(
     if (action === "index" || action === "wallet")
         return structuredClone({
             ...demo,
-            order,
-            ...(action === "wallet" && { wallet_orders: walletOrders }),
+            order: order && [0, 1].includes(order.status) ? order : null,
+            ...(action === "wallet" && {
+                wallet_orders: walletOrders,
+                topups,
+                topup_methods: demo.methods,
+            }),
             plans: mode === "store-empty" ? [] : demo.plans,
         });
+    if (action === "topup") {
+        const amount = Number(payload?.amount);
+        const method = demo.methods.find((m) => m.id === payload?.method);
+        if (
+            !method ||
+            !Number.isInteger(amount) ||
+            amount <= 0 ||
+            amount > 1000000
+        )
+            throw new Error("充值金额或支付方式无效");
+        order = {
+            ...sample,
+            trade_no: "PREVIEW" + Date.now(),
+            product_type: "wallet_topup",
+            payment_id: method.id,
+            plan_name: "钱包充值",
+            period: "wallet_topup",
+            total_amount: amount,
+            handling_amount: fee(amount, method),
+            account_balance: demo.balance,
+            balance_amount: 0,
+        };
+        topups.unshift(order);
+    }
     if (action === "save") {
         const plan = demo.plans.find((p) => p.id === payload?.plan_id)!;
         const period = plan.periods.find((p) => p.id === payload?.period)!;
@@ -136,7 +165,13 @@ export async function storePreview(
     }
     const entry = walletOrders.find((row) => row.trade_no === order?.trade_no);
     if (action === "checkout" && order) {
-        if (mode !== "store-qr") order.status = 3;
+        if (mode !== "store-qr" && order.status === 0) {
+            order.status = 3;
+            if (order.product_type === "wallet_topup") {
+                demo.balance += order.total_amount;
+                order.account_balance = demo.balance;
+            }
+        }
         if (entry) entry.status = order.status;
         return structuredClone({
             kind: mode === "store-qr" ? "qr" : "submitted",

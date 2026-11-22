@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\OrderService;
 use App\Services\PlanService;
 use App\Services\UserService;
+use App\Services\WalletTopUpService;
 use App\Support\ClientApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -40,6 +41,10 @@ class StoreController extends Controller
             ]),
         ];
         if ($request->boolean('wallet')) {
+            $data['topup_methods'] = Payment::where('enable', true)->whereIn('payment', WalletTopUpService::METHODS)
+                ->orderBy('sort')->get(['id', 'name', 'handling_fee_fixed', 'handling_fee_percent']);
+            $data['topups'] = Order::where('user_id', $user->id)->where('product_type', Order::WALLET_TOPUP)
+                ->latest('id')->limit(10)->get(['trade_no', 'status', 'total_amount', 'created_at']);
             $data['wallet_orders'] = Order::query()->with('plan:id,name')
                 ->where('user_id', $user->id)->where('product_type', 'vpn')
                 ->where('balance_amount', '>', 0)->latest('id')->limit(10)
@@ -86,6 +91,17 @@ class StoreController extends Controller
         } finally {
             $lock->release();
         }
+    }
+
+    public function topup(Request $request)
+    {
+        if (Validator::make($request->all(), ['amount' => 'required|integer|between:1,1000000', 'method' => 'required|integer|min:1'])->fails()) {
+            throw new ClientApiException('STORE_INVALID_INPUT', '请输入 0.01 至 10000 元的充值金额并选择支付方式', 422);
+        }
+        return $this->locked($request, function () use ($request) {
+            $order = WalletTopUpService::create($this->user($request), $request->integer('amount'), $request->integer('method'));
+            return ClientApiResponse::success($request, $this->orderData($order));
+        });
     }
 
     public function detail(Request $request)
@@ -211,7 +227,8 @@ class StoreController extends Controller
     private function orderData(Order $order): array
     {
         return [
-            'trade_no' => $order->trade_no, 'plan_name' => $order->plan?->name ?? '套餐已下架',
+            'trade_no' => $order->trade_no, 'plan_name' => $order->product_type === Order::WALLET_TOPUP ? '钱包充值' : ($order->plan?->name ?? '套餐已下架'),
+            'product_type' => $order->product_type, 'payment_id' => $order->payment_id,
             'period' => PlanService::getLegacyPeriod($order->period), 'status' => (int) $order->status,
             'total_amount' => (int) $order->total_amount, 'balance_amount' => (int) $order->balance_amount,
             'discount_amount' => (int) $order->discount_amount, 'surplus_amount' => (int) $order->surplus_amount,

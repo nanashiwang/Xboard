@@ -428,9 +428,10 @@ dependencies = [
 
 [[package]]
 name = "capybara"
-version = "0.1.25"
+version = "0.1.26"
 dependencies = [
  "base64 0.22.1",
+ "core-foundation 0.10.1",
  "futures-util",
  "hyper-util",
  "keyring",

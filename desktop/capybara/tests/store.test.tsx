@@ -444,3 +444,68 @@ it("预取未完成时打开钱包会补读明细，访客不请求私人余额"
         vi.mocked(command).mock.calls.some(([, a]) => a?.action === "wallet"),
     ).toBe(false);
 });
+
+it("可用余额旁创建独立充值，付款锁定所选通道，到账后更新余额", async () => {
+    const second = {
+        ...data.methods[0],
+        id: 2,
+        name: "银行卡",
+        handling_fee_fixed: 50,
+        handling_fee_percent: 0,
+    };
+    data.methods.push(second);
+    data.topup_methods = data.methods;
+    const funding = {
+        ...order,
+        product_type: "wallet_topup",
+        payment_id: 2,
+        plan_name: "钱包充值",
+        total_amount: 3000,
+        handling_amount: 50,
+        balance_amount: 0,
+        account_balance: data.balance,
+    };
+    vi.mocked(command).mockImplementation(async (_, args) => {
+        if (args?.action === "topup") {
+            data.order = funding;
+            return structuredClone(funding) as never;
+        }
+        if (args?.action === "checkout") {
+            data.order = null;
+            data.balance = 3234;
+            data.topups = [{ ...funding, status: 3 }];
+            return {
+                kind: "submitted",
+                order: { ...funding, status: 3, account_balance: 3234 },
+            } as never;
+        }
+        return structuredClone(data) as never;
+    });
+    render(
+        <Plans wallet view={loggedIn} onLogin={login} onRefresh={refresh} />,
+    );
+    await screen.findByText("¥2.34");
+    fireEvent.click(screen.getByRole("button", { name: "充值" }));
+    const amount = screen.getByLabelText("充值金额（元）");
+    fireEvent.change(amount, { target: { value: "1.001" } });
+    const create = screen.getByRole("button", {
+        name: "创建充值订单",
+    }) as HTMLButtonElement;
+    expect(create.disabled).toBe(true);
+    fireEvent.change(amount, { target: { value: "30.00" } });
+    fireEvent.click(screen.getByRole("radio", { name: "银行卡" }));
+    expect(screen.getByText(/手续费 ¥0.50，合计 ¥30.50/)).toBeTruthy();
+    fireEvent.click(create);
+    const pay = await screen.findByRole("button", { name: "前往支付" });
+    expect(command).toHaveBeenCalledWith("store_request", {
+        action: "topup",
+        payload: { amount: 3000, method: 2 },
+    });
+    fireEvent.click(pay);
+    expect(await screen.findByText("¥32.34")).toBeTruthy();
+    expect(command).toHaveBeenCalledWith("store_request", {
+        action: "checkout",
+        payload: { trade_no: funding.trade_no, method: 2 },
+    });
+    expect(await screen.findByText("最近充值")).toBeTruthy();
+});

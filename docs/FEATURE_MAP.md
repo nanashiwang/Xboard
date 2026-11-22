@@ -24,6 +24,8 @@
 
 # Xboard 能力地图
 
+Mac 正式包使用 [Developer ID 发布流程](../.github/workflows/capybara-desktop.yml) 和[按设备保存的钥匙串会话](../desktop/capybara/src-tauri/src/credentials.rs)。[钱包](../desktop/capybara/src/Wallet.tsx)使用设备绑定的 `client/store/topup` 创建充值单，复用 checkout 和网关验签，[到账服务](../app/Services/WalletTopUpService.php)核对收款通道、交易和金额，更新本人账户余额。
+
 订阅校验由 [Account::config](../desktop/capybara/src-tauri/src/account.rs) 处理。200 校验下载正文，304 校验已应用配置；缺少 ETag 时复用鉴权的 `client/config?format=mihomo&delivery=url` 元数据。[订阅复核决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
 桌面首页调用原生 `test_nodes`，对当前配置中的真实节点发起最多六路 HTTPS 检测，支持 TCP 的共享入口独立计时。`refresh_subscription` 在账号与套餐检查后发送已应用配置的 ETag，验证 304 或新正文，再决定是否重载。[测速与条件更新决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)

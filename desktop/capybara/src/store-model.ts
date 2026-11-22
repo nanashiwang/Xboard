@@ -10,6 +10,8 @@ export type Plan = {
     periods: { id: string; amount: number }[];
 };
 export type Order = {
+    product_type?: string;
+    payment_id?: number;
     account_balance: number;
     trade_no: string;
     plan_name: string;
@@ -33,6 +35,8 @@ export type Store = {
     balance: number;
     order: Order | null;
     methods: PaymentMethod[];
+    topup_methods?: PaymentMethod[];
+    topups?: Pick<Order, "trade_no" | "status" | "total_amount">[];
     wallet_orders?: (Pick<
         Order,
         "trade_no" | "plan_name" | "status" | "balance_amount"

@@ -178,6 +178,60 @@ class StoreTest extends TestCase
         }
     }
 
+    public function test_wallet_topup_requires_verified_payment_and_credits_principal_once_even_after_cancel(): void
+    {
+        $payment = \App\Models\Payment::create(['name' => '测试充值', 'payment' => 'EPay',
+            'uuid' => str_repeat('a', 32), 'enable' => 1, 'handling_fee_fixed' => 50,
+            'config' => ['pid' => 'fixture', 'key' => 'fixture-key', 'url' => 'https://example.test']]);
+        $plugin = new \Plugin\Epay\Plugin('epay');
+        $plugin->boot();
+        $this->partialMock(\App\Services\Plugin\PluginManager::class)
+            ->shouldReceive('getEnabledPaymentPlugins')->andReturn([$plugin]);
+        $other = $payment->replicate();
+        $other->uuid = str_repeat('b', 32);
+        $other->save();
+        $user = $this->user->fresh();
+        $save = fn ($amount) => $this->postJson('/api/v1/client/store/topup', ['amount' => $amount, 'method' => $payment->id], $this->headers);
+        $save(0)->assertStatus(422);
+        $save(30.55)->assertStatus(422);
+        $trade = $save(3000)->assertOk()->assertJsonPath('data.plan_name', '钱包充值')
+            ->assertJsonPath('data.balance_amount', 0)->assertJsonPath('data.handling_amount', 50)
+            ->assertJsonPath('data.total_amount', 3000)->json('data.trade_no');
+        $save(3000)->assertStatus(409);
+        $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertOk()
+            ->assertJsonPath('data.order.trade_no', $trade)->assertJsonPath('data.topups.0.status', 0)
+            ->assertJsonPath('data.balance', 234);
+        $this->postJson('/api/v1/client/store/checkout', ['trade_no' => $trade, 'method' => $other->id], $this->headers)
+            ->assertJsonPath('code', 'STORE_PAYMENT_FAILED');
+        $checkout = $this->postJson('/api/v1/client/store/checkout', ['trade_no' => $trade, 'method' => $payment->id], $this->headers)
+            ->assertOk()->assertJsonPath('data.kind', 'url')->json('data.data');
+        parse_str(parse_url($checkout, PHP_URL_QUERY), $query);
+        $this->assertEquals('30.5', $query['money']);
+        $this->postJson('/api/v1/client/store/cancel', ['trade_no' => $trade], $this->headers)->assertOk();
+        $order = Order::where('trade_no', $trade)->firstOrFail();
+        $notify = function ($status, $amount, $uuid, $key = 'fixture-key') use ($trade) {
+            $params = ['pid' => 'fixture', 'trade_no' => 'paid-fixture', 'out_trade_no' => $trade,
+                'trade_status' => $status, 'money' => $amount];
+            ksort($params);
+            $params['sign'] = md5(stripslashes(urldecode(http_build_query($params))) . $key);
+            $params['sign_type'] = 'MD5';
+            return $this->postJson('/api/v1/guest/payment/notify/EPay/' . $uuid, $params);
+        };
+        $notify('TRADE_SUCCESS', '30.50', $payment->uuid, 'invalid-fixture')->assertStatus(422);
+        $notify('WAIT_BUYER_PAY', '30.50', $payment->uuid)->assertStatus(400);
+        $notify('TRADE_SUCCESS', '30.00', $payment->uuid)->assertStatus(400);
+        $notify('TRADE_SUCCESS', '30.50', $other->uuid)->assertStatus(400);
+        $this->assertEquals(234, $user->fresh()->balance);
+        $notify('TRADE_SUCCESS', '30.50', $payment->uuid)->assertOk()->assertContent('success');
+        $notify('TRADE_SUCCESS', '30.50', $payment->uuid)->assertOk()->assertContent('success');
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertEquals(3234, $user->fresh()->balance);
+        $this->assertEquals($user->plan_id, $user->fresh()->plan_id);
+        $this->assertFalse((new \App\Services\OrderService($order))->cancel());
+        $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertOk()
+            ->assertJsonPath('data.balance', 3234)->assertJsonPath('data.topups.0.status', 3);
+    }
+
     private function save(array $payload = [])
     {
         return $this->withHeaders($this->headers)->postJson('/api/v1/client/store/save', array_merge([

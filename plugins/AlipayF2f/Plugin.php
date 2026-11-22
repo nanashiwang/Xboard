@@ -93,6 +93,8 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             if ($gateway->verify($params)) {
                 return [
                     'trade_no' => $params['out_trade_no'],
+                    'paid_cents' => (string) ($params['app_id'] ?? '') === (string) $this->getConfig('app_id')
+                        ? \App\Services\WalletTopUpService::cents($params['total_amount'] ?? null) : null,
                     'callback_no' => $params['trade_no']
                 ];
             } else {
