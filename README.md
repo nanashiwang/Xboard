@@ -6,7 +6,7 @@
 
 点击「家宽代理 → 连接此代理」后，客户端经第一阶段到达已购 PX 端口，网站看到已购固定 IP。只购买家宽即可使用，原端口继续执行认证、限速和到期控制。客户端验证公网出口与 Google 连通性后才开启系统代理。两台 PX 的生产映射已启用，无普通套餐账号已通过双协议出口和 Google 实测。官网、应用内更新和 Hub 已发布 0.1.18。详见[验收记录](./progress-log.md#residential-stage1-20261122)。
 
-### 桌面客户端 0.1.20
+### 桌面客户端 [0.1.20 正式版](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.20)
 
 分流面板已移除规则模式说明与系统代理范围提示。[发布记录](./progress-log.md#desktop-release-020)
 
