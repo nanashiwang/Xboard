@@ -1,3 +1,13 @@
+<a id="proxy-enroll-live-20261123"></a>
+
+## 2026-11-23 英国家宽 10 端口生产上架
+
+[功能提交](https://github.com/nanashiwang/Xboard/commit/b1ecd6ed134cd94daf82aa18defefabc0890b3d8) 已推送 master。[面板部署](https://github.com/nanashiwang/Xboard/actions/runs/45051509865)后，后台出现添加入口。已按管理员确认的供应商线路登记英国固定出口。在新机实际执行面板生成的命令，十个公网端口和十个第一阶段监听就绪。已有 sing-box 的 PID 和活动状态与部署前一致。[部署边界](./.agents/notes/implemented/feature/2026-11-23-proxy-host-enrollment.md)
+
+首次验收的直连探测失败，库存保持停售。复测从第一阶段使用两种协议及两个 HTTPS 检测源抽查三个端口，出口均与登记 IP 一致。第二次完整验收通过十个端口 HTTP/SOCKS5 的直连、桌面路径和错密拒绝。测试授权全部撤回后，生产看板显示三台出口共 30 个端口，2 个既有有效订阅、28 个可售。上架未创建客户订单。实际运营商住宅属性由管理员确认。
+
+本地 PHP 98 项 / 599 个断言、家宽看板和代理前端 12 项、桌面原生 73 项通过（2 项忽略），浏览器走通登记表单、命令展示及验收操作。[代理 CI](https://github.com/nanashiwang/Xboard/actions/runs/45051130758)、[四平台构建及 Release](https://github.com/nanashiwang/Xboard/actions/runs/45051168452)、[官网文件同步](https://github.com/nanashiwang/Xboard/actions/runs/45052319800)、[下载页部署](https://github.com/nanashiwang/Xboard/actions/runs/45052668777)、[双源分发与签名验收](https://github.com/nanashiwang/Xboard/actions/runs/45052510467)均通过。0.1.24 共 21 项附件，两份更新索引及主备下载页五款安装包均已回读。
+
 ### 家宽部署版本 0.1.24 分发
 
 [四平台发布构建](https://github.com/nanashiwang/Xboard/actions/runs/45051168452)完成后核对 21 项附件、大小及 SHA256。将新包和更新索引纳入官网下载清单，保留旧文件。站点同步及英国出口验收结果见本页后续记录。

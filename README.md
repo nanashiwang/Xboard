@@ -1,3 +1,7 @@
+### 英国家宽出口已上架 · [桌面 0.1.24](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.24)
+
+英国固定出口首批 10 个端口已通过生产验收。管理员可在「家宽订阅与容量」登记下一台出口。见[验收记录](./progress-log.md#proxy-enroll-live-20261123)。
+
 ### 家宽出口部署
 
 管理员进入「家宽订阅与容量 → 添加家宽出口」，登记固定 IPv4 和地区，在新 VPS 执行安装命令并点击「验收并上架」。新出口支持桌面 0.1.24。见[部署说明](./.docker/proxy-endpoints/README.md#后台接入新出口桌面-0124)及[上线进展](./progress-log.md#proxy-enroll-20261123)。
