@@ -4,7 +4,7 @@
 
 用户指定删除节点质量页下方的面板探针。生产运维入口先备份数据库，再停止并取消专用服务自启，在事务内核对探针名称、位置及独享出口引用，清理登记及其历史。NAS 与探针 2 共用监控账号。[退役决定](./.agents/notes/implemented/simplification/2026-11-22-retire-extension-probe.md)
 
-本地验证通过：运维回归 66 项，定向退役测试 3 项（含重复执行、误选保护与失败回滚），探针接口 18 项 / 106 断言。生产执行、NAS 新上报及 CI 待回读。
+本地验证通过：运维回归 66 项，定向退役测试 3 项（含重复执行、误选保护与失败回滚），探针接口 18 项 / 106 断言。提交 `7b12269` 已推送 master。[生产操作](https://github.com/nanashiwang/Xboard/actions/runs/45027991096)已核验 SQLite 备份，21:32:29（北京时间）删除探针 2 后，面板采样服务为 disabled/inactive，探针登记仅余 NAS #1（7 条线路）。NAS 于 21:33:53 通信、21:34:00 产生新线路样本，线路保护定时器为 active。[运维回归](https://github.com/nanashiwang/Xboard/actions/runs/45027965381)、[决策笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/45027965591)与[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45027965378)成功。本次仅执行生产运维，未切换应用镜像或发布新网站版本。
 
 <a id="probe-copy-20261122"></a>
 
