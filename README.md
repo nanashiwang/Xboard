@@ -1,6 +1,6 @@
 ### 管理后台 · 节点管理
 
-第三方拓展线路全部退役。节点管理保留 15 条自建记录，四档普通套餐各提供 6 条自建线路。[本轮退役](./progress-log.md#retire-third-party-routes-20261122) · [上轮旧节点清理](./progress-log.md#prune-retired-nodes-20261122)
+第三方拓展线路已全部退役。生产节点管理从 97 条减至 15 条自建记录，四档普通套餐各提供 6 条自建线路。旧订阅更新后即可移除第三方节点。[本轮退役](./progress-log.md#retire-third-party-routes-20261122) · [上轮旧节点清理](./progress-log.md#prune-retired-nodes-20261122)
 
 ### 管理后台 · 家宽订阅与容量
 

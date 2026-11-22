@@ -4,7 +4,11 @@
 
 [生产清单](https://github.com/nanashiwang/Xboard/actions/runs/45030792263)有 97 条记录，其中 82 条属于机器 21 的 41 对拓展节点。入口机复核有 9 个拓展监听，四档订阅按组可见 6/6/8/15 条。用户要求移除整个拓展组。[退役决定](./.agents/notes/implemented/simplification/2026-11-22-retire-third-party-routes.md)
 
-按生产元数据预演删除 82 条并保留 15 条。生产操作及独立复核见后续回执。
+本地运维 73 项、独享与探针 73 项 / 488 断言通过。按生产元数据预演删除 82 条。入口机已私有备份 Nginx 原片段、专属服务与规则。核对标记区段的 41 个回环目的后移除并重载，等待一个上报周期，再停止拓展进程及其专用服务。原有 9 个拓展监听清零，8 项专用限速和独立防火墙表已清理。对旧配置中的 41 个路径逐项发起 WebSocket 握手，全部返回 HTTP 404。自建入口 Nginx、WireGuard 运行，健康地址响应与操作前一致。
+
+提交 `5a6664b` 已推送 master。[生产操作](https://github.com/nanashiwang/Xboard/actions/runs/45031499604)核验 SQLite 备份，删除清单上 82 条登记，停用机器 21 和保护定时器。[独立回读](https://github.com/nanashiwang/Xboard/actions/runs/45031570607)确认仅余 15 条，保留节点字段逐项一致，四档普通组均可见 #323、324、325、354、356、358。固定池 #14 原有一个绑定，NAS 七条监控映射一致且心跳更新。上述结果是配置与旧入口撤销验收，本轮未对六条自建出口逐条测速。数据库备份位于面板宿主 `/root/xboard-backups/retire-upstream-nodes/`，入口局部备份位于 `/root/retire-extension-x2zuhql7/`。
+
+[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45031495486)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/45031495484)和[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45031495461)通过。本轮为节点和入口配置退役，未切换应用镜像或另发网站版本。
 
 <a id="prune-retired-nodes-20261122"></a>
 
