@@ -107,6 +107,10 @@ export default function Routing({
     const dialog = useRef<HTMLDialogElement>(null);
     const { view, busy, loading, error } = routing;
     const locked = busy || loading || disabled;
+    const description = loading
+        ? "正在读取分流设置…"
+        : routingModes.find((mode) => mode.id === view.settings.mode)
+              ?.description;
     useEffect(() => {
         if (open) dialog.current?.showModal?.();
         else dialog.current?.close?.();
@@ -194,16 +198,9 @@ export default function Routing({
                     </button>
                 ))}
             </div>
-            <p className="routing-description">
-                {loading
-                    ? "正在读取分流设置…"
-                    : routingModes.find(
-                          (mode) => mode.id === view.settings.mode,
-                      )?.description}
-            </p>
-            <p className="routing-scope">
-                仅影响交给客户端的流量；不使用系统代理的应用不会跟随切换。
-            </p>
+            {description && (
+                <p className="routing-description">{description}</p>
+            )}
             {busy && (
                 <p className="routing-feedback" role="status">
                     <LoaderCircle size={14} className="spin" />

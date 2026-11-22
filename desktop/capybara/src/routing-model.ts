@@ -21,12 +21,11 @@ export const emptyRouting: RoutingView = {
 export const routingModes: {
     id: RoutingMode;
     label: string;
-    description: string;
+    description?: string;
 }[] = [
     {
         id: "rule",
         label: "规则",
-        description: "按自定义规则和套餐规则决定直连或代理。",
     },
     {
         id: "global",

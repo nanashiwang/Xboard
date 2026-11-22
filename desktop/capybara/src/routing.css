@@ -55,12 +55,6 @@
     line-height: 1.6;
     margin-top: 10px;
 }
-.routing-scope {
-    font-size: 11px;
-    line-height: 1.6;
-    color: var(--muted);
-    margin-top: 4px;
-}
 .routing-feedback {
     font-size: 12px;
     line-height: 1.6;
