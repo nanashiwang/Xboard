@@ -1,6 +1,7 @@
 """Production smoke test. One temporary no-plan buyer, one free port, no external payment."""
 import asyncio
 import json
+import re
 import secrets
 import subprocess
 import sys
@@ -115,7 +116,9 @@ async def main():
             await asyncio.sleep(4)
         else:
             raise RuntimeError("disposable grant did not become active")
-        host = {'216.36.108.173': 'a', '192.204.56.29': 'b'}[asset['address']]
+        host = {'216.36.108.173': 'a', '192.204.56.29': 'b'}.get(asset['address'], asset.get('route_key'))
+        if host not in ('a','b') and not re.fullmatch(r'h[1-9][0-9]*', host or ''):
+            raise RuntimeError("invalid registered route")
         if asset['port'] not in range(20001, 20011):
             raise RuntimeError("unexpected inventory port")
         url = f"wss://node.lumavia.fyi/residential/v1/{host}/{asset['port']}"

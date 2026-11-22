@@ -11,6 +11,6 @@ class ResidentialProxyHost extends Model {
     }
 
     protected $guarded = ['id'];
-    protected $hidden = ['token_hash'];
+    protected $hidden = ['token_hash', 'install_hash', 'probe_id', 'transport_cert'];
     protected $casts = ['enabled'=>'boolean','seen_at'=>'integer'];
 }

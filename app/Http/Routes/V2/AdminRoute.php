@@ -143,6 +143,9 @@ class AdminRoute
                 'prefix' => 'stat'
             ], function ($router) {
                 $router->get('/getOverride', [StatController::class, 'getOverride']);
+                foreach (['register', 'command', 'accept'] as $action) {
+                    $router->post('/residential/' . $action, [\App\Http\Controllers\V2\Admin\ResidentialCapacityController::class, $action]);
+                }
                 $router->get('/getResidentialCapacity', [\App\Http\Controllers\V2\Admin\ResidentialCapacityController::class, 'show']);
                 $router->get('/getStats', [StatController::class, 'getStats']);
                 $router->get('/getServerLastRank', [StatController::class, 'getServerLastRank']);

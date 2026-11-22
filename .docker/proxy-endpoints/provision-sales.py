@@ -3,6 +3,7 @@
 import json, os, sys, time, re
 from pathlib import Path
 import paramiko
+import base64
 
 PINS={
  '107.173.191.23':'AAAAC3NzaC1lZDI1NTE5AAAAIMaqwGqo+a7RFrOqJk84N1s/W0q/9z/JE/12Lu7z0YfC',
@@ -26,10 +27,17 @@ def php(client,code):
 PREFIX="<?php require '/www/vendor/autoload.php';$a=require '/www/bootstrap/app.php';$a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();\n"
 def main():
  operation=sys.argv[1];expected=os.environ['EXPECTED_REVISION']
- if operation not in ['bootstrap','enable','disable','status','acceptance','verify-allocation','recover-storage']:raise ValueError('invalid_operation')
+ enroll_ops=['pair-ingress','register-host','host-command','accept-host','host-status']
+ if operation not in enroll_ops+['bootstrap','enable','disable','status','acceptance','verify-allocation','recover-storage']:raise ValueError('invalid_operation')
  origin=connect('107.173.191.23',os.environ['XBOARD_PASSWORD'])
  actual=execute(origin,"cd /root/Xboard && docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' \"$(docker compose ps -q xboard)\"").decode().strip()
  if actual!=expected:raise RuntimeError('production_revision_mismatch')
+ if operation in enroll_ops:
+  spec={'action':operation,'address':os.environ.get('PROXY_HOST_ADDRESS',''),'label':os.environ.get('PROXY_HOST_LABEL',''),
+        'country':os.environ.get('PROXY_HOST_COUNTRY',''),'recipient':os.environ.get('COMMAND_RECIPIENT','')}
+  encoded=base64.b64encode(json.dumps(spec).encode()).decode('ascii')
+  result=php(origin,PREFIX+"$input=json_decode(base64_decode('"+encoded+"'),true);\n"+Path(__file__).with_name('manage-enrollment.php').read_text().split('<?php',1)[1])
+  print(result.decode());origin.close();return
  if operation=='verify-allocation':
   result=json.loads(php(origin,Path(__file__).with_name('verify-allocation.php').read_text()))
   print(json.dumps(result));origin.close();return

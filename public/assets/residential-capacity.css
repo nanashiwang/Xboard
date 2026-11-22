@@ -18,3 +18,11 @@
 [data-collapsed=true] #residential-capacity-nav>span{display:none}
 [data-collapsed=true] #residential-capacity-nav>div{margin:0}
 #residential-capacity .rc-section-title{border-top:1px solid hsl(var(--border));margin-top:24px;padding-top:20px}
+
+#residential-capacity dialog{width:min(480px,90vw);padding:20px;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--card));color:inherit}
+#residential-capacity dialog::backdrop{background:#0006}
+#residential-capacity fieldset{padding:0;margin:15px 0;border:0}
+#residential-capacity dialog label{display:block;margin-top:10px}
+#residential-capacity dialog input,#residential-capacity dialog textarea{width:100%;padding:7px;border:1px solid hsl(var(--border));border-radius:5px;background:hsl(var(--background));color:inherit}
+#residential-capacity dialog textarea{min-height:100px;font-family:monospace}
+#residential-capacity dialog p{margin:10px 0}

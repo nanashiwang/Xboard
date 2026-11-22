@@ -42,7 +42,7 @@ class ResidentialCapacityService
         $rows = DB::table('residential_proxy_hosts as h')
             ->leftJoin('residential_proxy_endpoints as e', 'e.host_id', '=', 'h.id')
             ->leftJoin('v2_user as u', 'u.id', '=', 'e.user_id')
-            ->select('h.id as host_id', 'h.address', 'h.enabled', 'h.seen_at', 'e.id as endpoint_id',
+            ->select('h.id as host_id', 'h.address', 'h.label', 'h.country', 'h.enrollment_state', 'h.probe_until', 'h.probe_error', 'h.enabled', 'h.seen_at', 'e.id as endpoint_id',
                 'e.user_id', 'e.expires_at', 'e.reserved_order_id', 'u.banned')
             ->selectSub(ResidentialProxyHost::acceptingOrders($now)->selectRaw('1')
                 ->whereColumn('residential_proxy_hosts.id', 'h.id'), 'accepting_orders')
@@ -52,6 +52,9 @@ class ResidentialCapacityService
         $hosts = $buyers = [];
         foreach ($rows as $row) {
             $hosts[$row->host_id] ??= $empty + [
+                'id' => $row->host_id, 'label' => $row->label, 'country' => $row->country,
+                'enrollment' => in_array($row->enrollment_state, ['testing', 'draining'], true) && $row->probe_until < $now
+                    ? 'timeout' : $row->enrollment_state, 'probe_error' => $row->probe_error,
                 'address' => $row->address, 'seen_at' => $row->seen_at,
                 'status' => !$row->enabled ? 'disabled' : ($row->accepting_orders ? 'online' : 'stale'),
             ];

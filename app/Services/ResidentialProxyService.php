@@ -103,7 +103,8 @@ class ResidentialProxyService
     public function describe(ResidentialProxyEndpoint $e,bool $secrets=false): array {
         $active=$e->expires_at>time();
         $ready=$active && $e->host->enabled && $e->checked_at>=time()-60 && $e->running && $e->revision===$e->applied_revision;
-        $data=['id'=>$e->id,'name'=>$e->name,'address'=>$e->host->address,'port'=>$e->port,'country'=>'美国',
+        $data=['id'=>$e->id,'name'=>$e->name,'address'=>$e->host->address,'port'=>$e->port,'country'=>$e->host->country ?? '美国',
+            'route_key'=>$e->host->enrollment_state === 'live' ? 'h'.$e->host->id : null,
             'protocols'=>['SOCKS5','HTTP'],'speed_mbps'=>100,'unlimited_traffic'=>true,'price'=>self::PRICE,
             'expires_at'=>$e->expires_at,'status'=>!$active?'expired':($ready?'active':'provisioning'),
             'checked_at'=>$e->checked_at,'revision'=>$e->revision];
@@ -133,6 +134,10 @@ class ResidentialProxyService
         $now=time();
         return ['server_time'=>$now,'lease_until'=>$now+self::LEASE_SECONDS,'address'=>$host->address,
             'endpoints'=>ResidentialProxyEndpoint::where('host_id',$host->id)->orderBy('port')->get()->map(function($e) use($host,$now) {
+                if ($host->enrollment_state === 'testing' && !$host->enabled && !$e->user_id && !$e->reserved_order_id && $host->probe_until > $now) {
+                    return ['id'=>$e->id, 'port'=>$e->port, 'revision'=>$e->revision, 'enabled'=>true,
+                        'expires_at'=>$host->probe_until, 'credentials'=>ResidentialEnrollment::probeCredentials($host, $e->port)];
+                }
                 $user=$e->user_id?User::find($e->user_id):null;
                 $enabled=$host->enabled && $user && !$user->banned && $e->expires_at>$now;
                 return ['id'=>$e->id,'port'=>$e->port,'revision'=>$e->revision,'enabled'=>(bool)$enabled,

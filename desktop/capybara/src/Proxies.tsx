@@ -15,6 +15,7 @@ export type ProxyItem = {
     id: number;
     name: string;
     address: string;
+    country?: string;
     port: number;
     status: string;
     expires_at: number;
@@ -427,7 +428,7 @@ export default function Proxies({
                                     <dl className="rp-facts">
                                         <div>
                                             <dt>地区</dt>
-                                            <dd>美国 · IPv4</dd>
+                                            <dd>{selected.country || "美国"} · IPv4</dd>
                                         </div>
                                         <div>
                                             <dt>到期时间</dt>

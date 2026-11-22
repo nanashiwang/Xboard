@@ -89,6 +89,20 @@ def status():
             'binary_sha256': hashlib.sha256(BINARY.read_bytes()).hexdigest() if BINARY.exists() else None}
 
 
+def guard_config(hosts, user, auth_user):
+    cidrs = ', '.join(BLOCKED[:9] + [ip + '/32' for ip in sorted(hosts)])
+    return (f'table inet xboard_proxy_guard {{\n chain output {{\n'
+             f' type filter hook output priority -5; policy accept;\n'
+             f' meta skuid {{ {user.pw_uid}, {auth_user.pw_uid} }} ct state established,related accept\n'
+             f' meta skuid {user.pw_uid} ip daddr 127.0.0.1 tcp dport 21001-21010 accept\n'
+             f' meta skuid {user.pw_uid} reject\n'
+             f' meta skuid {auth_user.pw_uid} ip daddr 127.0.0.53 udp dport 53 accept\n'
+             f' meta skuid {auth_user.pw_uid} ip daddr 127.0.0.53 tcp dport 53 accept\n'
+             f' meta skuid {auth_user.pw_uid} ip daddr {{ {cidrs} }} reject\n'
+             f' meta skuid {auth_user.pw_uid} meta nfproto ipv6 reject\n'
+             ' }\n}\n')
+
+
 def install(host, source):
     if host not in HOSTS or os.geteuid() != 0:
         raise RuntimeError('unexpected_target_or_user')
@@ -134,17 +148,7 @@ def install(host, source):
     shutil.copyfile(source, BINARY)
     BINARY.chmod(0o755)
     # OUTPUT-only guard applies to this service UID. It also blocks DNS rebinding to private destinations.
-    cidrs = ', '.join(BLOCKED[:9] + [ip + '/32' for ip in sorted(HOSTS)])
-    guard = (f'table inet xboard_proxy_guard {{\n chain output {{\n'
-             f' type filter hook output priority -5; policy accept;\n'
-             f' meta skuid {{ {user.pw_uid}, {auth_user.pw_uid} }} ct state established,related accept\n'
-             f' meta skuid {user.pw_uid} ip daddr 127.0.0.1 tcp dport 21001-21010 accept\n'
-             f' meta skuid {user.pw_uid} reject\n'
-             f' meta skuid {auth_user.pw_uid} ip daddr 127.0.0.53 udp dport 53 accept\n'
-             f' meta skuid {auth_user.pw_uid} ip daddr 127.0.0.53 tcp dport 53 accept\n'
-             f' meta skuid {auth_user.pw_uid} ip daddr {{ {cidrs} }} reject\n'
-             f' meta skuid {auth_user.pw_uid} meta nfproto ipv6 reject\n'
-             ' }\n}\n')
+    guard = guard_config(HOSTS, user, auth_user)
     save(ROOT / 'guard.nft', guard, 0o644)
     unit = f'''[Unit]
 Description=Xboard independent HTTP and SOCKS5 endpoints

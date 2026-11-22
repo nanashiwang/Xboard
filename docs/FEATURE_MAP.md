@@ -1,3 +1,7 @@
+### 家宽出口登记与上架
+
+[后台入口](../public/assets/residential-capacity.js)使用管理员 stat/residential 下的 register、command 和 accept 接口。[登记与验收](../app/Services/ResidentialEnrollment.php)管理一次性凭据、租约与撤权确认；[第一阶段](../.docker/proxy-endpoints/ingress.py)独立核验实际出口。桌面仅使用本人资产的固定路由编号。[决策](../.agents/notes/implemented/feature/2026-11-23-proxy-host-enrollment.md)
+
 ### 管理端节点线路分组
 
 「节点管理」从原管理员 `server/manage/getNodes` 获取真实节点，以隐藏根节点的 `parent_id` 引用归组。入口行的「后端详情」提供原生编辑入口，搜索、机器筛选及排序可处理全部记录。[分组实现](../scripts/frontend/admin-node-lines.js) · [分发包接入](../scripts/frontend/patch-admin-node-lines.php) · [决定与边界](../.agents/notes/implemented/feature/2026-11-22-admin-node-line-groups.md)

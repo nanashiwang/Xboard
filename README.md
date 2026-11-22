@@ -1,3 +1,7 @@
+### 家宽出口部署
+
+管理员进入「家宽订阅与容量 → 添加家宽出口」，登记固定 IPv4 和地区，在新 VPS 执行安装命令并点击「验收并上架」。新出口支持桌面 0.1.24。见[部署说明](./.docker/proxy-endpoints/README.md#后台接入新出口桌面-0124)及[上线进展](./progress-log.md#proxy-enroll-20261123)。
+
 ### 管理后台 · 节点管理
 
 节点管理默认按线路显示，香港线路退役后，13 条自建记录归为 6 行。点击「日本01｜1×」的「后端详情」可查看和编辑 friendhosting 后端；需要逐条管理时切换「全部记录」。[分组验收](./progress-log.md#admin-node-lines-20261122) · [网站版本 4d08985](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-4d08985)

@@ -20,7 +20,7 @@ var e,t,n=Object.defineProperty,o=Object.defineProperties,r=Object.getOwnPropert
             if(!window.__capybaraProxyLoading){
               window.__capybaraProxyLoading=new Promise((resolve,reject)=>{
                 const style=document.createElement("link");style.rel="stylesheet";style.href="/assets/residential-proxy/app.css?v=403091bdbe23bee215e5c6982c3bd15b93af867eb6d785f2b2376b2aceb03fc9";
-                const script=document.createElement("script");script.src="/assets/residential-proxy/app.js?v=62aa485856530c9a8ff2f88c1c5d41d19e2b22e431859aa9a437badb4a2d4158";
+                const script=document.createElement("script");script.src="/assets/residential-proxy/app.js?v=0d50ba086677c4afdd0fb3b2aabead3aa654696ef9bc193b54d934cec912cf7a";
                 let styleReady=false,scriptReady=false;
                 const finish=()=>{if(styleReady&&scriptReady){clearTimeout(timer);resolve()}};
                 const fail=()=>{clearTimeout(timer);style.remove();script.remove();window.CapybaraResidentialProxies=undefined;reject(new Error("proxy_assets_failed"))};

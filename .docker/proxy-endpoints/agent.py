@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fixed-port authorization agent. No shell commands or unbounded offline grants."""
 import argparse
+import ipaddress
 import grp
 import json
 import os
@@ -61,8 +62,16 @@ def main():
     parser=argparse.ArgumentParser(); parser.add_argument('--revoke',action='store_true'); args=parser.parse_args()
     if args.revoke: revoke(); return
     settings=json.loads((ROOT/'agent.json').read_text())
+    certificate = None
+    if settings.get('enrolled'):
+        address = ipaddress.IPv4Address(settings['address'])
+        if not address.is_global or address.is_multicast:
+            raise ValueError('invalid_enrolled_address')
+        HOSTS.add(str(address))
+        certificate = Path('/etc/xboard-px-transport/server.crt').read_text()
     if settings['url'] not in ['https://capybarago.uk/api/v1/proxy-agent/sync','https://capybarahub.fyi/api/v1/proxy-agent/sync'] or settings['address'] not in HOSTS:
         raise ValueError('invalid_agent_settings')
+    core = '/usr/bin/sing-box' if Path('/usr/bin/sing-box').is_file() else '/usr/local/lib/xboard-proxy-endpoints/sing-box'
     active={}; reports=[]; deadlines={}; next_poll=0
     revoke()  # Never trust cached credentials after an agent restart.
     try:
@@ -74,7 +83,7 @@ def main():
             if tick >= next_poll:
                 next_poll=tick+20
                 try:
-                    request=urllib.request.Request(settings['url'],data=json.dumps({'reports':reports}).encode(),
+                    request=urllib.request.Request(settings['url'],data=json.dumps({'reports':reports, 'certificate':certificate}).encode(),
                         headers={'Authorization':'Bearer '+settings['token'],'Content-Type':'application/json'},method='POST')
                     # Explicit no-redirect transport keeps the host token on the configured origin.
                     class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -96,7 +105,7 @@ def main():
                                 if active.get(port)!=fingerprint or run(['systemctl','is-active','--quiet',service(port)],False).returncode:
                                     temporary=path.with_suffix('.tmp'); temporary.write_text(json.dumps(configuration(row)))
                                     os.chmod(temporary,0o640);os.chown(temporary,0,grp.getgrnam('xboard-proxy').gr_gid)
-                                    run(['/usr/bin/sing-box','check','-c',str(temporary)])
+                                    run([core,'check','-c',str(temporary)])
                                     temporary.replace(path);run(['systemctl','restart',service(port)])
                                     run(['systemctl','is-active','--quiet',service(port)])
                                     active[port]=fingerprint

@@ -44,12 +44,19 @@
       ['新购预留', totals.reserved, '个端口'], ['当前可售', totals.available, '个端口'],
     ]);
     const states = {online: '在线', stale: '心跳过期', disabled: '已停用'};
+    const enrollmentNames = {registered:'待安装', installed:'待验收', testing:'验收中', draining:'正在撤回测试授权', failed:'验收失败', timeout:'验收超时'};
+    const errors = {direct:'直连协议或出口 IP 未通过', route:'第一阶段线路未通过', auth:'错误凭据检查未通过', timeout:'连接超时'};
+    const action = host => {
+      if (host.enrollment === 'registered') return '<button type="button" data-action="command" data-id="'+Number(host.id)+'">生成安装命令</button>';
+      if (['installed','failed','timeout'].includes(host.enrollment)) return '<button type="button" data-action="accept" data-id="'+Number(host.id)+'">验收并上架</button>';
+      return '';
+    };
     const rows = hosts.map(host => `<tr>
-      <td>${escape(host.address)}</td><td>${states[host.status]}<span class="rc-ip">${host.seen_at ? '心跳 ' + new Date(host.seen_at * 1000).toLocaleString() : '暂无心跳'}</span></td>
+      <td>${escape(host.label || host.address)}${host.label ? '<span class="rc-ip">'+escape(host.country)+' · '+escape(host.address)+'</span>' : ''}</td><td>${enrollmentNames[host.enrollment] || states[host.status]}${host.probe_error ? '<span class="rc-ip">'+escape(errors[host.probe_error])+'</span>' : ''}<span class="rc-ip">${host.seen_at ? '心跳 ' + new Date(host.seen_at * 1000).toLocaleString() : '暂无心跳'}</span></td>
       <td><strong>${host.available}</strong> / ${host.ports}</td><td>${host.active}</td><td>${host.reserved}</td>
-      <td>${host.expired}</td><td>${host.restricted}</td><td>${host.unavailable}</td></tr>`).join('');
+      <td>${host.expired}</td><td>${host.restricted}</td><td>${host.unavailable}</td><td>${action(host)}</td></tr>`).join('');
     return `${stats}<div class="rc-plan"><div class="rc-plan-heading"><h3>按出口 IP 查看端口</h3><strong>${hosts.length} 个出口 · 共 ${totals.ports} 个端口</strong></div>
-      <div class="rc-table-wrap"><table><thead><tr><th>出口 IP</th><th>主机状态</th><th>可售 / 总端口</th><th>有效订阅</th><th>新购预留</th><th>到期保留</th><th>账号受限</th><th>不可售空位</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="rc-table-wrap"><table><thead><tr><th>出口 IP</th><th>主机状态</th><th>可售 / 总端口</th><th>有效订阅</th><th>新购预留</th><th>到期保留</th><th>账号受限</th><th>不可售空位</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="rc-help">同一买家持有多个有效端口只计一人。续费沿用原端口，到期后仍保留归属。空闲端口仅在主机启用且最近 60 秒有心跳时可售。</p></div>`;
   }
   function renderDedicated(plans) {
@@ -97,6 +104,61 @@
       if (panel === target) button.disabled = false;
     }
   }
+  function bindEnrollment(target) {
+    const dialog = target.querySelector('.rc-enroll');
+    const form = dialog.querySelector('form');
+    const commandBox = dialog.querySelector('textarea');
+    const output = dialog.querySelector('.rc-message');
+    const fields = dialog.querySelector('fieldset');
+    const submit = dialog.querySelector('[type=submit]');
+    const copy = dialog.querySelector('.rc-copy');
+    let busy = false;
+    const clear = () => { commandBox.value = ''; output.textContent = ''; copy.hidden = commandBox.hidden = true; };
+    const open = register => {
+      clear(); fields.hidden = submit.hidden = !register;
+      dialog.querySelector('h3').textContent = register ? '添加家宽出口' : '出口部署';
+      dialog.showModal();
+    };
+    async function send(action, body) {
+      if (busy) return;
+      busy = true; submit.disabled = true;
+      const current = auth;
+      try {
+        const response = await fetch('/api/v2/'+encodeURIComponent(path)+'/stat/residential/'+action, {
+          method:'POST', headers:{Authorization:current, Accept:'application/json','Content-Type':'application/json'},
+          body:JSON.stringify(body), credentials:'same-origin', cache:'no-store',
+        });
+        const result = await response.json();
+        if (panel !== target || auth !== current || token() !== current || !dialog.open) return;
+        if (!response.ok) throw new Error(result.message || '操作失败，请重试。');
+        fields.hidden = submit.hidden = true;
+        if (result.data?.command) {
+          commandBox.hidden = copy.hidden = false; commandBox.value = result.data.command;
+          output.textContent = '在新 VPS 执行此命令（30 分钟内有效）。安装完成后，返回出口行点击「验收并上架」。';
+        } else {
+          output.textContent = '已开始验收。通过两种协议和第一阶段检查、撤回测试授权后会自动上架。';
+        }
+        nextRefresh = 0; void load();
+      } catch (error) { if (panel === target && dialog.open) output.textContent = error.message; }
+      finally { busy = false; submit.disabled = false; }
+    }
+    target.querySelector('.rc-add').addEventListener('click', () => { form.reset(); open(true); });
+    dialog.querySelector('.rc-close').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', clear);
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(commandBox.value); output.textContent = '安装命令已复制。'; }
+      catch { commandBox.select(); output.textContent = '请复制已选中的安装命令。'; }
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      void send('register', Object.fromEntries(new FormData(form)));
+    });
+    target.querySelector('.rc-data').addEventListener('click', event => {
+      const button = event.target.closest('button[data-action]'); if (!button || busy) return;
+      open(false); output.textContent = '正在提交…';
+      void send(button.dataset.action, {id:Number(button.dataset.id)});
+    });
+  }
   function mount() {
     const current = token();
     if (auth !== current) { remove(); auth = current; }
@@ -130,7 +192,15 @@
     title = document.createElement('h1'); title.id = 'residential-capacity-title'; title.className = heading.className; title.textContent = '家宽订阅与容量';
     heading.parentElement.append(title); heading.parentElement.classList.add('rc-page-heading');
     panel = document.createElement('section'); panel.id = 'residential-capacity'; panel.setAttribute('aria-label', '家宽订阅与容量');
-    panel.innerHTML = '<div class="rc-heading"><div><h2>家宽代理</h2><span class="rc-time"></span></div><button type="button">刷新</button></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
+    panel.innerHTML = '<div class="rc-heading"><div><h2>家宽代理</h2><span class="rc-time"></span></div><div><button type="button">刷新</button> <button type="button" class="rc-add">添加家宽出口</button></div></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
+    panel.innerHTML += `<dialog class="rc-enroll"><div class="rc-heading"><h3>添加家宽出口</h3><button type="button" class="rc-close">关闭</button></div>
+      <form><fieldset><label>出口名称<input name="label" required maxlength="80" placeholder="英国家宽 01"></label>
+      <label>地区<input name="country" required maxlength="40" placeholder="英国"></label>
+      <label>固定公网 IPv4<input name="address" required placeholder="填写出口公网地址"></label>
+      <p>每台提供 10 个 TCP 端口（20001–20010），每端口 100 Mbps。安装器支持 Debian / Ubuntu x86_64。</p></fieldset>
+      <button type="submit">登记并生成安装命令</button></form><p class="rc-message" role="status"></p>
+      <textarea readonly hidden aria-label="安装命令"></textarea><button type="button" class="rc-copy" hidden>复制命令</button></dialog>`;
+    bindEnrollment(panel);
     panel.querySelector('button').addEventListener('click', load); host.append(panel);
     host.classList.add('rc-page-host'); document.body.classList.add('rc-page-active'); host.scrollTop = 0;
     document.title = '家宽订阅与容量 · ' + initialTitle; load();

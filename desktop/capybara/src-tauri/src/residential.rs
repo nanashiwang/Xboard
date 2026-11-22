@@ -11,7 +11,22 @@ fn endpoint(data: &Value, protocol: &str) -> Result<(String, Value), Fault> {
     let host = match address {
         "216.36.108.173" => "a",
         "192.204.56.29" => "b",
-        _ => return Err(Fault::local("代理地址不在受支持的固定端点中")),
+        _ => {
+            let key = data["route_key"].as_str().unwrap_or("");
+            let id = key.strip_prefix('h').and_then(|id| id.parse::<u64>().ok());
+            let public = address.parse::<std::net::Ipv4Addr>().is_ok_and(|ip| {
+                !ip.is_private()
+                    && !ip.is_loopback()
+                    && !ip.is_link_local()
+                    && !ip.is_multicast()
+                    && !ip.is_unspecified()
+                    && !ip.is_broadcast()
+            });
+            if !public || !id.is_some_and(|id| id > 0 && key == format!("h{id}")) {
+                return Err(Fault::local("代理地址不在受支持的固定端点中"));
+            }
+            key
+        }
     };
     if !(20001..=20010).contains(&port) {
         return Err(Fault::local("代理端口不在受支持的固定端点中"));
@@ -204,6 +219,20 @@ mod tests {
                     assert!(result.is_err());
                 }
             }
+        }
+    }
+
+    #[test]
+    fn registered_hosts_only_use_a_numeric_route_on_the_fixed_ingress() {
+        let mut data = json!({"status":"active","address":"1.2.3.4","port":20003,"route_key":"h17",
+            "credentials":{"username":"cp_12345678","password":"0123456789abcdef"}});
+        assert_eq!(
+            endpoint(&data, "HTTP").unwrap().0,
+            "wss://node.lumavia.fyi/residential/v1/h17/20003"
+        );
+        for bad in ["h0", "h017", "h+17", "h17/other", "https://example.com"] {
+            data["route_key"] = json!(bad);
+            assert!(endpoint(&data, "HTTP").is_err());
         }
     }
 

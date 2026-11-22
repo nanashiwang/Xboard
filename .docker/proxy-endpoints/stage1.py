@@ -115,9 +115,9 @@ WantedBy=multi-user.target
     raise RuntimeError("PX transport listeners failed to start")
 
 
-def routes():
+def routes(hosts=None, trust="/etc/nginx/xboard-px"):
     blocks = []
-    for key, host in HOSTS.items():
+    for key, host in (HOSTS if hosts is None else hosts).items():
         for port in PORTS:
             blocks.append(f"""location = /residential/v1/{key}/{port} {{
     if ($http_upgrade !~* "^websocket$") {{ return 404; }}
@@ -132,7 +132,7 @@ def routes():
     proxy_ssl_server_name on;
     proxy_ssl_name px-{key}.internal;
     proxy_ssl_verify on;
-    proxy_ssl_trusted_certificate /etc/nginx/xboard-px/{key}.crt;
+    proxy_ssl_trusted_certificate {trust}/{key}.crt;
     proxy_connect_timeout 8s;
     proxy_read_timeout 1h;
     proxy_send_timeout 1h;

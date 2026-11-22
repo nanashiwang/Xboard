@@ -5,11 +5,23 @@ on:
     inputs:
       operation:
         type: choice
-        options: [bootstrap, enable, disable, status, acceptance, verify-allocation, recover-storage]
+        options: [bootstrap, enable, disable, status, acceptance, verify-allocation, recover-storage, pair-ingress, register-host, host-command, accept-host, host-status]
         required: true
       image_revision:
         type: string
         required: true
+      address:
+        description: '单机操作的固定公网 IPv4'
+        type: string
+      label:
+        description: '登记名称'
+        type: string
+      country:
+        description: '登记地区'
+        type: string
+      recipient:
+        description: '接收安装命令的临时 X25519 公钥（64 位十六进制）'
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -28,5 +40,9 @@ jobs:
           PROXY_US_A_PASSWORD: ${{ secrets.PROXY_US_A_PASSWORD }}
           PROXY_US_B_PASSWORD: ${{ secrets.PROXY_US_B_PASSWORD }}
           EXPECTED_REVISION: ${{ inputs.image_revision }}
+          PROXY_HOST_ADDRESS: ${{ inputs.address }}
+          PROXY_HOST_LABEL: ${{ inputs.label }}
+          PROXY_HOST_COUNTRY: ${{ inputs.country }}
+          COMMAND_RECIPIENT: ${{ inputs.recipient }}
           OPERATION: ${{ inputs.operation }}
         run: python3 .docker/proxy-endpoints/provision-sales.py "$OPERATION"
