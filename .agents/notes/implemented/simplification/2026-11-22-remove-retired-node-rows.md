@@ -22,4 +22,4 @@ Status: implemented
 
 本决定取代[普通与独享套餐拆分](../architecture/2026-10-21-owned-us-package-split.md)和[美国出口退租](../architecture/2026-10-28-owned-us-retirement.md)中保留这些撤权节点供回退的选择。[第三方线路](../architecture/2026-10-21-tiered-upstream-route-family.md)的 41 对节点在这一轮保留。其后用户明确要求[整组退役](./2026-11-22-retire-third-party-routes.md)。
 
-同批退役节点对应的七云美国机器 SID 4–11 可按 [定向清理脚本](../../../../.docker/production/prune-retired-machines.py)移除面板登记。通用删除接口会主动解绑节点，这次要求只删闲置记录，因此在写事务内逐台核实名称、到期备注、最后上报及节点、入口监控、出口和代理库存引用。SID 3 承载的香港后端单独回读。机器删除按外键清理该机器的负载历史，原登记可从操作前的私有备份追溯。
+同批退役节点对应的七云美国机器 SID 4–11 可按 [定向清理脚本](../../../../.docker/production/prune-retired-machines.py)移除面板登记。通用删除接口会主动解绑节点，这次要求只删闲置记录，因此在写事务内逐台核实名称、到期备注、最后上报及节点、入口监控、出口和代理库存引用。该批操作单独回读 SID 3。用户随后指定[退役香港线路与机器](2026-11-23-retire-qiyun-hk.md)。机器删除按外键清理该机器的负载历史，原登记可从操作前的私有备份追溯。

@@ -4,6 +4,8 @@
 
 [七云退役机器清理](../.docker/production/prune-retired-machines.py)仅处理已退役的八个美国 SID，生产运维先备份，再按绑定、上报和库存逐台复核。
 
+[香港线路退役](../.docker/production/retire-qiyun-hk.py)同步删除机器 3、节点 325/338 及其面板监控映射。[自建线路验收](../.docker/production/verify-metering-nodes.py)核对其余六个出口。
+
 ### 管理端家宽代理库存
 
 侧栏「家宽订阅与容量」使用原[管理员统计服务](../app/Services/ResidentialCapacityService.php)，返回 `proxy_inventory` 的去重有效买家、各状态端口总计和逐 IP 库存。下单与展示共用[主机接单条件](../app/Models/ResidentialProxyHost.php)。三项销售开关关闭且无有效订阅和占位的独享套餐自动收起。[下架命令](../app/Console/Commands/RetireDedicatedPlan.php)校验商品身份、有效订阅和未完成订单。[看板决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)

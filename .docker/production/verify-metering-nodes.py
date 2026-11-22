@@ -7,7 +7,7 @@ php=r'''require '/www/vendor/autoload.php';
 $app=require '/www/bootstrap/app.php';$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $monitor=App\Models\NodeProbe::findOrFail(1)->user;
 if(!$monitor||$monitor->banned||$monitor->u+$monitor->d >= $monitor->transfer_enable||($monitor->expired_at&&$monitor->expired_at<=time()))throw new RuntimeException('Monitor unavailable');
-$nodes=App\Models\Server::whereIn('id',[322,323,324,325,354,356,358])->get();
+$nodes=App\Models\Server::whereIn('id',[322,323,324,354,356,358])->get();
 foreach(App\Models\Server::where('show',true)->get() as $node){
  if(in_array('upstream-extension-public',$node->tags??[],true)&&$node->parent?->enabled&&App\Services\ServerService::getAvailableUsers($node->parent)->contains('id',$monitor->id)){$nodes->push($node);break;}
 }
@@ -22,7 +22,8 @@ foreach($nodes as $node){
 p=subprocess.run(['docker','compose','exec','-T','xboard','php','-r',php],capture_output=True,text=True,timeout=60)
 if p.returncode:raise SystemExit('Monitor query failed; credentials suppressed')
 targets=json.loads(p.stdout)
-assert len(targets)>=7,'Expected seven retained owned routes'
+owned = {item['id'] for item in targets if item['kind'] == 'owned'}
+assert owned == {322, 323, 324, 354, 356, 358}, 'Retained owned route inventory changed'
 
 def receive(sock,n):
  data=b''

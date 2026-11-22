@@ -28,6 +28,7 @@ on:
           - retire-upstream-nodes
           - prune-retired-nodes
           - prune-retired-machines
+          - retire-qiyun-hk
           - retire-extension-probe
           - retire-us-dedicated-plan
           - inspect-residential-capacity
@@ -104,6 +105,14 @@ jobs:
               'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/prune-retired-machines' \
               < .docker/production/backup-database.py
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'python3 -' < .docker/production/prune-retired-machines.py
+            exit 0
+          fi
+          if [[ "$OPERATION" == retire-qiyun-hk ]]; then
+            [[ "$GITHUB_REF" == refs/heads/master ]]
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/retire-qiyun-hk' \
+              < .docker/production/backup-database.py
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'python3 -' < .docker/production/retire-qiyun-hk.py
             exit 0
           fi
           if [[ "$OPERATION" == retire-extension-probe ]]; then
