@@ -14,11 +14,11 @@ def database():
     db.executescript("""
         CREATE TABLE v2_server(id INTEGER PRIMARY KEY, machine_id, parent_id, server_port,
                                tags, type DEFAULT 'vless', dedicated_exit_id);
-        CREATE TABLE v2_server_machine(id PRIMARY KEY, is_active);
+        CREATE TABLE v2_server_machine(id PRIMARY KEY, is_active, name, notes);
         CREATE TABLE v2_dedicated_exit(shared_server_id, probe_server_id);
         CREATE TABLE v2_node_probe(server_ids, expected_exits);
         CREATE TABLE v2_node_probe_ingress(machine_id, server_tunnels);
-        INSERT INTO v2_server_machine VALUES(12,1),(21,1);
+        INSERT INTO v2_server_machine VALUES(12,1,'其他',''),(21,1,'拓展转发｜第一阶段服务器','143.203.200.5；单独节点进程');
         INSERT INTO v2_server(id,machine_id) VALUES(335,12);
         INSERT INTO v2_server(id,parent_id) VALUES(322,335);
         INSERT INTO v2_dedicated_exit VALUES(335,322);
@@ -39,8 +39,35 @@ class RetireUpstreamNodes(unittest.TestCase):
         db = database()
         self.addCleanup(db.close)
         self.assertEqual({'before': 84, 'deleted': 82, 'remaining_ids': [322,335]}, REMOVE(db, ALLOCATION))
-        self.assertEqual([(12,1), (21,0)], [tuple(r) for r in db.execute('SELECT * FROM v2_server_machine ORDER BY id')])
+        self.assertEqual([(12,1), (21,0)], [tuple(r) for r in db.execute('SELECT id,is_active FROM v2_server_machine ORDER BY id')])
         self.assertEqual(0, REMOVE(db, ALLOCATION)['deleted'])
+
+    def test_remove_only_unused_registration_and_retry(self):
+        db = database()
+        self.addCleanup(db.close)
+        with self.assertRaisesRegex(ValueError, 'still registered'):
+            REMOVE(db, ALLOCATION, registration_only=True)
+        self.assertEqual(84, db.execute('SELECT COUNT(*) FROM v2_server').fetchone()[0])
+        REMOVE(db, ALLOCATION)
+        for _ in range(2):
+            self.assertEqual([322,335], REMOVE(db, ALLOCATION, registration_only=True)['remaining_ids'])
+            self.assertEqual([12], [r[0] for r in db.execute('SELECT id FROM v2_server_machine')])
+        self.assertEqual(0, REMOVE(db, ALLOCATION)['deleted'])
+
+    def test_registration_stays_if_reused(self):
+        for sql in ("UPDATE v2_server_machine SET name='new' WHERE id=21",
+                    'UPDATE v2_server_machine SET is_active=1 WHERE id=21',
+                    'UPDATE v2_node_probe_ingress SET machine_id=21',
+                    'UPDATE v2_server SET machine_id=21 WHERE id=335'):
+            with self.subTest(sql=sql):
+                db = database()
+                self.addCleanup(db.close)
+                REMOVE(db, ALLOCATION)
+                db.execute(sql)
+                db.commit()
+                with self.assertRaises(ValueError):
+                    REMOVE(db, ALLOCATION, registration_only=True)
+                self.assertTrue(db.execute('SELECT 1 FROM v2_server_machine WHERE id=21').fetchone())
 
     def test_blocks_changed_identity_references_and_partial_inventory(self):
         for mutation in (
