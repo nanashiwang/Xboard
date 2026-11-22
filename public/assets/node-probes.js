@@ -57,7 +57,7 @@
       if (!$('location').value) $('location').value = '';
       const checked = new Set([...document.querySelectorAll('[name=server]:checked')].map(e => e.value));
       $('server-options').innerHTML = data.servers.map(s => `<label><input type="checkbox" name="server" value="${s.id}" ${checked.has(String(s.id))?'checked':''}>${esc(s.name)} (#${s.id})</label>`).join('');
-      render(); const query = pageUrl.searchParams; if (!detailOpened && /^\d+$/.test(query.get('probe') || '') && /^\d+$/.test(query.get('node') || '')) { detailOpened = true; document.querySelector(`[data-history="${query.get('probe')}:${query.get('node')}"]`)?.click(); } $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN'); message('自动刷新间隔 30 秒 · 数据按探测位置分别统计');
+      render(); const query = pageUrl.searchParams; if (!detailOpened && /^\d+$/.test(query.get('probe') || '') && /^\d+$/.test(query.get('node') || '')) { detailOpened = true; document.querySelector(`[data-history="${query.get('probe')}:${query.get('node')}"]`)?.click(); } $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN'); message('');
     } catch(e) { if (e.name !== 'AbortError') { if (data) { data.probes.forEach(p => {p.online=false; p.unverified=true; (p.ingresses || []).forEach(e => {e.status='stale';e.machine.fresh=false;}); p.nodes.forEach(n => {n.transfers_stale=true; if(n.status!=='disabled') n.status='stale';});}); render(); } message(e.message + ' 已显示结果未能更新。', true); } }
     finally { busy = false; $('refresh').disabled = false; }
   }
