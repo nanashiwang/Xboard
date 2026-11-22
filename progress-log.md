@@ -2,7 +2,7 @@
 
 ## 2026-11-22 节点质量页移除刷新说明
 
-按用户反馈移除成功加载后的常驻刷新说明，空状态行收起。自动刷新仍为 30 秒，探测位置筛选、更新时间及错误提示沿用原逻辑。[页面脚本](./public/assets/node-probes.js)与[入口](./resources/views/node-probes.blade.php)使用新资源版本。脚本语法检查、正常加载 / 刷新失败 / 定时恢复三种状态验证及探针 PHP 18 项 106 断言通过。发布状态待核验。
+按用户反馈移除成功加载后的常驻刷新说明，空状态行收起。自动刷新仍为 30 秒，探测位置筛选、更新时间及错误提示沿用原逻辑。[页面脚本](./public/assets/node-probes.js)与[入口](./resources/views/node-probes.blade.php)使用新资源版本。脚本语法检查、正常加载 / 刷新失败 / 定时恢复三种状态验证及探针 PHP 18 项 106 断言通过。[节点探针检查](https://github.com/nanashiwang/Xboard/actions/runs/45025520928)及同提交各项 CI 通过；[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/45025520934)、[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/45026171153)均成功，部署修订与 `4804892` 一致。生产 v6 JS/CSS 与提交逐字节相同，对线上脚本执行合成成功、失败和恢复验证通过。[网站 Release 20261122-4804892](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-4804892)三个附件已下载核验。
 
 <a id="retire-us-plan-20261122"></a>
 
