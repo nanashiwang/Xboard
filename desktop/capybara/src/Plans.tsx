@@ -14,6 +14,7 @@ import {
     Globe2,
 } from "lucide-react";
 import QRCode from "qrcode";
+import Wallet from "./Wallet";
 import { command, errorText } from "./bridge";
 import type { View } from "./model";
 import {
@@ -36,11 +37,15 @@ const catalogLifetime = 60_000;
 export default function Plans({
     view,
     active = true,
+    wallet = false,
+    onPlans,
     onLogin,
     onRefresh,
 }: {
     view: View;
     active?: boolean;
+    wallet?: boolean;
+    onPlans?: () => void;
     onLogin: () => void;
     onRefresh: () => void;
 }) {
@@ -66,6 +71,8 @@ export default function Plans({
         loadedAt = useRef<number | null>(null),
         refreshed = useRef("");
     const [loadFailed, setLoadFailed] = useState(false);
+    const walletVisible = useRef(wallet);
+    walletVisible.current = wallet;
     const refreshAccount = useRef(onRefresh);
     refreshAccount.current = onRefresh;
     const checkoutRef = useRef<HTMLElement>(null);
@@ -74,16 +81,17 @@ export default function Plans({
     const order = store.order;
     const payment = store.methods.find((m) => m.id === method);
 
-    const load = useCallback(async () => {
+    const load = useCallback(async (): Promise<void> => {
         if (fetching.current || pending.current) return;
         fetching.current = true;
         const run = generation.current;
         const version = orderVersion.current;
+        const readWallet = view.logged_in && walletVisible.current;
         setLoading(true);
         setError("");
         try {
             const data = view.logged_in
-                ? await request<Store>("index")
+                ? await request<Store>(readWallet ? "wallet" : "index")
                 : {
                       plans: await request<Plan[]>("catalog"),
                       balance: 0,
@@ -96,7 +104,12 @@ export default function Plans({
                 throw new Error("未能读取套餐列表，稍后将自动重试。");
             loadedAt.current = Date.now();
             setLoadFailed(false);
-            setStore(data);
+            setStore((old) => ({
+                ...data,
+                wallet_orders: readWallet
+                    ? data.wallet_orders
+                    : old.wallet_orders,
+            }));
             setMethod((old) =>
                 data.methods.some((m) => m.id === old)
                     ? old
@@ -114,6 +127,8 @@ export default function Plans({
             if (run === generation.current) {
                 fetching.current = false;
                 setLoading(false);
+                if (!readWallet && view.logged_in && walletVisible.current)
+                    void load();
             }
         }
     }, [view.logged_in]);
@@ -136,24 +151,37 @@ export default function Plans({
         };
     }, [load, view.profile?.email]);
 
+    const walletBusy = wallet && busy;
     useEffect(() => {
-        if (!active) return;
+        if (!active || walletBusy) return;
         const maybeRefresh = () => {
             const age =
                 loadedAt.current === null
                     ? Infinity
                     : Date.now() - loadedAt.current;
-            if (!document.hidden && (age < 0 || age >= catalogLifetime))
+            if (
+                !document.hidden &&
+                ((wallet && view.logged_in) ||
+                    age < 0 ||
+                    age >= catalogLifetime)
+            )
                 void load();
         };
         maybeRefresh();
         document.addEventListener("visibilitychange", maybeRefresh);
         window.addEventListener("online", maybeRefresh);
+        const pollWallet = wallet && view.logged_in;
+        const timer = pollWallet
+            ? window.setInterval(maybeRefresh, 30_000)
+            : undefined;
+        if (pollWallet) window.addEventListener("focus", maybeRefresh);
         return () => {
+            window.clearInterval(timer);
+            window.removeEventListener("focus", maybeRefresh);
             document.removeEventListener("visibilitychange", maybeRefresh);
             window.removeEventListener("online", maybeRefresh);
         };
-    }, [active, load, view.profile?.email]);
+    }, [active, wallet, load, view.logged_in, view.profile?.email, walletBusy]);
     useEffect(() => {
         if (!active || !loadFailed || loading || busy) return;
         const timer = setInterval(() => {
@@ -194,12 +222,13 @@ export default function Plans({
         }
     }
     useEffect(() => {
-        if (!active || !order || ![0, 1].includes(order.status)) return;
+        if (!active || wallet || !order || ![0, 1].includes(order.status))
+            return;
         const timer = setInterval(() => {
             if (!document.hidden && !fetching.current) void checkOrder();
         }, 5000);
         return () => clearInterval(timer);
-    }, [active, order?.trade_no, order?.status]);
+    }, [active, wallet, order?.trade_no, order?.status]);
 
     async function mutate(action: "save" | "checkout" | "cancel") {
         if (pending.current || busy) return;
@@ -267,6 +296,24 @@ export default function Plans({
         }
     }
     if (!active) return null;
+    if (wallet)
+        return (
+            <Wallet
+                loggedIn={view.logged_in}
+                balance={loadedAt.current === null ? null : store.balance}
+                orders={store.wallet_orders}
+                loading={loading}
+                error={error}
+                onRefresh={() => void load()}
+                onLogin={onLogin}
+                onPlans={onPlans}
+                onWeb={() =>
+                    void command("open_link", { target: "wallet" }).catch((e) =>
+                        setError(errorText(e)),
+                    )
+                }
+            />
+        );
     const activeOrder = order && [0, 1].includes(order.status);
     return (
         <section className="card page-card store-page">
@@ -474,9 +521,12 @@ export default function Plans({
                                 )}
                                 {order.balance_amount > 0 && (
                                     <p>
-                                        余额抵扣{" "}
+                                        {order.status === 2
+                                            ? "已退回钱包"
+                                            : "钱包余额抵扣"}{" "}
                                         <span>
-                                            −{money(order.balance_amount)}
+                                            {order.status === 2 ? "" : "−"}
+                                            {money(order.balance_amount)}
                                         </span>
                                     </p>
                                 )}
@@ -663,7 +713,10 @@ export default function Plans({
                                     />
                                 </label>
                                 <p className="fine-print">
-                                    订单将自动计算账户折扣、余额和原套餐折抵；下单后确认最终金额再支付。换购规则与网站一致。
+                                    {view.logged_in
+                                        ? `当前钱包余额 ${money(store.balance)}。创建订单时优先抵扣余额，不足部分在下一步支付。`
+                                        : "登录后可用钱包余额抵扣套餐费用。"}{" "}
+                                    折扣和原套餐折抵以订单金额为准。
                                 </p>
                                 <button
                                     className="primary-button fit"

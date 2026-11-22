@@ -793,6 +793,7 @@ alpha.8 通过独立的 Desktop 商店接口复用网站套餐与订单服务；
 | --- | --- |
 | `GET client/plans` | 公开在售且有容量套餐；返回 id/name/纯文本 description、transfer_gb/speed_mbps/device_limit、periods（旧周期 id 与 amount） |
 | `GET client/store` | 客户端令牌及绑定设备；目录增加当前可续费套餐、账户 balance、待支付/开通中 order、启用 methods（id/name/手续费） |
+| `GET client/store?wallet=1` | 同一消费余额（分），另附 wallet_orders：本人最近 10 笔有余额抵扣的套餐订单（trade_no、plan_name、created_at 秒、status、balance_amount 分）。取消的订单展示已退回金额。 |
 | `POST client/store/save` | plan_id、period、可选 coupon_code；服务器验证资格和未完成订单并复用 OrderService；返回订单 |
 | `GET client/store/order?trade_no=...` | 仅当前用户订单；返回订单号/套餐/周期/status、应付/余额/折扣/原套餐折抵/退款余额/手续费及当前 account_balance |
 | `POST client/store/checkout` | trade_no、method；复用既有支付服务；返回 kind=url/qr/submitted、data 与最新 order。submitted 不等于已开通 |

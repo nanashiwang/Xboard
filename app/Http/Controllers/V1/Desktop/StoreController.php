@@ -31,14 +31,28 @@ class StoreController extends Controller
         $user = $this->user($request);
         $pending = Order::with('plan')->where('user_id', $user->id)
             ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])->latest('id')->first();
-        return ClientApiResponse::success($request, [
+        $data = [
             'plans' => $this->plans($request, $user),
             'balance' => (int) $user->balance,
             'order' => $pending ? $this->orderData($pending) : null,
             'methods' => Payment::where('enable', true)->orderBy('sort')->get([
                 'id', 'name', 'handling_fee_fixed', 'handling_fee_percent',
             ]),
-        ]);
+        ];
+        if ($request->boolean('wallet')) {
+            $data['wallet_orders'] = Order::query()->with('plan:id,name')
+                ->where('user_id', $user->id)->where('product_type', 'vpn')
+                ->where('balance_amount', '>', 0)->latest('id')->limit(10)
+                ->get(['id', 'plan_id', 'trade_no', 'status', 'balance_amount', 'created_at'])
+                ->map(fn (Order $order) => [
+                    'trade_no' => $order->trade_no,
+                    'plan_name' => $order->plan?->name ?? '历史套餐',
+                    'created_at' => (int) $order->getRawOriginal('created_at'),
+                    'status' => (int) $order->status,
+                    'balance_amount' => (int) $order->balance_amount,
+                ]);
+        }
+        return ClientApiResponse::success($request, $data);
     }
 
     public function save(Request $request)

@@ -29,6 +29,7 @@ import {
     TriangleAlert,
     Copy,
     ShoppingBag,
+    Wallet,
     Users,
     Globe2,
 } from "lucide-react";
@@ -45,6 +46,7 @@ import {
 const pages = [
     { id: "home", name: "首页", icon: House },
     { id: "plans", name: "套餐", icon: ShoppingBag },
+    { id: "wallet", name: "钱包", icon: Wallet },
     { id: "proxies", name: "家宽代理", icon: Globe2 },
     { id: "invite", name: "邀请好友", icon: Users },
     { id: "help", name: "帮助与设置", icon: LifeBuoy },
@@ -386,10 +388,12 @@ export default function App() {
                         notice={attention ? statusCard : null}
                     />
                 )}
-                {(view !== emptyView || page === "plans") && (
+                {(view !== emptyView || page === "plans" || page === "wallet") && (
                     <Plans
                         view={view}
-                        active={page === "plans"}
+                        active={page === "plans" || page === "wallet"}
+                        wallet={page === "wallet"}
+                        onPlans={() => setPage("plans")}
                         onLogin={() => void act("begin_browser_login")}
                         onRefresh={() => void act("refresh")}
                     />

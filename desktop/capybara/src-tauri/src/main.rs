@@ -730,11 +730,12 @@ async fn open_link(
     let url = match target.as_str() {
         "navigation" => "https://capybarahub.fyi/".into(),
         "releases" => "https://github.com/nanashiwang/Xboard/releases?q=capybara".into(),
-        "account" | "plans" | "support" | "register" | "invite" => {
+        "account" | "plans" | "wallet" | "support" | "register" | "invite" => {
             let mut rt = state.0.lock().await;
             rt.account.select_origin(false).await?;
             let path = match target.as_str() {
                 "account" => "dashboard",
+                "wallet" => "profile",
                 "plans" => "plan",
                 "support" => "ticket",
                 "register" => "register",

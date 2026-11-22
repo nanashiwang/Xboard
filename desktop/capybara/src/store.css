@@ -236,3 +236,54 @@
         margin: 8px 0 0;
     }
 }
+
+.wallet-balance {
+    padding: 24px;
+    margin: 12px 0 26px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+}
+.wallet-balance > span,
+.wallet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+.wallet-actions {
+    margin-top: 16px;
+}
+.wallet-balance .primary-button {
+    width: auto;
+    padding-inline: 20px;
+}
+.wallet-balance > strong {
+    display: block;
+    margin: 8px 0;
+    font-size: clamp(28px, 5vw, 42px);
+    font-variant-numeric: tabular-nums;
+}
+.wallet-balance p,
+.wallet-orders small {
+    color: var(--muted);
+}
+.wallet-orders {
+    padding: 0;
+    list-style: none;
+}
+.wallet-orders li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
+}
+.wallet-orders li > div:last-child {
+    text-align: right;
+}
+.wallet-orders small {
+    display: block;
+    margin-top: 4px;
+}

@@ -77,6 +77,7 @@ const sample: Order = {
 };
 let order: Order | null = null;
 let initialized = false;
+const walletOrders: NonNullable<Store["wallet_orders"]> = [];
 export async function storePreview(
     mode: string,
     action: string,
@@ -86,8 +87,14 @@ export async function storePreview(
         throw { message: "暂时无法获取套餐，请检查网络后重试。" };
     if (!initialized) {
         initialized = true;
-        if (["store-pending", "store-processing"].includes(mode))
+        if (["store-pending", "store-processing"].includes(mode)) {
             order = { ...sample, status: mode === "store-processing" ? 1 : 0 };
+            demo.balance = order.account_balance;
+            walletOrders.push({
+                ...order,
+                created_at: Math.floor(Date.now() / 1000),
+            });
+        }
     }
     if (action === "catalog")
         return structuredClone(
@@ -95,25 +102,42 @@ export async function storePreview(
                 ? []
                 : demo.plans.map((p) => ({ ...p, current: false })),
         );
-    if (action === "index")
+    if (action === "index" || action === "wallet")
         return structuredClone({
             ...demo,
             order,
+            ...(action === "wallet" && { wallet_orders: walletOrders }),
             plans: mode === "store-empty" ? [] : demo.plans,
         });
     if (action === "save") {
         const plan = demo.plans.find((p) => p.id === payload?.plan_id)!;
         const period = plan.periods.find((p) => p.id === payload?.period)!;
+        const applied = Math.min(demo.balance, period.amount);
+        demo.balance -= applied;
         order = {
             ...sample,
+            trade_no: "PREVIEW" + Date.now(),
             plan_name: plan.name,
             period: period.id,
-            total_amount: Math.max(0, period.amount - demo.balance),
+            account_balance: demo.balance,
+            total_amount: period.amount - applied,
+            balance_amount: applied,
         };
+        if (applied > 0)
+            walletOrders.unshift({
+                ...order,
+                created_at: Math.floor(Date.now() / 1000),
+            });
     }
-    if (action === "cancel" && order) order.status = 2;
+    if (action === "cancel" && order?.status === 0) {
+        demo.balance += order.balance_amount;
+        order.account_balance = demo.balance;
+        order.status = 2;
+    }
+    const entry = walletOrders.find((row) => row.trade_no === order?.trade_no);
     if (action === "checkout" && order) {
         if (mode !== "store-qr") order.status = 3;
+        if (entry) entry.status = order.status;
         return structuredClone({
             kind: mode === "store-qr" ? "qr" : "submitted",
             data:
@@ -123,5 +147,6 @@ export async function storePreview(
             order,
         });
     }
+    if (entry && order) entry.status = order.status;
     return structuredClone(order);
 }

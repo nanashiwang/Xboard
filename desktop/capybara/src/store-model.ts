@@ -33,6 +33,10 @@ export type Store = {
     balance: number;
     order: Order | null;
     methods: PaymentMethod[];
+    wallet_orders?: (Pick<
+        Order,
+        "trade_no" | "plan_name" | "status" | "balance_amount"
+    > & { created_at: number })[];
 };
 export type Checkout = {
     kind: "url" | "qr" | "submitted";

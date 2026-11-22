@@ -363,3 +363,84 @@ it("换号期间丢弃上一账号预取结果，迟到的目录不能覆盖新�
     await act(async () => finishRefresh({ ...data, order: null }));
     expect(screen.getByText("订单号 123456")).toBeTruthy();
 });
+
+it("钱包立即显示已读余额，修正网页版变动并区分取消退回", async () => {
+    let complete!: (next: Store) => void;
+    const goPlans = vi.fn();
+    vi.mocked(command).mockImplementation(async (_, args) => {
+        if (args?.action === "wallet")
+            return new Promise((resolve) => {
+                complete = resolve;
+            }) as never;
+        return structuredClone(data) as never;
+    });
+    const ui = mount();
+    await screen.findByRole("button", { name: "选择套餐" });
+    ui.rerender(
+        <Plans
+            wallet
+            view={loggedIn}
+            onPlans={goPlans}
+            onLogin={login}
+            onRefresh={refresh}
+        />,
+    );
+    expect(screen.getByText("¥2.34")).toBeTruthy();
+    await act(async () =>
+        complete({
+            ...data,
+            balance: 500,
+            wallet_orders: [{ ...order, status: 2, created_at: 1700000000 }],
+        }),
+    );
+    expect(screen.getByText("¥5.00")).toBeTruthy();
+    expect(screen.getByText("已退回钱包")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "购买套餐" }));
+    expect(goPlans).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "网页版钱包" }));
+    expect(command).toHaveBeenCalledWith("open_link", { target: "wallet" });
+    fireEvent.focus(window);
+    await act(async () => complete({ ...data, balance: 0, wallet_orders: [] }));
+    expect(screen.getByText("¥0.00")).toBeTruthy();
+    expect(screen.queryByText("已退回钱包")).toBeNull();
+    ui.rerender(
+        <Plans wallet view={emptyView} onLogin={login} onRefresh={refresh} />,
+    );
+    expect(screen.queryByText("¥0.00")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "登录账号" }));
+    expect(login).toHaveBeenCalledOnce();
+});
+
+it("预取未完成时打开钱包会补读明细，访客不请求私人余额", async () => {
+    let complete!: (next: Store) => void;
+    vi.mocked(command).mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                complete = resolve;
+            }) as never,
+    );
+    const ui = mount();
+    ui.rerender(
+        <Plans wallet view={loggedIn} onLogin={login} onRefresh={refresh} />,
+    );
+    vi.mocked(command).mockResolvedValue({
+        ...data,
+        wallet_orders: [],
+    } as never);
+    await act(async () => complete(data));
+    expect(
+        await screen.findByText("暂无使用钱包余额的套餐订单。"),
+    ).toBeTruthy();
+    expect(
+        vi.mocked(command).mock.calls.filter(([, a]) => a?.action === "wallet"),
+    ).toHaveLength(1);
+    ui.unmount();
+    vi.mocked(command).mockClear();
+    render(
+        <Plans wallet view={emptyView} onLogin={login} onRefresh={refresh} />,
+    );
+    await act(async () => {});
+    expect(
+        vi.mocked(command).mock.calls.some(([, a]) => a?.action === "wallet"),
+    ).toBe(false);
+});

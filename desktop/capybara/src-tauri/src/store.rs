@@ -47,6 +47,7 @@ pub async fn store_request(
     }
     let mut result = match action.as_str() {
         "index" => rt.account.get("client/store").await?,
+        "wallet" => rt.account.get("client/store?wallet=1").await?,
         "order" => rt.account.get(&order_path(&payload)?).await?,
         "save" | "checkout" | "cancel" => {
             rt.account

@@ -113,6 +113,58 @@ class StoreTest extends TestCase
         $this->assertEquals($this->plan->id, $this->user->fresh()->plan_id);
     }
 
+    public function test_wallet_history_only_lists_the_ten_latest_subscription_orders_using_own_balance(): void
+    {
+        $trade = $this->save()->assertOk()->json('data.trade_no');
+        $original = Order::where('trade_no', $trade)->firstOrFail();
+        foreach (range(1, 11) as $n) {
+            $copy = $original->replicate();
+            $copy->trade_no = "wallet-own-$n";
+            $copy->save();
+        }
+        foreach (['balance_amount' => 0, 'product_type' => 'proxy', 'user_id' => $this->user->id + 1] as $field => $value) {
+            $copy = $original->replicate();
+            $copy->trade_no = "excluded-$field";
+            $copy->$field = $value;
+            $copy->save();
+        }
+        $this->getJson('/api/v1/client/store', $this->headers)->assertJsonMissingPath('data.wallet_orders');
+        $rows = $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertOk()->json('data.wallet_orders');
+        $this->assertSame(array_map(fn ($n) => "wallet-own-$n", range(11, 2)), array_column($rows, 'trade_no'));
+    }
+
+    public function test_web_and_desktop_wallet_share_subscription_deductions_and_returns(): void
+    {
+        $web = ['Authorization' => (new \App\Services\AuthService($this->user))->generateAuthData()['auth_data']];
+        $payload = ['plan_id' => $this->plan->id, 'period' => 'month_price'];
+        $this->app['auth']->forgetGuards();
+        $trade = $this->postJson('/api/v1/user/order/save', $payload, $web)->assertOk()->json('data');
+
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertOk()
+            ->assertJsonPath('data.balance', 0)->assertJsonCount(1, 'data.wallet_orders')
+            ->assertJsonPath('data.wallet_orders.0.trade_no', $trade)
+            ->assertJsonPath('data.wallet_orders.0.balance_amount', 234)
+            ->assertJsonPath('data.order.total_amount', 1000);
+        $this->postJson('/api/v1/client/store/cancel', ['trade_no' => $trade], $this->headers)
+            ->assertOk()->assertJsonPath('data.account_balance', 234);
+        $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertJsonPath('data.wallet_orders.0.status', 2);
+
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/user/info', $web)->assertOk()->assertJsonPath('data.balance', 234);
+        $this->user->update(['balance' => 1500]);
+        $this->app['auth']->forgetGuards();
+        $second = $this->save()->assertOk()->assertJsonPath('data.balance_amount', 1234)
+            ->assertJsonPath('data.total_amount', 0)->assertJsonPath('data.account_balance', 266)->json('data.trade_no');
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/user/info', $web)->assertOk()->assertJsonPath('data.balance', 266);
+        $this->postJson('/api/v1/user/order/cancel', ['trade_no' => $second], $web)->assertOk();
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/client/store?wallet=1', $this->headers)->assertOk()
+            ->assertJsonPath('data.balance', 1500)->assertJsonCount(2, 'data.wallet_orders')
+            ->assertJsonPath('data.wallet_orders.0.trade_no', $second)->assertJsonPath('data.wallet_orders.0.status', 2);
+    }
+
     public function test_payment_projection_accepts_url_and_qr_but_rejects_html_and_unsafe_urls(): void
     {
         $order = $this->save()->assertOk()->json('data');
