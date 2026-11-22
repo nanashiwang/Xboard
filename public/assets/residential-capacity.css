@@ -17,3 +17,4 @@
 #residential-capacity-nav[aria-current=page]{background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}
 [data-collapsed=true] #residential-capacity-nav>span{display:none}
 [data-collapsed=true] #residential-capacity-nav>div{margin:0}
+#residential-capacity .rc-section-title{border-top:1px solid hsl(var(--border));margin-top:24px;padding-top:20px}

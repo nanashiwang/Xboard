@@ -1,3 +1,11 @@
+<a id="proxy-capacity-20261122"></a>
+
+## 2026-11-22 管理员家宽订阅与容量增加代理库存
+
+用户反馈已售家宽代理在管理员看板缺失。原接口只查独享分配和共享授权；现从主机、端点及持有人状态读取独立代理库存，按 IP 对账，并沿用现有侧栏、管理员权限和刷新周期。多端口买家跨 IP 去重，续费沿用原占用，到期保留、受限账号、不可售空位分别显示。[统计决定](./.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md) · [后端回归](./tests/Feature/Dedicated/ResidentialCapacityTest.php) · [前端回归](./tests/Frontend/residential-capacity.test.cjs)
+
+本地 PHP 回归 128 项、757 个断言通过，前端 7 项通过。Playwright 使用隔离数据库的测试管理员，在 1366px 和 390px 的真实管理页面刷新，均显示 1 位买家、2 个有效端口、18 个可售端口；手机表格可横向滚动，页面无横向溢出。本地部署检查验证匿名 403、HTTP 静态资源摘要和逐 IP 库存对账。镜像、生产与 Release 状态待发布后回填。
+
 <a id="residential-allocation-20261122"></a>
 
 ## 2026-11-22 家宽新购优先分配不同公网 IP

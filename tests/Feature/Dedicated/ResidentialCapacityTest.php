@@ -2,8 +2,9 @@
 
 namespace Tests\Feature\Dedicated;
 
-use App\Models\{DedicatedAssignment, DedicatedExit, Order, Plan, Server, User};
+use App\Models\{DedicatedAssignment, DedicatedExit, Order, Plan, ResidentialProxyEndpoint, ResidentialProxyHost, Server, User};
 use App\Services\ResidentialCapacityService;
+use App\Services\ResidentialProxyService;
 use App\Utils\Helper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -58,7 +59,48 @@ class ResidentialCapacityTest extends TestCase
         $this->getJson($this->url())->assertForbidden();
         Sanctum::actingAs($this->user(['is_admin' => true]));
         $this->getJson($this->url())->assertOk()->assertJsonPath('data.plans', [])->assertJsonPath('data.shared_nodes', [])
+            ->assertJsonPath('data.proxy_inventory.hosts', [])->assertJsonPath('data.proxy_inventory.totals.ports', 0)
             ->assertHeader('Cache-Control', 'no-store, private');
+    }
+
+    public function test_proxy_capacity_counts_distinct_buyers_and_partitions_every_host_port(): void
+    {
+        $buyer = $this->user(['plan_id' => null, 'expired_at' => time() - 1]);
+        $restricted = $this->user(['banned' => true]);
+        $now = time();
+        $host = fn (int $n, bool $enabled, ?int $seen) => ResidentialProxyHost::create([
+            'address' => "192.0.2.$n", 'enabled' => $enabled, 'seen_at' => $seen, 'token_hash' => str_repeat('a', 64),
+        ]);
+        $online = $host(1, true, $now);
+        $stale = $host(2, true, $now - 61);
+        $disabled = $host(3, false, $now);
+        $host(4, true, null);
+        $port = fn ($h, int $number, array $fields = []) => ResidentialProxyEndpoint::create($fields + [
+            'host_id' => $h->id, 'port' => $number,
+        ]);
+        $active = ['user_id' => $buyer->id, 'expires_at' => $now + 3600];
+        $port($online, 1, $active + ['reserved_order_id' => 11]); // Renewal keeps the existing port.
+        $port($online, 2, ['user_id' => $buyer->id, 'expires_at' => $now, 'reserved_order_id' => 12]);
+        $port($online, 3, ['reserved_order_id' => 13]);
+        $port($online, 4);
+        $port($stale, 1, $active);
+        $port($stale, 2);
+        $port($disabled, 1, ['user_id' => $restricted->id, 'expires_at' => $now + 3600]);
+        $port($disabled, 2);
+
+        Sanctum::actingAs($this->user(['is_admin' => true]));
+        $response = $this->getJson($this->url())->assertOk();
+        $inventory = $response->json('data.proxy_inventory');
+        $this->assertSame(1, $inventory['buyers']);
+        $this->assertSame(['ports' => 8, 'active' => 2, 'expired' => 1, 'restricted' => 1,
+            'reserved' => 1, 'available' => 1, 'unavailable' => 2], $inventory['totals']);
+        $this->assertSame(['online', 'stale', 'disabled', 'stale'], array_column($inventory['hosts'], 'status'));
+        $this->assertSame([4, 2, 2, 0], array_column($inventory['hosts'], 'ports'));
+        $this->assertSame([1, 0, 0, 0], array_column($inventory['hosts'], 'available'));
+        $this->assertSame(app(ResidentialProxyService::class)->index($buyer)['available'], $inventory['totals']['available']);
+        foreach (['user_id', 'token_hash', 'reserved_order_id', 'credentials', 'email'] as $field) {
+            $this->assertStringNotContainsString('"'.$field.'"', $response->getContent());
+        }
     }
 
     public function test_subscriptions_reservations_renewals_and_stale_records_have_distinct_counts_without_writes(): void

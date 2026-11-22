@@ -33,7 +33,8 @@ function boot(hash = pageHash) {
   return {requests, location, events, host, body, home, heading, document:context.document, closed:()=>closed,
     nav:()=>context.document.getElementById('residential-capacity-nav'), tick:()=>interval(), setToken:t=>value=t, panel:()=>current};
 }
-const data = {checked_at:123, plans:[{name:'<img onerror=alert(1)>', selling:true, subscribers:1, assigned_subscribers:1,
+const data = {checked_at:123, proxy_inventory:{buyers:1,totals:{ports:6,active:2,reserved:1,available:0},
+  hosts:[{address:'<script>host</script>',status:'stale',seen_at:null,ports:6,active:2,reserved:1,expired:1,restricted:0,unavailable:2,available:0}]}, plans:[{name:'<img onerror=alert(1)>', selling:true, subscribers:1, assigned_subscribers:1,
   unassigned_subscribers:0, reserved:1, occupied:2, available_slots:3, capacity_limit:5, primary_capacity:5,
   exits:[{name:'节点',public_ip:'203.0.113.1',enabled:true,healthy:true,standby:false,capacity:5,subscribers:1,reserved:1,occupied:2,free_slots:3,allocatable_slots:3}]}], shared_nodes:[{name:'共享家宽',subscribers:9}]};
 const flush = () => new Promise(resolve=>setImmediate(resolve));
@@ -43,6 +44,11 @@ test('dedicated page uses admin API and escapes names while separating shared pe
   s.requests[0].resolve({ok:true,json:async()=>({data})}); await flush();
   const html=s.panel().querySelector('.rc-data').innerHTML;
   assert.ok(html.includes('&lt;img')); assert.ok(!html.includes('<img'));
+  assert.ok(html.includes('&lt;script&gt;host&lt;/script&gt;'));
+  assert.ok(html.includes('心跳过期') && html.includes('暂无心跳'));
+  assert.match(html, /有效买家<\/span><strong>1<small> 人/);
+  assert.match(html, /有效订阅<\/span><strong>2<small> 个端口/);
+  assert.ok(html.includes('到期保留') && html.includes('独享家宽套餐'));
   assert.ok(html.includes('9 人有使用权限')); assert.ok(html.includes('订单预留'));
 });
 test('home and other routes have a sidebar link without a capacity card or request', ()=>{
@@ -78,4 +84,11 @@ test('route return and identity switch mount fresh cards without accepting stale
   s.location.hash=pageHash;s.events.hashchange();assert.equal(s.requests.length,2);
   s.setToken('new-admin');s.tick();assert.equal(s.requests.length,3);assert.equal(s.requests[2].options.headers.Authorization,'new-admin');
   s.requests[1].resolve({ok:true,json:async()=>({data})});await flush();assert.equal(s.panel().querySelector('.rc-data').innerHTML,'');
+});
+test('empty proxy inventory leaves the other capacity sections visible',async()=>{
+  const s=boot();
+  s.requests[0].resolve({ok:true,json:async()=>({data:{...data,proxy_inventory:{hosts:[]}}})});
+  await flush();
+  const html=s.panel().querySelector('.rc-data').innerHTML;
+  assert.ok(html.includes('尚未配置家宽代理主机') && html.includes('独享家宽套餐') && html.includes('共享家宽'));
 });

@@ -26,7 +26,7 @@ class ResidentialProxyService
             $user=User::lockForUpdate()->findOrFail($buyer->id);
             if ($user->banned) throw new ApiException('账号不可购买');
             if (app(UserService::class)->isNotCompleteOrderByUserId($user->id)) throw new ApiException('请先处理未完成订单');
-            $query=ResidentialProxyEndpoint::whereHas('host',fn($q)=>$q->where('enabled',true)->where('seen_at','>=',time()-60));
+            $query=ResidentialProxyEndpoint::whereHas('host',fn($q)=>$q->acceptingOrders(time()));
             if ($endpointId) {
                 $query->where('user_id', $user->id)->whereKey($endpointId);
             } else {
@@ -114,7 +114,7 @@ class ResidentialProxyService
     public function index(User $user): array {
         if ($user->banned) throw new ApiException('账号已停用',403);
         return ['price'=>self::PRICE,'available'=>ResidentialProxyEndpoint::whereNull('user_id')->whereNull('reserved_order_id')
-            ->whereHas('host',fn($q)=>$q->where('enabled',true)->where('seen_at','>=',time()-60))->count(),
+            ->whereHas('host',fn($q)=>$q->acceptingOrders(time()))->count(),
             'items'=>ResidentialProxyEndpoint::with('host')->where('user_id',$user->id)->orderByDesc('id')->get()->map(fn($e)=>$this->describe($e))->all(),
             'pending'=>Order::where('user_id',$user->id)->where('product_type','proxy')->whereIn('status',[0,1])->latest('id')->first(['trade_no','status','total_amount','balance_amount']),
         ];

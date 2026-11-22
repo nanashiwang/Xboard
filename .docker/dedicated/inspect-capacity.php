@@ -20,7 +20,22 @@ foreach (['js', 'css'] as $extension) {
         throw new RuntimeException('Served dashboard asset mismatch');
     }
 }
+$summary = Illuminate\Support\Facades\DB::transaction(function () {
+    $data = app(App\Services\ResidentialCapacityService::class)->summary();
+    $inventory = $data['proxy_inventory'];
+    $available = App\Models\ResidentialProxyEndpoint::whereNull('user_id')->whereNull('reserved_order_id')
+        ->whereHas('host', fn ($q) => $q->acceptingOrders($data['checked_at']))->count();
+    if ($inventory['totals']['available'] !== $available || $inventory['totals']['ports'] !== App\Models\ResidentialProxyEndpoint::count()) {
+        throw new RuntimeException('Dashboard and sales inventory counts differ');
+    }
+    foreach ($inventory['hosts'] as $host) {
+        if ($host['ports'] !== $host['active'] + $host['reserved'] + $host['expired'] + $host['restricted'] + $host['available'] + $host['unavailable']) {
+            throw new RuntimeException('Host port breakdown does not reconcile');
+        }
+    }
+    return $data;
+});
 echo json_encode(['status' => 'inspected', 'version' => config('app.version'), 'admin_middleware' => true,
     'unauthenticated_status' => $denied->status(), 'http_assets_match' => true,
-    'assets' => $assets, 'data' => app(App\Services\ResidentialCapacityService::class)->summary()],
+    'assets' => $assets, 'data' => $summary],
     JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;

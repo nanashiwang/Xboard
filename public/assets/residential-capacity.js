@@ -33,13 +33,34 @@
       ? '有空位的节点暂不可用，请检查健康状态' : '主用出口已满，请补充节点';
     return `当前还可新增 ${plan.available_slots} 个订阅`;
   }
+  function statCards(items) {
+    return `<div class="rc-stats">${items.map(([label, count, unit]) => `<div><span>${label}</span><strong>${escape(count)}<small> ${unit}</small></strong></div>`).join('')}</div>`;
+  }
+  function renderProxy(inventory) {
+    const {hosts, buyers, totals} = inventory;
+    if (!hosts.length) return '<p class="rc-empty">尚未配置家宽代理主机。</p>';
+    const stats = statCards([
+      ['有效买家', buyers, '人'], ['有效订阅', totals.active, '个端口'],
+      ['新购预留', totals.reserved, '个端口'], ['当前可售', totals.available, '个端口'],
+    ]);
+    const states = {online: '在线', stale: '心跳过期', disabled: '已停用'};
+    const rows = hosts.map(host => `<tr>
+      <td>${escape(host.address)}</td><td>${states[host.status]}<span class="rc-ip">${host.seen_at ? '心跳 ' + new Date(host.seen_at * 1000).toLocaleString() : '暂无心跳'}</span></td>
+      <td><strong>${host.available}</strong> / ${host.ports}</td><td>${host.active}</td><td>${host.reserved}</td>
+      <td>${host.expired}</td><td>${host.restricted}</td><td>${host.unavailable}</td></tr>`).join('');
+    return `${stats}<div class="rc-plan"><div class="rc-plan-heading"><h3>按出口 IP 查看端口</h3><strong>${hosts.length} 个出口 · 共 ${totals.ports} 个端口</strong></div>
+      <div class="rc-table-wrap"><table><thead><tr><th>出口 IP</th><th>主机状态</th><th>可售 / 总端口</th><th>有效订阅</th><th>新购预留</th><th>到期保留</th><th>账号受限</th><th>不可售空位</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="rc-help">同一买家持有多个有效端口只计一人。续费沿用原端口，到期后仍保留归属。空闲端口仅在主机启用且最近 60 秒有心跳时可售。</p></div>`;
+  }
   function render(data, target) {
     const plans = data.plans;
     const sum = key => plans.reduce((n, plan) => n + plan[key], 0);
     target.querySelector('.rc-time').textContent = '更新于 ' + new Date(data.checked_at * 1000).toLocaleTimeString();
-    const stats = [['有效订阅', sum('subscribers')], ['已分配订阅', sum('assigned_subscribers')], ['订单预留', sum('reserved')], ['当前可新增', sum('available_slots')]];
+    const stats = [['有效订阅', sum('subscribers'), '人'], ['已分配订阅', sum('assigned_subscribers'), '人'], ['订单预留', sum('reserved'), '个名额'], ['当前可新增', sum('available_slots'), '个名额']];
     target.querySelector('.rc-data').innerHTML = `
-      <div class="rc-stats">${stats.map(([label, count]) => `<div><span>${label}</span><strong>${count}<small> 人</small></strong></div>`).join('')}</div>
+      ${renderProxy(data.proxy_inventory)}
+      <h2 class="rc-section-title">独享家宽套餐</h2>
+      ${statCards(stats)}
       ${plans.length ? plans.map(plan => `<article class="rc-plan"><div class="rc-plan-heading"><h3>${escape(plan.name)}</h3><strong>${escape(advice(plan))}</strong></div>
       <p>占用 ${plan.occupied} / ${plan.capacity_limit === null ? '未设销售上限' : plan.capacity_limit} · 主用节点容量 ${plan.primary_capacity} · 待分配订阅 ${plan.unassigned_subscribers}</p>
       <div class="rc-table-wrap"><table><thead><tr><th>节点 / 出口 IP</th><th>状态</th><th>已分配人数</th><th>订单预留</th><th>占用 / 容量</th><th>可分配空位</th></tr></thead><tbody>${plan.exits.map(exit => `<tr><td>${escape(exit.name)}<span class="rc-ip">${escape(exit.public_ip)}</span></td><td>${!exit.enabled ? '已停用' : exit.standby ? '备用 · ' + (exit.healthy ? '健康' : '不可用') : exit.healthy ? '健康' : '异常或检测过期'}</td><td>${exit.subscribers}</td><td>${exit.reserved}</td><td>${exit.occupied} / ${exit.capacity}</td><td>${exit.allocatable_slots}</td></tr>`).join('') || '<tr><td colspan="6">暂无出口节点</td></tr>'}</tbody></table></div></article>`).join('') : '<p class="rc-empty">尚未配置独享家宽套餐。</p>'}
@@ -105,7 +126,7 @@
     title = document.createElement('h1'); title.id = 'residential-capacity-title'; title.className = heading.className; title.textContent = '家宽订阅与容量';
     heading.parentElement.append(title); heading.parentElement.classList.add('rc-page-heading');
     panel = document.createElement('section'); panel.id = 'residential-capacity'; panel.setAttribute('aria-label', '家宽订阅与容量');
-    panel.innerHTML = '<div class="rc-heading"><div><h2>独享分配</h2><span class="rc-time"></span></div><button type="button">刷新</button></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
+    panel.innerHTML = '<div class="rc-heading"><div><h2>家宽代理</h2><span class="rc-time"></span></div><button type="button">刷新</button></div><p class="rc-status" role="status" aria-live="polite"></p><div class="rc-data"></div>';
     panel.querySelector('button').addEventListener('click', load); host.append(panel);
     host.classList.add('rc-page-host'); document.body.classList.add('rc-page-active'); host.scrollTop = 0;
     document.title = '家宽订阅与容量 · ' + initialTitle; load();

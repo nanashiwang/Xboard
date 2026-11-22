@@ -1,3 +1,7 @@
+### 管理端家宽代理库存
+
+侧栏「家宽订阅与容量」使用原[管理员统计服务](../app/Services/ResidentialCapacityService.php)，返回 `proxy_inventory` 的去重有效买家、各状态端口总计和逐 IP 库存。下单与展示共用[主机接单条件](../app/Models/ResidentialProxyHost.php)。原独享套餐与共享节点各自统计。[看板决定](../.agents/notes/implemented/feature/2026-10-30-residential-capacity-dashboard.md)
+
 ### 家宽代理按买家分配 IP
 
 官网和客户端新购使用[同一销售服务](../app/Services/ResidentialProxyService.php)。在商品锁内对在线可售空位按「本人在该 IP 的持有端口数、端点 ID」升序分配。已到期且仍归属本人的端口计入，续费按指定端点办理。[库存与支付规则](../.agents/notes/implemented/feature/2026-11-18-residential-proxy-sales.md)
