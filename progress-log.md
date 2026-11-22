@@ -1,3 +1,13 @@
+<a id="prune-cn2-windows-20261123"></a>
+
+## 2026-11-23 移除七云美国 CN2 和 Windows 机器登记
+
+用户确认两台机器已无用途，要求从服务器管理移除。沿用[退役机器清理决定](./.agents/notes/implemented/simplification/2026-11-22-remove-retired-node-rows.md)和既有备份流程。事务内复核身份、到期备注、心跳和负载历史，检查节点、入口、探针、代理库存以及独享出口的启用、备用和分配状态。
+
+北京时间 00:43:48，[生产清理](https://github.com/nanashiwang/Xboard/actions/runs/45045431420)在备份完整性校验通过后删除 SID 15（154.44.1.123）与 SID 16（216.36.124.7）。独立只读连接回查两个 SID 均已消失，机器总数由 11 降至 9，节点 ID 与上轮生产清单的 13 条逐项一致。清理范围仅含面板机器登记及其级联负载历史。
+
+运维提交 `acfd1b9` 已推送 master。本地 81 项运维测试、工作流语法与笔记检查通过。[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45045429688)、[笔记 CI](https://github.com/nanashiwang/Xboard/actions/runs/45045429657)、[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45045429744)均已完成。本次沿用现有应用版本，无新 Release。
+
 <a id="retire-qiyun-hk-20261123"></a>
 
 ## 2026-11-23 退役七云香港机器与香港01
