@@ -4,7 +4,9 @@
 
 第三方拓展线路已全部退役。第三方线路退役时，节点管理从 97 条减至 15 条自建记录。旧订阅更新后即可移除第三方节点。[本轮退役](./progress-log.md#retire-third-party-routes-20261122) · [上轮旧节点清理](./progress-log.md#prune-retired-nodes-20261122)
 
-生产服务器管理现有 9 台。七云美国 CN2（SID 15）及 Windows（SID 16）的闲置登记已移除。[清理记录](./progress-log.md#prune-cn2-windows-20261123)
+生产服务器管理现有 8 台。退役拓展进程的 SID 21 已删除，共享第一阶段入口仍正常，入口监控使用 SID 17。[生产回读](./progress-log.md#remove-extension-machine-20261123)
+
+七云美国 CN2（SID 15）及 Windows（SID 16）的闲置登记已移除。[清理记录](./progress-log.md#prune-cn2-windows-20261123)
 
 七云香港 SID 3、「香港01」#325 和后端 #338 已退役，四档普通套餐各余美国 2 条、日本、荷兰、罗马尼亚各 1 条，更新订阅后生效。[香港退役与验收](./progress-log.md#retire-qiyun-hk-20261123) · [八台七云美国机器清理](./progress-log.md#prune-machines-20261123)
 

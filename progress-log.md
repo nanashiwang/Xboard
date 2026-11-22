@@ -1,3 +1,13 @@
+<a id="remove-extension-machine-20261123"></a>
+
+## 2026-11-23 移除已停用的拓展转发登记 SID 21
+
+用户要求确认「拓展转发｜第一阶段服务器」是否还有用途，闲置即可移除。第一阶段主机 143.203.200.5 上的专用拓展进程已停止，原 37001–37041 端口均无监听。共享入口仍承载自建线路。范围见[第三方线路退役决定](./.agents/notes/implemented/simplification/2026-11-22-retire-third-party-routes.md)。
+
+北京时间 01:13:13，[生产清理](https://github.com/nanashiwang/Xboard/actions/runs/45048164841)在完成 SQLite 私有备份及完整性检查后，仅删除 SID 21 的面板登记。写事务复核了名称、地址和禁用状态，原 41 对节点均已退役，且无存续节点或入口监控引用该机器。提交后用独立只读连接确认机器总数从 9 降至 8，13 条节点 ID 与上一轮清单一致，入口监控仍使用 SID 17。操作前后从跳板本机复测，Nginx、WireGuard 运行，HTTPS 健康页均返回 200。检查覆盖入口健康，本轮未逐条测量出口。
+
+运维提交 `22c5b60` 已推送 master。83 项本地运维测试、工作流语法及笔记检查通过。[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45048162353)、[笔记 CI](https://github.com/nanashiwang/Xboard/actions/runs/45048162312)、[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45048162310)均成功。本次执行面板数据清理，应用沿用现有版本，无新 Release。
+
 <a id="prune-cn2-windows-20261123"></a>
 
 ## 2026-11-23 移除七云美国 CN2 和 Windows 机器登记
