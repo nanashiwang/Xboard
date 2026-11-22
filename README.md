@@ -497,7 +497,7 @@ Xboard is a modern panel system built on Laravel 12, focusing on providing a cle
 
 ### 卡皮巴拉钥匙串重复授权修复（2026-10-25）
 
-`0.1.0-alpha.4` 修复 macOS 启动及重新登录反复读取旧钥匙串项的问题：启动/后台操作静默执行，授权受阻只提示；登录记录按当前二进制构建隔离，重新登录不覆盖旧版受限记录。升级后需重新登录一次卡皮巴拉账号，同一构建后续启动自动恢复；钥匙串锁定仍受系统解锁要求约束，未降低存储保护。
+`0.1.0-alpha.4` 修复 macOS 启动及重新登录反复读取旧钥匙串项的问题：启动/后台操作静默执行，授权受阻只提示；登录记录按当前二进制构建隔离，重新登录不覆盖旧版受限记录。该临时签名版本升级后需重新登录一次，同一构建后续启动自动恢复；钥匙串锁定仍受系统解锁要求约束，未降低存储保护。
 
 前端 14、Rust 11、发布校验 2 项与额外 1 项真实钥匙串跨进程读写测试通过。本机 App/DMG 已构建，/Applications 已更新并验证启动无钥匙串错误或授权弹窗；[alpha.4 Release](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.0-alpha.4) 四目标构建成功，18 附件摘要、四目标签名和源码提交已核实；真实账号试用遇到网络失败，复启恢复仍待验收。GitHub Release 与官网生产更新索引分开处理，详情见[修复决定](./.agents/notes/implemented/bug-fix/2026-10-25-capybara-keychain-prompts.md)及[进展](./progress-log.md#2026-10-25卡皮巴拉钥匙串重复授权修复)。
 
@@ -776,7 +776,7 @@ Issues and Pull Requests are welcome to help improve the project.
 
 ### 客户端配置完整性排查（2026-11-16）
 
-桌面 0.1.26 源码支持 Mac 正式版沿用有效登录，钱包「可用余额 → 充值」可单独付款增加余额。[版本及上线记录](./progress-log.md#desktop-session-wallet-026)
+桌面 0.1.26 已通过四目标常规构建，钱包充值服务已上线。客户端新增「可用余额 → 充值」，并支持 Mac 正式版沿用有效登录。0.1.26 的发行包等待配置 Apple Developer ID，公开下载仍为 0.1.25。[版本及上线记录](./progress-log.md#desktop-session-wallet-026)
 
 [桌面 0.1.25](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.25) 已发布至官网和备用站。更新订阅支持含弱标记的 ETag。响应缺少 ETag 时，客户端会从已登录账号的配置接口另取 SHA-256，匹配后才采用配置。本机 0.1.23 手动更新已成功，原故障响应未留存。[修复与复测](./progress-log.md#config-integrity-20261123)
 

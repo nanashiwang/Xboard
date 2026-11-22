@@ -6,7 +6,9 @@
 
 桌面新增充值表单及历史。支付回调确认后入账本金，支持手续费、重复通知与取消后晚到款。设备下单、收银台和网关回调采用测试支付记录，生产未操作真实资金。[充值决定](./.agents/notes/implemented/feature/2026-11-23-wallet-topup.md)
 
-本地桌面前端 92 项、发布脚本 17 项、原生 75 项通过（另 2 项忽略），前端构建通过。服务端桌面与支付测试 116 项、1145 个断言、1 项跳过。正式版两种 Mac 签名与跨程序凭据验收需在配置 Developer ID 的 GitHub 发布环境运行。提交前未发布或部署本次改动。
+本地桌面前端 92 项、发布脚本 17 项、原生 75 项通过（另 2 项忽略），前端构建通过。服务端桌面与支付测试 116 项、1145 个断言、1 项跳过。正式版两种 Mac 签名与跨程序凭据验收需在配置 Developer ID 的 GitHub 发布环境运行。功能提交 `ccb9058` 已推送 master。[四目标常规构建](https://github.com/nanashiwang/Xboard/actions/runs/45059868348)通过，发布步骤按 push 事件跳过。[运行镜像](https://github.com/nanashiwang/Xboard/actions/runs/45059868289)构建通过，[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/45060324274)确认实际镜像为同一提交。主、备 API 健康检查返回 200，未登录 POST 充值均返回 401。真实浏览器预览用模拟收款将余额从 5.00 元增加到 35.00 元；独立的 macOS 钥匙串测试验证了最近旧条目的选取、其他条目的排除及清理。
+
+用户已有 Developer ID 并将配置到发布环境。核对仓库 Secrets 时仍缺 `APPLE_CERTIFICATE` 和 `APPLE_CERTIFICATE_PASSWORD`。0.1.26 签名包、正式跨版本钥匙串验证、Release 和下载同步待完成，当前最新公开版本为 0.1.25。
 
 <a id="config-integrity-20261123"></a>
 
