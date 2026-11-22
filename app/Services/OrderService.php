@@ -59,6 +59,8 @@ class OrderService
             if ($plan->dedicated) {
                 app(DedicatedExitService::class)->lock($plan);
                 $user = User::lockForUpdate()->findOrFail($user->id);
+                // A retirement can commit while this buyer is waiting for the allocation lock.
+                (new PlanService($plan->refresh()))->validatePurchase($user, $period);
                 if ($userService->isNotCompleteOrderByUserId($user->id)) {
                     throw new ApiException(__('You have an unpaid or pending order, please try again later or cancel it'));
                 }

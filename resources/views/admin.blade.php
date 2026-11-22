@@ -84,7 +84,7 @@
   <link rel="stylesheet" href="/assets/node-probe-dashboard.css?v=5">
   <script src="/assets/node-probe-dashboard.js?v=5" defer></script>
   <link rel="stylesheet" href="/assets/residential-capacity.css?v=3">
-  <script src="/assets/residential-capacity.js?v=3" defer></script>
+  <script src="/assets/residential-capacity.js?v=4" defer></script>
 </body>
 
 </html>

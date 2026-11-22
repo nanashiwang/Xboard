@@ -88,6 +88,9 @@ class ResidentialCapacityService
         $plans = Plan::where('dedicated', true)->orderBy('sort')->orderBy('id')->get()->map(function (Plan $plan) use ($allocator) {
             $subscribers = $this->subscribers()->where('plan_id', $plan->id)->pluck('id');
             $occupied = $allocator->occupied($plan->id)->get();
+            if (!$plan->show && !$plan->sell && !$plan->renew && $subscribers->isEmpty() && $occupied->isEmpty()) {
+                return null;
+            }
             $assigned = $occupied->whereIn('user_id', $subscribers)->count();
             $exits = DedicatedExit::where('plan_id', $plan->id)->orderBy('id')->get()
                 ->filter(fn ($exit) => $exit->enabled || $occupied->contains('exit_id', $exit->id))
@@ -117,7 +120,7 @@ class ResidentialCapacityService
                 'healthy_free_slots' => $exits->sum('allocatable_slots'),
                 'available_slots' => $plan->sell ? $available : 0, 'exits' => $exits->all(),
             ];
-        });
+        })->filter()->values();
         $now = time();
         return ['checked_at' => $now, 'plans' => $plans->all(), 'shared_nodes' => $this->sharedNodes(),
             'proxy_inventory' => $this->proxyInventory($now)];

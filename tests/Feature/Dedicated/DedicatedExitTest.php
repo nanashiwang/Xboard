@@ -102,6 +102,36 @@ class DedicatedExitTest extends TestCase
         ]);
     }
 
+    public function test_retirement_checks_all_unfinished_orders_and_active_subscribers_before_closing_sales(): void
+    {
+        $args = ['plan' => $this->plan->id, 'name' => $this->plan->name];
+        $owner = $this->user(true);
+        $this->artisan('dedicated:retire', $args)->assertFailed();
+        $owner->update(['expired_at' => time() - 60]);
+
+        $order = Order::create(['user_id' => $owner->id, 'plan_id' => $this->plan->id, 'trade_no' => Helper::guid(),
+            'total_amount' => 5900, 'type' => Order::TYPE_RENEWAL, 'period' => 'monthly', 'status' => Order::STATUS_PENDING]);
+        foreach ([Order::STATUS_PENDING, Order::STATUS_PROCESSING] as $status) {
+            $order->update(['status' => $status]);
+            $this->artisan('dedicated:retire', $args)->assertFailed();
+            $this->assertTrue($this->plan->fresh()->show);
+        }
+        $order->update(['status' => Order::STATUS_COMPLETED]);
+        $this->artisan('dedicated:retire', $args)->assertSuccessful();
+        $this->artisan('dedicated:retire', $args)->assertSuccessful();
+        $closed = $this->plan->fresh();
+        $this->assertFalse($closed->show || $closed->sell || $closed->renew);
+        $this->assertSame($closed->name, $order->fresh()->plan->name);
+        $service = new PlanService($closed);
+        $this->assertFalse($service->getAvailablePlans()->contains('id', $closed->id));
+        $this->assertFalse($service->isPlanAvailableForUser($closed, $owner));
+        $this->assertTrue($this->exit->fresh()->enabled);
+
+        // A request that loaded the on-sale plan before retirement still has to pass the lock.
+        $this->expectException(ApiException::class);
+        $this->order($this->user());
+    }
+
     public function test_admin_zero_amount_assignment_rejects_unavailable_exit_without_leaving_an_order(): void
     {
         $user = $this->user();

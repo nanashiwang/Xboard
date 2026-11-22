@@ -25,6 +25,7 @@ on:
           - inspect-browser-login
           - inspect-dedicated
           - verify-residential-stage1
+          - retire-us-dedicated-plan
           - inspect-residential-capacity
           - preview-owned-dedicated
           - attach-owned-dedicated
@@ -141,6 +142,11 @@ jobs:
             sshpass -e scp "${ssh_opts[@]}" .docker/knowledge/articles/05-downloads.md "root@107.173.191.23:$remote_dir/articles/"
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               "python3 '$remote_dir/sync.py' --database /root/Xboard/.docker/.data/database.sqlite --article-id 5 --backup-dir /root/xboard-backups/knowledge --apply"
+            exit 0
+          fi
+          if [ "$OPERATION" = retire-us-dedicated-plan ]; then
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
+              'cd /root/Xboard && docker compose exec -T --user www xboard php artisan dedicated:retire 5 美国独享家宽IP'
             exit 0
           fi
           if [ "$OPERATION" = inspect-residential-capacity ]; then

@@ -1,6 +1,6 @@
 ### 管理后台 · 家宽订阅与容量
 
-从后台侧栏打开「家宽订阅与容量」即可查看每个出口 IP 的代理端口总量、可售余量及占用去向。有效买家跨 IP 去重，独享套餐和共享节点仍按各自订阅口径展示。网站版本 [20261122-21a3868](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-21a3868) 已上线。[统计口径与验收](./progress-log.md#proxy-capacity-20261122)
+从后台侧栏打开「家宽订阅与容量」即可查看每个出口 IP 的代理端口总量、可售余量及占用去向。有效买家跨 IP 去重，共享节点单列授权人数。旧「美国独享家宽IP」下架后，容量页只展示独立代理端口及普通套餐共享节点；历史订单仍可按原套餐查询。[下架记录](./progress-log.md#retire-us-plan-20261122)。网站版本 [20261122-21a3868](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-21a3868) 已上线。[统计口径与验收](./progress-log.md#proxy-capacity-20261122)
 
 ### 家宽代理新购分配
 

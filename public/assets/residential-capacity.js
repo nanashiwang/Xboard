@@ -52,19 +52,23 @@
       <div class="rc-table-wrap"><table><thead><tr><th>出口 IP</th><th>主机状态</th><th>可售 / 总端口</th><th>有效订阅</th><th>新购预留</th><th>到期保留</th><th>账号受限</th><th>不可售空位</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="rc-help">同一买家持有多个有效端口只计一人。续费沿用原端口，到期后仍保留归属。空闲端口仅在主机启用且最近 60 秒有心跳时可售。</p></div>`;
   }
-  function render(data, target) {
-    const plans = data.plans;
+  function renderDedicated(plans) {
+    if (!plans.length) return '';
     const sum = key => plans.reduce((n, plan) => n + plan[key], 0);
-    target.querySelector('.rc-time').textContent = '更新于 ' + new Date(data.checked_at * 1000).toLocaleTimeString();
     const stats = [['有效订阅', sum('subscribers'), '人'], ['已分配订阅', sum('assigned_subscribers'), '人'], ['订单预留', sum('reserved'), '个名额'], ['当前可新增', sum('available_slots'), '个名额']];
-    target.querySelector('.rc-data').innerHTML = `
-      ${renderProxy(data.proxy_inventory)}
+    return `
       <h2 class="rc-section-title">独享家宽套餐</h2>
       ${statCards(stats)}
-      ${plans.length ? plans.map(plan => `<article class="rc-plan"><div class="rc-plan-heading"><h3>${escape(plan.name)}</h3><strong>${escape(advice(plan))}</strong></div>
+      ${plans.map(plan => `<article class="rc-plan"><div class="rc-plan-heading"><h3>${escape(plan.name)}</h3><strong>${escape(advice(plan))}</strong></div>
       <p>占用 ${plan.occupied} / ${plan.capacity_limit === null ? '未设销售上限' : plan.capacity_limit} · 主用节点容量 ${plan.primary_capacity} · 待分配订阅 ${plan.unassigned_subscribers}</p>
-      <div class="rc-table-wrap"><table><thead><tr><th>节点 / 出口 IP</th><th>状态</th><th>已分配人数</th><th>订单预留</th><th>占用 / 容量</th><th>可分配空位</th></tr></thead><tbody>${plan.exits.map(exit => `<tr><td>${escape(exit.name)}<span class="rc-ip">${escape(exit.public_ip)}</span></td><td>${!exit.enabled ? '已停用' : exit.standby ? '备用 · ' + (exit.healthy ? '健康' : '不可用') : exit.healthy ? '健康' : '异常或检测过期'}</td><td>${exit.subscribers}</td><td>${exit.reserved}</td><td>${exit.occupied} / ${exit.capacity}</td><td>${exit.allocatable_slots}</td></tr>`).join('') || '<tr><td colspan="6">暂无出口节点</td></tr>'}</tbody></table></div></article>`).join('') : '<p class="rc-empty">尚未配置独享家宽套餐。</p>'}
-      <p class="rc-help">有效订阅：未封禁、未到期（含永久）；流量耗尽仍计入。续费不重复计人。订单预留仅统计尚未计入有效分配的占用。节点空位不代表可售，当前可新增还受健康、备用状态、套餐销售上限和停售限制。</p>
+      <div class="rc-table-wrap"><table><thead><tr><th>节点 / 出口 IP</th><th>状态</th><th>已分配人数</th><th>订单预留</th><th>占用 / 容量</th><th>可分配空位</th></tr></thead><tbody>${plan.exits.map(exit => `<tr><td>${escape(exit.name)}<span class="rc-ip">${escape(exit.public_ip)}</span></td><td>${!exit.enabled ? '已停用' : exit.standby ? '备用 · ' + (exit.healthy ? '健康' : '不可用') : exit.healthy ? '健康' : '异常或检测过期'}</td><td>${exit.subscribers}</td><td>${exit.reserved}</td><td>${exit.occupied} / ${exit.capacity}</td><td>${exit.allocatable_slots}</td></tr>`).join('') || '<tr><td colspan="6">暂无出口节点</td></tr>'}</tbody></table></div></article>`).join('')}
+      <p class="rc-help">有效订阅：未封禁、未到期（含永久）；流量耗尽仍计入。续费不重复计人。订单预留仅统计尚未计入有效分配的占用。节点空位不代表可售，当前可新增还受健康、备用状态、套餐销售上限和停售限制。</p>`;
+  }
+  function render(data, target) {
+    target.querySelector('.rc-time').textContent = '更新于 ' + new Date(data.checked_at * 1000).toLocaleTimeString();
+    target.querySelector('.rc-data').innerHTML = `
+      ${renderProxy(data.proxy_inventory)}
+      ${renderDedicated(data.plans)}
       ${data.shared_nodes.length ? `<details class="rc-shared" open><summary>普通套餐共享家宽节点 · ${data.shared_nodes.length} 个</summary><p>按当前节点的套餐权限统计有效订阅。同一用户可能有多个节点权限，各行不能相加；此人数不代表在线人数或独享名额。</p><ul>${data.shared_nodes.map(node => `<li><span>${escape(node.name)}</span><strong>${node.subscribers} 人有使用权限</strong></li>`).join('')}</ul></details>` : ''}`;
   }
   async function load() {

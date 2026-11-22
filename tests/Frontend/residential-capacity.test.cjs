@@ -92,3 +92,11 @@ test('empty proxy inventory leaves the other capacity sections visible',async()=
   const html=s.panel().querySelector('.rc-data').innerHTML;
   assert.ok(html.includes('尚未配置家宽代理主机') && html.includes('独享家宽套餐') && html.includes('共享家宽'));
 });
+test('retired plans leave only proxy inventory and ordinary shared access on the page',async()=>{
+  const s=boot();
+  s.requests[0].resolve({ok:true,json:async()=>({data:{...data,plans:[]}})});
+  await flush();
+  const html=s.panel().querySelector('.rc-data').innerHTML;
+  assert.ok(html.includes('有效买家') && html.includes('9 人有使用权限'));
+  assert.ok(!html.includes('独享家宽套餐') && !html.includes('已分配订阅') && !html.includes('待分配订阅'));
+});

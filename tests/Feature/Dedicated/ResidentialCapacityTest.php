@@ -154,6 +154,19 @@ class ResidentialCapacityTest extends TestCase
         $this->assertSame(0, $r['available_slots']);
     }
 
+    public function test_retired_empty_plans_are_omitted_but_outstanding_assignments_remain_visible(): void
+    {
+        $retired = $this->plan(['sell' => false, 'show' => false, 'renew' => false]);
+        $listed = $this->plan();
+        $summary = fn () => app(ResidentialCapacityService::class)->summary()['plans'];
+        $this->assertSame([$listed->id], array_column($summary(), 'id'));
+        $this->seat($retired, $this->exit($retired), $this->user(), 1, Order::STATUS_PENDING);
+        $rows = $summary();
+        $this->assertSame([$retired->id, $listed->id], array_column($rows, 'id'));
+        $this->assertSame(1, $rows[0]['reserved']);
+        $this->assertSame(0, $rows[0]['available_slots']);
+    }
+
     public function test_shared_aliases_deduplicate_users_and_exclude_dedicated_retired_and_expired_subscriptions(): void
     {
         $p = $this->plan(['dedicated' => false, 'group_id' => 1]);
