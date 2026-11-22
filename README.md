@@ -1,6 +1,6 @@
 ### 管理后台 · 节点管理
 
-节点管理默认按线路显示，15 条自建记录归为 7 行。点击「日本01｜1×」的「后端详情」可查看和编辑 friendhosting 后端；需要逐条管理时切换「全部记录」。[分组验收](./progress-log.md#admin-node-lines-20261122)
+节点管理默认按线路显示，15 条自建记录归为 7 行。点击「日本01｜1×」的「后端详情」可查看和编辑 friendhosting 后端；需要逐条管理时切换「全部记录」。[分组验收](./progress-log.md#admin-node-lines-20261122) · [网站版本 4d08985](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-4d08985)
 
 第三方拓展线路已全部退役。生产节点管理从 97 条减至 15 条自建记录，四档普通套餐各提供 6 条自建线路。旧订阅更新后即可移除第三方节点。[本轮退役](./progress-log.md#retire-third-party-routes-20261122) · [上轮旧节点清理](./progress-log.md#prune-retired-nodes-20261122)
 

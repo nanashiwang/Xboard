@@ -4,7 +4,9 @@
 
 管理员反馈自建入口和隐藏后端各占一行，辨认和编辑费时。按 `parent_id` 关联后默认显示入口，详情列出后端和共用后端的其他入口。可切换全部记录，搜索及筛选覆盖后端，编辑排序时展示完整顺序。[分组决定](./.agents/notes/implemented/feature/2026-11-22-admin-node-line-groups.md)
 
-原管理分发包构建、两处安装脚本语法检查、15 项浏览器会话与线路分组测试通过。Playwright 使用退役后的 15 条记录结构和本地测试接口验收：默认 7 行、日本后端提交 #353、美国同名别名提交 #348、按线路全选批量操作的 7 个入口 ID、排序保存的 15 个 ID、后端名称搜索及 390 像素手机视图的后端编辑。发布后再核对生产构建与静态资源。
+原管理分发包构建、两处安装脚本语法检查、15 项浏览器会话与线路分组测试通过。Playwright 使用退役后的 15 条记录结构和本地测试接口验收：默认 7 行、日本后端提交 #353、美国同名别名提交 #348、按线路全选批量操作的 7 个入口 ID、排序保存的 15 个 ID、后端名称搜索及 390 像素手机视图的后端编辑。另验证机器 #18 筛选直达后端 #353，拖拽调整入口顺序后完整保存 15 条记录。
+
+实现提交 `4d08985` 已推送 master。[网站检查](https://github.com/nanashiwang/Xboard/actions/runs/45034717998)、[笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/45034717966)、[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/45034718003)通过。[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/45035084879)记录的版本提交一致，服务健康。生产管理页入口清单及 JS 与本地浏览器验收产物一致，公网健康接口协议为 1。实际编辑和批量保存使用本地测试接口。[网站版本 web-20261122-4d08985](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-4d08985) 的镜像清单、验收文件和校验和已下载核对。
 
 <a id="retire-third-party-routes-20261122"></a>
 
