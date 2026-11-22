@@ -2,7 +2,9 @@
 
 ## 2026-11-22 下架美国独享家宽IP
 
-用户确认停卖旧固定出口套餐并移除空面板。官网下架前可见四档普通套餐及旧套餐 #5。[处理决定](./.agents/notes/implemented/simplification/2026-11-22-retire-us-dedicated-plan.md)要求核对待支付、开通中订单及有效用户，保留既有订单、端口和节点。已验证下架与等待锁的旧购买请求互斥；不再显示三项销售开关已关且无订阅、无占位的计划。PHP 130 项 774 断言、前端 8 项、运维 66 项通过。生产下架和网站发布待核验。
+用户确认停卖旧固定出口套餐并移除空面板。官网下架前可见四档普通套餐及旧套餐 #5。[处理决定](./.agents/notes/implemented/simplification/2026-11-22-retire-us-dedicated-plan.md)要求核对待支付、开通中订单及有效用户，保留既有订单、端口和节点。已验证下架与等待锁的旧购买请求互斥；不再显示三项销售开关已关且无订阅、无占位的计划。PHP 130 项 774 断言、前端 8 项、运维 66 项通过。
+
+代码 `10b8d38` 已推送 master。[订单回归](https://github.com/nanashiwang/Xboard/actions/runs/45021424179)及其余 CI 通过，[双架构镜像](https://github.com/nanashiwang/Xboard/actions/runs/45021424194)构建成功，[生产部署](https://github.com/nanashiwang/Xboard/actions/runs/45021756167)运行修订匹配且容器 Healthy。[下架操作](https://github.com/nanashiwang/Xboard/actions/runs/45021930568)在事务内核对有效订阅、待支付及开通中订单均为 0，保留 4 笔订单，关闭三项销售开关。北京时间 2026-11-22 20:24 的[独立回读](https://github.com/nanashiwang/Xboard/actions/runs/45022075594)显示旧套餐已从看板消失，20 个代理端口中有 2 个有效、18 个可售；两个共享节点分别有 19、19 人获授权。分别请求官网和桌面客户端公开目录，均只含原四档普通套餐。1366px、390px 的本地管理员页面实测在刷新后收起旧套餐，代理及共享节点继续展示。公开 JS/CSS 哈希核对通过。[网站 Release 20261122-10b8d38](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-10b8d38)三个附件已下载核验。
 
 <a id="proxy-capacity-20261122"></a>
 
