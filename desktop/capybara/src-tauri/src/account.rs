@@ -410,33 +410,63 @@ impl Account {
                 revision.as_deref(),
             )
             .await?;
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .unwrap_or("")
-            .trim_matches('"')
-            .to_owned();
-        if response.status() == StatusCode::NOT_MODIFIED {
-            return cached
-                .filter(|_| revision.as_deref() == Some(etag.as_str()))
-                .ok_or_else(|| Fault::local("订阅复核摘要不匹配，请重试"));
-        }
-        if !response.status().is_success() {
-            let _ = Self::decode(response).await?;
+        let status = response.status();
+        if status != StatusCode::NOT_MODIFIED && status != StatusCode::OK {
+            if !status.is_success() {
+                Self::decode(response).await?;
+            }
             return Err(Fault::local("配置下载失败"));
         }
-        if response.content_length().unwrap_or(0) > 4 * 1024 * 1024 {
-            return Err(Fault::local("配置过大"));
-        }
-        let content = response
-            .text()
-            .await
-            .map_err(|_| Fault::local("配置下载中断"))?;
-        if content.len() > 4 * 1024 * 1024
-            || etag != format!("{:x}", Sha256::digest(content.as_bytes()))
-        {
-            return Err(Fault::local("配置完整性校验失败，请重试"));
+        let etag = response.headers().get(reqwest::header::ETAG).cloned();
+        let (content, digest) = if status == StatusCode::NOT_MODIFIED {
+            cached
+                .zip(revision)
+                .ok_or_else(|| Fault::local("订阅复核缺少本地配置，请重试"))?
+        } else {
+            const MAX_SIZE: usize = 4 * 1024 * 1024;
+            if response
+                .content_length()
+                .is_some_and(|size| size > MAX_SIZE as u64)
+            {
+                return Err(Fault::local("配置过大"));
+            }
+            let mut response = response;
+            let mut bytes = Vec::new();
+            while let Some(chunk) = response
+                .chunk()
+                .await
+                .map_err(|_| Fault::local("配置下载中断"))?
+            {
+                if chunk.len() > MAX_SIZE - bytes.len() {
+                    return Err(Fault::local("配置过大"));
+                }
+                bytes.extend_from_slice(&chunk);
+            }
+            let content =
+                String::from_utf8(bytes).map_err(|_| Fault::local("配置编码异常，请重试"))?;
+            let digest = format!("{:x}", Sha256::digest(content.as_bytes()));
+            (content, digest)
+        };
+        let matches = match etag {
+            Some(header) => {
+                let tag = header.to_str().unwrap_or("");
+                let tag = tag.strip_prefix("W/").unwrap_or(tag);
+                let value = tag
+                    .strip_prefix('"')
+                    .and_then(|s| s.strip_suffix('"'))
+                    .unwrap_or(tag);
+                value == digest
+            }
+            None => {
+                let metadata = self.get("client/config?format=mihomo&delivery=url").await?;
+                metadata["sha256"]
+                    .as_str()
+                    .ok_or_else(|| Fault::local("服务器缺少配置摘要，请重试"))?
+                    == digest
+            }
+        };
+        if !matches {
+            return Err(Fault::local("订阅配置与服务器摘要不匹配，请重试"));
         }
         Ok(content)
     }
@@ -574,11 +604,27 @@ mod tests {
     use super::*;
     use std::io::{Read, Write};
     fn server(responses: Vec<(u16, Value)>) -> (String, std::thread::JoinHandle<Vec<String>>) {
+        http_server(
+            responses
+                .into_iter()
+                .map(|(status, json)| {
+                    (
+                        status,
+                        "Content-Type: application/json".into(),
+                        json.to_string().into_bytes(),
+                    )
+                })
+                .collect(),
+        )
+    }
+    fn http_server(
+        responses: Vec<(u16, String, Vec<u8>)>,
+    ) -> (String, std::thread::JoinHandle<Vec<String>>) {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let origin = format!("http://{}", listener.local_addr().unwrap());
         let handle = std::thread::spawn(move || {
             let mut paths = vec![];
-            for (status, body) in responses {
+            for (status, headers, body) in responses {
                 let (mut conn, _) = listener.accept().unwrap();
                 conn.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
                 let mut request = vec![];
@@ -610,8 +656,8 @@ mod tests {
                         .unwrap()
                         .to_owned(),
                 );
-                let body = body.to_string();
-                write!(conn,"HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).unwrap();
+                write!(conn, "HTTP/1.1 {status} Test\r\n{headers}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
+                conn.write_all(&body).unwrap();
             }
             paths
         });
@@ -848,6 +894,62 @@ mod tests {
             vec!["GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1"; 4]
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[tokio::test]
+    async fn config_verifies_bytes_with_weak_or_missing_etags() {
+        use sha2::{Digest, Sha256};
+        let content = "\u{feff}# 节点\r\nproxies: []\r\n";
+        let digest = format!("{:x}", Sha256::digest(content.as_bytes()));
+        let wrong = "0".repeat(64);
+        let inline = "GET /api/v1/client/config?format=mihomo&delivery=inline HTTP/1.1";
+        let metadata = "GET /api/v1/client/config?format=mihomo&delivery=url HTTP/1.1";
+        for (status, has_cache, tag, fallback, valid) in [
+            (200, false, Some(&digest), None, true),
+            (200, false, Some(&wrong), None, false),
+            (304, true, Some(&digest), None, true),
+            (304, true, Some(&wrong), None, false),
+            (304, false, None, None, false),
+            (200, false, None, Some(&digest), true),
+            (200, false, None, Some(&wrong), false),
+            (304, true, None, Some(&digest), true),
+            (304, true, None, Some(&wrong), false),
+        ] {
+            let mut headers = String::from("Content-Type: application/yaml");
+            if let Some(tag) = tag {
+                headers.push_str(&format!("\r\nETag: W/\"{tag}\""));
+            }
+            let body = if status == 200 {
+                content.as_bytes()
+            } else {
+                &[]
+            };
+            let mut replies = vec![(status, headers, body.to_vec())];
+            let mut paths = vec![inline];
+            if let Some(expected) = fallback {
+                let data = json!({"data":{"sha256":expected}});
+                replies.push((
+                    200,
+                    "Content-Type: application/json".into(),
+                    data.to_string().into_bytes(),
+                ));
+                paths.push(metadata);
+            }
+            let (origin, server) = http_server(replies);
+            let dir = std::env::temp_dir().join(Uuid::new_v4().to_string());
+            std::fs::create_dir(&dir).unwrap();
+            let mut account = Account::new(&dir).unwrap();
+            account.origin = origin;
+            account.access = "test-access".into();
+            account.expires = Instant::now() + Duration::from_secs(60);
+            let result = account.config(has_cache.then(|| content.to_owned())).await;
+            if valid {
+                assert_eq!(result.unwrap(), content);
+            } else {
+                assert!(result.is_err());
+            }
+            assert_eq!(server.join().unwrap(), paths);
+            std::fs::remove_dir_all(dir).unwrap();
+        }
     }
     #[tokio::test]
     async fn store_mutation_is_not_retried_on_server_failure() {

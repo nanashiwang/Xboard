@@ -24,6 +24,8 @@
 
 # Xboard 能力地图
 
+订阅校验由 [Account::config](../desktop/capybara/src-tauri/src/account.rs) 处理。200 校验下载正文，304 校验已应用配置；缺少 ETag 时复用鉴权的 `client/config?format=mihomo&delivery=url` 元数据。[订阅复核决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
+
 桌面首页调用原生 `test_nodes`，对当前配置中的真实节点发起最多六路 HTTPS 检测，支持 TCP 的共享入口独立计时。`refresh_subscription` 在账号与套餐检查后发送已应用配置的 ETag，验证 304 或新正文，再决定是否重载。[测速与条件更新决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
 首页「连接检测」使用当前内核的本地代理，请求 Google 的 HTTPS 204 检测地址；普通节点的检测结果保存在连接状态中。按钮复检和点选新节点各有独立处理。[原生命令](../desktop/capybara/src-tauri/src/main.rs) · [实机复检](../progress-log.md#desktop-check-1511-20261122)
