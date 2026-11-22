@@ -4,7 +4,11 @@
 
 用户要求直接删除无用途的节点。[生产只读清单](https://github.com/nanashiwang/Xboard/actions/runs/45028853706)共 135 条。38 条旧自建记录已同时停用、隐藏且权限组为空。32 对撤下的第三方线路仍由保护器管理，9 对第三方线路仍配置下发。另有 15 条自建记录服务现有入口、后端、固定别名及监控。独享出口 #14 当时有 1 个绑定。[清理决定](./.agents/notes/implemented/simplification/2026-11-22-remove-retired-node-rows.md)
 
-运维脚本先备份再锁库，核实身份及引用后删除。用生产清单预演得到 135 → 97。运维回归、独享与探针测试通过。生产执行及独立回读待核实。
+运维脚本先备份再锁库，核实身份及引用后删除。用生产清单预演得到 135 → 97。本地运维 71 项、独享与探针 73 项 / 488 断言通过。
+
+提交 `e8e3d39` 已推送 master。北京时间 21:47:46 SQLite 备份完整性校验通过，21:47:47 [生产清理](https://github.com/nanashiwang/Xboard/actions/runs/45029334594)删除 13 个旧入口、13 个后端和 12 个独享别名。[独立回读](https://github.com/nanashiwang/Xboard/actions/runs/45029453153)确认剩余 97 条与清理前的保留集合一致，父节点均可解析，独享池 #14 的原绑定、七条 NAS 节点及其预期出口一致。验证覆盖生产配置，未逐条测试网络连通性。历史统计按原 ID 保留，退役节点的名称可从备份追溯。恢复时只回填本次删除的节点及相应旧引用，避免覆盖新增订单或用量。
+
+[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45029331229)、[决策笔记检查](https://github.com/nanashiwang/Xboard/actions/runs/45029331308)和[镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45029331208)通过。本次仅执行数据清理，未切换应用镜像或发布新网站版本。
 
 <a id="retire-panel-probe-20261122"></a>
 
