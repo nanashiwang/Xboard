@@ -1,3 +1,15 @@
+<a id="prune-machines-20261123"></a>
+
+## 2026-11-23 清理七云退役机器登记
+
+用户要求删除服务器管理里已经闲置的记录。美国 SID 4–11 曾承载的节点已在 11 月 22 日退役。[原清理决定](./.agents/notes/implemented/simplification/2026-11-22-remove-retired-node-rows.md)
+
+北京时间 00:24:36，[生产运维](https://github.com/nanashiwang/Xboard/actions/runs/45043661004)完成 SQLite 私有备份及完整性检查。写事务核对 8 台机器的 SID、IP、到期备注和最后上报，确认没有节点、入口监控、探针预期出口、在用独享出口或家宽代理库存引用后删除。提交后以单独的只读连接回查，机器总数由 20 降至 12，SID 4–11 均已消失。操作仅涉及 Xboard 登记及关联负载历史；云主机和 CPA 服务由原环境管理。
+
+[独立生产清单](https://github.com/nanashiwang/Xboard/actions/runs/45043761316)仍有 15 条节点记录。香港 SID 3 的最后心跳为 11 月 12 日 02:24:27，后端 #338 仍启用，公开节点 #325「香港01｜1×」仍引用它并展示给权限组 1–6。NAS 探针 1 于 11 月 23 日 00:24:42 记录该线路掉线，成功次数为 0。保留该机器，以便恢复线路或单独办理退役。
+
+运维提交 `193db7d` 已推送 master。76 项本地运维测试通过，覆盖保留引用、事务回滚与重复执行。工作流语法及笔记校验通过。[运维 CI](https://github.com/nanashiwang/Xboard/actions/runs/45043647691)、[笔记 CI](https://github.com/nanashiwang/Xboard/actions/runs/45043647684)和[双架构镜像构建](https://github.com/nanashiwang/Xboard/actions/runs/45043647764)成功。本次配置清理沿用现有应用版本，无新 Release。
+
 <a id="admin-node-lines-20261122"></a>
 
 ## 2026-11-22 节点管理按线路显示

@@ -4,6 +4,8 @@
 
 第三方拓展线路已全部退役。生产节点管理从 97 条减至 15 条自建记录，四档普通套餐各提供 6 条自建线路。旧订阅更新后即可移除第三方节点。[本轮退役](./progress-log.md#retire-third-party-routes-20261122) · [上轮旧节点清理](./progress-log.md#prune-retired-nodes-20261122)
 
+已从生产服务器管理删除七云美国 SID 4–11 的 8 条空登记，机器由 20 台减至 12 台。七云香港 SID 3 仍承载「香港01」的后端，11 月 23 日 00:24 探针报线路掉线，保留登记。[清理与复核](./progress-log.md#prune-machines-20261123)
+
 ### 管理后台 · 家宽订阅与容量
 
 从后台侧栏打开「家宽订阅与容量」即可查看每个出口 IP 的代理端口总量、可售余量及占用去向。有效买家跨 IP 去重，共享节点单列授权人数。旧「美国独享家宽IP」下架后，容量页只展示独立代理端口及普通套餐共享节点；历史订单仍可按原套餐查询。[下架记录](./progress-log.md#retire-us-plan-20261122)。网站版本 [20261122-10b8d38](https://github.com/nanashiwang/Xboard/releases/tag/web-20261122-10b8d38) 已上线。[统计口径与验收](./progress-log.md#proxy-capacity-20261122)
