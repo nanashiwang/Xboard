@@ -2,7 +2,7 @@
 
 「节点管理」从原管理员 `server/manage/getNodes` 获取真实节点，以隐藏根节点的 `parent_id` 引用归组。入口行的「后端详情」提供原生编辑入口，搜索、机器筛选及排序可处理全部记录。[分组实现](../scripts/frontend/admin-node-lines.js) · [分发包接入](../scripts/frontend/patch-admin-node-lines.php) · [决定与边界](../.agents/notes/implemented/feature/2026-11-22-admin-node-line-groups.md)
 
-[七云退役机器清理](../.docker/production/prune-retired-machines.py)仅处理已退役的八个美国 SID，生产运维先备份，再按绑定、上报和库存逐台复核。
+[七云退役机器清理](../.docker/production/prune-retired-machines.py)分批处理 SID 4–11 和 SID 15、16，生产运维先备份，再按身份、上报、绑定和库存复核。
 
 [香港线路退役](../.docker/production/retire-qiyun-hk.py)同步删除机器 3、节点 325/338 及其面板监控映射。[自建线路验收](../.docker/production/verify-metering-nodes.py)核对其余六个出口。
 

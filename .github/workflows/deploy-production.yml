@@ -28,6 +28,7 @@ on:
           - retire-upstream-nodes
           - prune-retired-nodes
           - prune-retired-machines
+          - prune-cn2-windows
           - retire-qiyun-hk
           - retire-extension-probe
           - retire-us-dedicated-plan
@@ -99,12 +100,14 @@ jobs:
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'python3 -' < .docker/production/prune-retired-nodes.py
             exit 0
           fi
-          if [[ "$OPERATION" == prune-retired-machines ]]; then
+          if [[ "$OPERATION" == prune-retired-machines || "$OPERATION" == prune-cn2-windows ]]; then
             [[ "$GITHUB_REF" == refs/heads/master ]]
             sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 \
               'python3 - /root/Xboard/.docker/.data/database.sqlite /root/xboard-backups/prune-retired-machines' \
               < .docker/production/backup-database.py
-            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 'python3 -' < .docker/production/prune-retired-machines.py
+            remote_cmd='python3 -'
+            if [[ "$OPERATION" == prune-cn2-windows ]]; then remote_cmd='python3 - --cn2-windows'; fi
+            sshpass -e ssh "${ssh_opts[@]}" root@107.173.191.23 "$remote_cmd" < .docker/production/prune-retired-machines.py
             exit 0
           fi
           if [[ "$OPERATION" == retire-qiyun-hk ]]; then
