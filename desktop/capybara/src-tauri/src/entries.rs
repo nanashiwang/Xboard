@@ -221,7 +221,7 @@ impl Directory {
         if !failed
             && self
                 .checked
-                .is_some_and(|at| at.elapsed() < Duration::from_secs(30))
+                .is_some_and(|at| at.elapsed() < Duration::from_secs(120))
             && self.origins().iter().any(|item| item == origin)
         {
             return Ok(origin.into());
@@ -252,7 +252,7 @@ impl Directory {
 async fn healthy(client: &Client, origin: &str) -> bool {
     let Ok(mut response) = client
         .get(format!("{origin}/api/v1/client/health"))
-        .timeout(Duration::from_secs(3))
+        .timeout(Duration::from_secs(6))
         .send()
         .await
     else {
@@ -317,6 +317,18 @@ mod tests {
         ] {
             assert!(!valid_origin(value), "{value}");
         }
+    }
+    #[tokio::test]
+    async fn verified_origin_survives_a_poll_cycle_but_not_failure_or_expiry() {
+        let mut directory =
+            Directory::new(&std::env::temp_dir().join(uuid::Uuid::new_v4().to_string()));
+        let origin = "http://127.0.0.1:0";
+        directory.test_origins = Some(vec![origin.into()]);
+        directory.checked = Some(Instant::now() - Duration::from_secs(45));
+        assert_eq!(directory.select(origin, false).await.unwrap(), origin);
+        assert!(directory.select(origin, true).await.is_err());
+        directory.checked = Some(Instant::now() - Duration::from_secs(121));
+        assert!(directory.select(origin, false).await.is_err());
     }
     #[test]
     fn unsigned_cached_origins_never_receive_credentials() {

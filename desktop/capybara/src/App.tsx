@@ -39,6 +39,7 @@ import {
     emptyView,
     quotaPercent,
     statusMessage,
+    syncNeedsAttention,
     type View,
 } from "./model";
 const pages = [
@@ -176,7 +177,7 @@ export default function App() {
     const eligible =
         !view.logged_in ||
         connected ||
-        (!view.sync_error && s?.status === "active");
+        (!syncNeedsAttention(view) && s?.status === "active");
     const primaryText =
         busy === "select_and_connect"
             ? connected

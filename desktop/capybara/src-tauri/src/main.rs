@@ -66,6 +66,7 @@ struct View {
     subscription: Option<Value>,
     synced_at: Option<u64>,
     sync_error: Option<String>,
+    sync_error_code: Option<String>,
     connection: String,
     connection_error: Option<String>,
     proxy_id: Option<u64>,
@@ -84,6 +85,7 @@ impl Default for View {
             subscription: None,
             synced_at: None,
             sync_error: None,
+            sync_error_code: None,
             connection: "disconnected".into(),
             connection_error: None,
             proxy_id: None,
@@ -92,6 +94,16 @@ impl Default for View {
             version: account::VERSION.into(),
             platform: account::platform().into(),
         }
+    }
+}
+impl View {
+    fn set_sync_error(&mut self, error: Option<&Fault>) {
+        if error.is_some_and(|e| e.code == "SUBSCRIPTION_UNAVAILABLE") {
+            self.subscription = None;
+            self.synced_at = None;
+        }
+        self.sync_error = error.map(|e| e.message.clone());
+        self.sync_error_code = error.map(|e| e.code.clone());
     }
 }
 #[derive(Serialize)]
@@ -255,7 +267,7 @@ impl Runtime {
                 }
                 self.view.subscription = Some(subscription);
                 self.view.synced_at = Some(now());
-                self.view.sync_error = None;
+                self.view.set_sync_error(None);
                 if !active {
                     if self.proxy_engine.is_none()
                         || self
@@ -291,7 +303,7 @@ impl Runtime {
                     let _ = self.account.invalidate_session();
                 }
                 self.view.logged_in = self.account.logged_in();
-                self.view.sync_error = Some(e.message.clone());
+                self.view.set_sync_error(Some(&e));
                 if !self.view.logged_in {
                     let _ = self.shutdown().await;
                     self.view.profile = None;
@@ -373,10 +385,10 @@ impl Runtime {
                 self.view.profile = None;
                 self.view.subscription = None;
                 self.view.synced_at = None;
-                self.view.sync_error = Some(error.message.clone());
+                self.view.set_sync_error(Some(error));
             } else if error.code == "SUBSCRIPTION_UNAVAILABLE" {
                 let _ = self.shutdown().await;
-                self.view.sync_error = Some(error.message.clone());
+                self.view.set_sync_error(Some(error));
             }
         }
         result.map(|_| ())
@@ -616,14 +628,14 @@ async fn restore_session(state: State<'_, AppState>) -> Result<View, Fault> {
     match rt.account.resume(credentials::Access::UserInitiated) {
         Ok(saved) => {
             rt.view.session_needs_unlock = false;
-            rt.view.sync_error = None;
+            rt.view.set_sync_error(None);
             rt.view.logged_in = saved;
             let _ = rt.sync().await;
             Ok(rt.view.clone())
         }
         Err(e) => {
             rt.view.session_needs_unlock = e.code == "CREDENTIALS_LOCKED";
-            rt.view.sync_error = Some(e.message.clone());
+            rt.view.set_sync_error(Some(&e));
             Err(e)
         }
     }
@@ -793,7 +805,7 @@ fn main() {
                 Ok(saved) => view.logged_in = saved,
                 Err(e) => {
                     view.session_needs_unlock = e.code == "CREDENTIALS_LOCKED";
-                    view.sync_error = Some(e.message);
+                    view.set_sync_error(Some(&e));
                 }
             }
             let binary = if cfg!(debug_assertions) {
@@ -947,6 +959,23 @@ fn host_target() -> &'static str {
 mod connection_tests {
     use super::*;
     use std::cell::Cell;
+
+    #[test]
+    fn network_failure_after_subscription_rejection_has_no_usable_snapshot() {
+        let mut view = View {
+            subscription: Some(serde_json::json!({"status": "active"})),
+            synced_at: Some(now()),
+            ..View::default()
+        };
+        for code in ["SUBSCRIPTION_UNAVAILABLE", "NETWORK_TIMEOUT"] {
+            view.set_sync_error(Some(&Fault {
+                code: code.into(),
+                message: code.into(),
+            }));
+        }
+        assert!(view.subscription.is_none());
+        assert!(view.synced_at.is_none());
+    }
 
     #[tokio::test]
     async fn failed_proxy_activation_does_not_connect_or_probe() {

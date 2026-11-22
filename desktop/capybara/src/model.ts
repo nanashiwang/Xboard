@@ -26,6 +26,7 @@ export type View = {
     subscription: Subscription | null;
     synced_at: number | null;
     sync_error: string | null;
+    sync_error_code?: string | null;
     connection: "connected" | "disconnected";
     connection_error: string | null;
     proxy_id?: number | null;
@@ -71,6 +72,34 @@ export function date(value: string | null | undefined) {
           })
         : "—";
 }
+const transientSyncErrors = new Set([
+    "NETWORK_UNAVAILABLE",
+    "NETWORK_CONNECT",
+    "NETWORK_TIMEOUT",
+    "NETWORK_REQUEST",
+]);
+
+export function syncNeedsAttention(view: View, now = Date.now()) {
+    if (!view.sync_error) return false;
+    if (
+        !view.logged_in ||
+        !view.subscription ||
+        view.synced_at === null ||
+        !transientSyncErrors.has(view.sync_error_code ?? "")
+    )
+        return true;
+
+    const age = now - view.synced_at * 1000;
+    const expires = view.subscription.expires_at;
+    return (
+        age < 0 ||
+        age >= 90_000 ||
+        (view.subscription.status === "active" &&
+            expires !== null &&
+            !(Date.parse(expires) > now))
+    );
+}
+
 export function statusMessage(view: View) {
     if (!view.logged_in && view.connection_error)
         return {
@@ -99,11 +128,11 @@ export function statusMessage(view: View) {
             title: "你好，欢迎来到卡皮巴拉",
             text: "登录账号，流量、套餐和连接状态都在这里。",
         };
-    if (view.sync_error)
+    if (syncNeedsAttention(view))
         return {
             tone: "warning",
             title: "暂时无法同步账号",
-            text: "当前流量可能已过期，暂时无法确认套餐状态。网络恢复后会自动重试。",
+            text: "暂时读不到最新的套餐和流量数据，客户端会自动重试。",
         };
     if (view.proxy_id && view.connection === "connected")
         return view.connection_error

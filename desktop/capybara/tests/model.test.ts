@@ -3,6 +3,7 @@ import {
     emptyView,
     quotaPercent,
     statusMessage,
+    syncNeedsAttention,
     type Subscription,
     type View,
 } from "../src/model";
@@ -51,6 +52,56 @@ describe("套餐提示优先级", () => {
         expect(statusMessage({ ...v, sync_error: "offline" }).title).toBe(
             "暂时无法同步账号",
         );
+    });
+    it("短暂网络失败继续显示最近一次状态，超过宽限再提示", () => {
+        const synced = Math.floor(Date.now() / 1000);
+        const failed: View = {
+            ...v,
+            synced_at: synced,
+            sync_error: "超时",
+            sync_error_code: "NETWORK_TIMEOUT",
+        };
+        expect(syncNeedsAttention(failed, synced * 1000 + 89_999)).toBe(false);
+        expect(syncNeedsAttention(failed, synced * 1000 + 90_000)).toBe(true);
+        expect(syncNeedsAttention(failed, synced * 1000 - 1)).toBe(true);
+        expect(statusMessage(failed).title).toBe("准备好了，随时出发");
+        expect(
+            statusMessage({ ...failed, connection_error: "线路异常" }).text,
+        ).toBe("线路异常");
+        expect(
+            syncNeedsAttention(
+                { ...failed, sync_error: null },
+                synced * 1000 + 91_000,
+            ),
+        ).toBe(false);
+    });
+    it("无近期快照、已过有效期或明确服务错误立即提示", () => {
+        const failure: View = {
+            ...v,
+            synced_at: Math.floor(Date.now() / 1000),
+            sync_error: "失败",
+            sync_error_code: "NETWORK_UNAVAILABLE",
+        };
+        for (const change of [
+            { subscription: null },
+            { synced_at: null },
+            {
+                subscription: {
+                    ...s,
+                    expires_at: new Date(Date.now() - 1000).toISOString(),
+                },
+            },
+            { sync_error_code: "AUTH_REQUIRED" },
+            { sync_error_code: "SUBSCRIPTION_UNAVAILABLE" },
+            { sync_error_code: "NETWORK_DENIED" },
+        ])
+            expect(syncNeedsAttention({ ...failure, ...change })).toBe(true);
+        expect(
+            statusMessage({
+                ...failure,
+                subscription: { ...s, status: "expired" },
+            }).title,
+        ).toBe("套餐已到期");
     });
     it("区分套餐到期与线路错误", () => {
         expect(
