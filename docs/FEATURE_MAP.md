@@ -30,6 +30,8 @@ Mac 正式包使用 [Developer ID 发布流程](../.github/workflows/capybara-de
 
 桌面首页调用原生 `test_nodes`，对当前配置中的真实节点发起最多六路 HTTPS 检测，支持 TCP 的共享入口独立计时。`refresh_subscription` 在账号与套餐检查后发送已应用配置的 ETag，验证 304 或新正文，再决定是否重载。[测速与条件更新决定](../.agents/notes/implemented/feature/2026-11-22-capybara-probe-refresh.md)
 
+[首页节点超时实测](../progress-log.md#desktop-node-timeouts-20261124)对照五条线路的 5 秒与 12 秒结果、两款客户端的实际 HTTPS 请求及同一时段的生产出口检查。
+
 首页「连接检测」使用当前内核的本地代理，请求 Google 的 HTTPS 204 检测地址；普通节点的检测结果保存在连接状态中。按钮复检和点选新节点各有独立处理。[原生命令](../desktop/capybara/src-tauri/src/main.rs) · [实机复检](../progress-log.md#desktop-check-1511-20261122)
 
 [桌面测速与订阅更新实测](../progress-log.md#desktop-latency-subscription-20261122)记录首页操作耗时及 TCP 与完整代理请求的测量差异。

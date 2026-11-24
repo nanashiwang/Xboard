@@ -1,3 +1,7 @@
+### Mac 首页节点测速超时（11 月 24 日）
+
+卡皮巴拉 0.1.25 首页要求所选节点在 5 秒内完成 HTTPS 检测。五条普通线路各测三轮，7/15 次通过；同一内核与目标另用 12 秒测，12/15 次通过。本机 Shadowrocket 当前使用 TCP 测速。Wi-Fi 直连共享入口也观察到响应超时，生产监控同期通过五条普通线路的出口 IP 和 UDP 检查。[本机与生产对照](./progress-log.md#desktop-node-timeouts-20261124)
+
 ### 英国家宽出口已上架 · [桌面 0.1.24](https://github.com/nanashiwang/Xboard/releases/tag/capybara-v0.1.24)
 
 英国固定出口首批 10 个端口已通过生产验收。管理员可在「家宽订阅与容量」登记下一台出口。见[验收记录](./progress-log.md#proxy-enroll-live-20261123)。
